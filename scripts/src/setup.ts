@@ -80,7 +80,8 @@ for (const [kind, field] of [
 // How keys look. Devnet points at placeholder images on devnet.mvxvest.io.
 const site = network() === "devnet" ? "https://devnet.mvxvest.io" : "https://mvxvest.io";
 for (const [kind, file] of [
-  ["Claim", "claim-key"],
+  // "-2": the green claim key (12 Oct 2026); a new name so media caches fetch it.
+  ["Claim", "claim-key-2"],
   ["Cancel", "cancel-key"],
 ] as const) {
   // PNG first: wallets show the first URI, and not all of them render SVG.
