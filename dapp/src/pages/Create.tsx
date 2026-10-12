@@ -162,6 +162,13 @@ export const Create = () => {
   const [mode, setMode] = useState<'rows' | 'csv'>('rows');
   const [rows, setRows] = useState<Row[]>([{ address: '', amount: '' }]);
   const [csv, setCsv] = useState('');
+  // The name of the file the lines came from, while they are unedited.
+  const [csvFile, setCsvFile] = useState<string | null>(null);
+  const loadCsv = (file: File) =>
+    file.text().then((text) => {
+      setCsv(text);
+      setCsvFile(file.name);
+    });
   // Rows typed one by one are judged once the reader leaves them (focus goes
   // outside the row), or presses "Check and sign": not while still typing.
   const [judged, setJudged] = useState<Set<number>>(new Set());
@@ -597,6 +604,7 @@ export const Create = () => {
     setCreated([]);
     setRows([{ address: '', amount: '' }]);
     setCsv('');
+    setCsvFile(null);
   };
 
   // ------------------------------------------------------------- render
@@ -765,7 +773,35 @@ export const Create = () => {
               </Button>
             </div>
           ) : (
-            <div className='space-y-2'>
+            <div className='space-y-3'>
+              <div className='flex flex-wrap items-center gap-3'>
+                {/* A real button: the browser's own file control was easy to
+                    miss (Sebastian, devnet test). */}
+                <label className='inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent hover:opacity-90'>
+                  Choose a CSV file
+                  <input
+                    type='file'
+                    accept='.csv,text/csv,text/plain'
+                    className='sr-only'
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      // The same file can be chosen again after an edit.
+                      event.target.value = '';
+                      if (file) loadCsv(file);
+                    }}
+                  />
+                </label>
+                <span className='text-sm text-muted'>
+                  {csvFile ? (
+                    <>
+                      <span className='font-semibold text-ink'>{csvFile}</span>{' '}
+                      loaded: check the lines below.
+                    </>
+                  ) : (
+                    'or drop a file on the box below, or paste the lines into it'
+                  )}
+                </span>
+              </div>
               <Field
                 label='One line per vesting: address, amount'
                 hint={`A header line is fine. Amounts in ${ticker || 'token'} units, at most ${decimals} decimals. Comma, semicolon or tab between the two.`}
@@ -773,18 +809,20 @@ export const Create = () => {
                 <textarea
                   className={`${inputClass} h-48 font-mono`}
                   value={csv}
-                  onChange={(event) => setCsv(event.target.value)}
+                  onChange={(event) => {
+                    setCsv(event.target.value);
+                    setCsvFile(null);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    const file = event.dataTransfer.files?.[0];
+                    if (!file) return;
+                    event.preventDefault();
+                    loadCsv(file);
+                  }}
                   placeholder={'address,amount\nerd1...,1000\nerd1...,2500.5'}
                 />
               </Field>
-              <input
-                type='file'
-                accept='.csv,text/csv,text/plain'
-                className='text-sm'
-                onChange={(event) =>
-                  event.target.files?.[0]?.text().then(setCsv)
-                }
-              />
             </div>
           )}
           {shownErrors.length > 0 && (
