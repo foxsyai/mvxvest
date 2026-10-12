@@ -53,6 +53,17 @@ const toBps = (value: string) => {
     : NaN;
 };
 
+/** Sorted ids as runs of consecutive ones: [340..459] instead of 120 ids. */
+const runsOf = (ids: number[]): [number, number][] => {
+  const runs: [number, number][] = [];
+  for (const id of ids) {
+    const last = runs[runs.length - 1];
+    if (last && id === last[1] + 1) last[1] = id;
+    else runs.push([id, id]);
+  }
+  return runs;
+};
+
 const Step = ({
   n,
   title,
@@ -1204,12 +1215,26 @@ export const Create = () => {
         {created.length > 0 && (
           <Notice tone='ok'>
             Created {created.length} vesting{created.length === 1 ? '' : 's'}:{' '}
-            {created.map((id, index) => (
-              <span key={id}>
+            {runsOf(created).map(([first, last], index) => (
+              <span key={first}>
                 {index > 0 && ', '}
-                <Link to={`/v/${id}`} className='text-accent hover:underline'>
-                  #{id}
+                <Link
+                  to={`/v/${first}`}
+                  className='text-accent hover:underline'
+                >
+                  #{first}
                 </Link>
+                {last !== first && (
+                  <>
+                    {last === first + 1 ? ', ' : '–'}
+                    <Link
+                      to={`/v/${last}`}
+                      className='text-accent hover:underline'
+                    >
+                      #{last}
+                    </Link>
+                  </>
+                )}
               </span>
             ))}
             . The claim keys are in the beneficiaries’ wallets
