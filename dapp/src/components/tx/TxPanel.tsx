@@ -215,6 +215,12 @@ export const TxPanel = ({
       const signature = statuses.join(',');
       if (signature !== reported) {
         reported = signature;
+        // The chain has its result now: every read is fetched again (the
+        // timers in send() can run before a slow cross-shard result is in,
+        // and a read cached then would show the old state for 2 minutes).
+        // (chain/network.ts clears its cache on "mvxvest:final".)
+        window.dispatchEvent(new CustomEvent('mvxvest:final'));
+        window.dispatchEvent(new CustomEvent('mvxvest:settled'));
         onFinished?.(
           hashes,
           hashes.map((hash) => next[hash])

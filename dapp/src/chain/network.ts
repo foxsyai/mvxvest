@@ -266,6 +266,12 @@ export const clearCache = () => {
   inflight.clear();
 };
 
+// A signing panel saw its transactions' final result: what was read before
+// may be out of date anywhere on the page. Once per signing, so clearing
+// everything costs a few reads, not the cost mvxsafe met per transaction.
+if (typeof window !== 'undefined')
+  window.addEventListener('mvxvest:final', () => clearCache());
+
 /**
  * Drops what is cached about one address only. After a transaction to one
  * safe, that safe is read again and every other one stays as fast as it was:
