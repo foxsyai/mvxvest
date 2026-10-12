@@ -131,11 +131,12 @@ const csvCell = (cell: string | number) => {
   if (typeof cell !== 'number') {
     if (/^[\s"]*[=+\-@]|^[\t\r]/.test(text)) text = `'${text}`;
     // A semicolon-locale spreadsheet does not split on commas, so quotes do
-    // not hold there: it starts a new cell at every semicolon (or tab), and a
-    // formula could start right after one.
+    // not hold there: it starts a new cell at every semicolon or tab, and a
+    // new row at every line break, and a formula could start right after
+    // any of them.
     // (Spaces or quotes between the separator and the formula do not stop
     // a spreadsheet from reading one.)
-    text = text.replace(/([;\t])(?=[\s"]*[=+\-@])/g, "$1'");
+    text = text.replace(/([;\t\n\r])(?=[\s"]*[=+\-@])/g, "$1'");
   }
   return /[",;\t\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
@@ -144,3 +145,13 @@ const csvCell = (cell: string | number) => {
 export const toCsv = (header: string[], lines: (string | number)[][]) =>
   [header, ...lines].map((cells) => cells.map(csvCell).join(',')).join('\n') +
   '\n';
+
+/** Hands `text` to the reader as a file download. */
+export const downloadFile = (name: string, text: string) => {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+};

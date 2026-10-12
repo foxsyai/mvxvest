@@ -21,8 +21,13 @@ import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { DEFAULT_LIMITS, splitIntoBatches } from 'vesting/batches';
 import { buildSchedule, DAY, Plan, planProblem, Shape } from 'vesting/builder';
 import { EGLD, NewVesting } from 'vesting/client';
-import { Beneficiary, parseBeneficiaries } from 'vesting/csv';
-import { formatAmount } from 'vesting/format';
+import {
+  Beneficiary,
+  downloadFile,
+  parseBeneficiaries,
+  toCsv
+} from 'vesting/csv';
+import { formatAmount, plainAmount } from 'vesting/format';
 import { validateSchedule } from 'vesting/schedule';
 
 // ---------------------------------------------------------------- helpers
@@ -416,16 +421,21 @@ export const Create = () => {
 
   const anySent = review ? review.hashes.some(Boolean) : false;
   const openAttempt = review?.attempts.find((attempt) => !attempt.sent);
-  // Transactions that created nothing: never sent, or final without success.
-  const toSign = review
-    ? review.batches
-        .map((_, index) => index)
-        .filter((index) => {
-          const hash = review.hashes[index];
-          return !hash || (review.results[hash] ?? 'success') !== 'success';
-        })
-    : [];
-  // A send the network did not confirm must be settled before the rest.
+  const indexes = review ? review.batches.map((_, index) => index) : [];
+  const resultOf = (index: number) => {
+    const hash = review?.hashes[index];
+    return hash ? (review!.results[hash] ?? 'pending') : 'not sent';
+  };
+  // What can be signed again: never sent, or executed and failed (its nonce
+  // is used, so nothing else can execute in its place).
+  const toSign = indexes.filter((index) =>
+    ['not sent', 'failed'].includes(resultOf(index))
+  );
+  // Sent, but the network has not seen it for minutes. It may still turn up,
+  // so it is never signed again here, and nothing more of this creation is
+  // signed while its fate is unknown.
+  const lost = indexes.filter((index) => resultOf(index) === 'missing');
+  // A send the network did not confirm receiving must be settled first.
   const waiting = review
     ? review.unconfirmed.some((hash) => !review.results[hash])
     : false;
@@ -474,9 +484,6 @@ export const Create = () => {
       // send() returns the hashes in order, stopping at the first not sent.
       result.hashes.forEach((hash, k) => {
         hashes[attempt.indexes[k]] = hash;
-        // Followed again from here (an earlier send that turned up after all
-        // comes back under its own hash).
-        delete results[hash];
       });
       return {
         ...current,
@@ -537,27 +544,30 @@ export const Create = () => {
 
   const signRemaining = () => {
     if (!review) return;
-    // A send that never showed up is signed again first, at a nonce read
-    // from the network: its nonce, which is still free. The node takes one
-    // transaction per nonce, so the copy and the lost one can never both
-    // execute. The others follow it.
-    const isMissing = (index: number) => {
-      const hash = review.hashes[index];
-      return hash !== undefined && review.results[hash] === 'missing';
-    };
-    const missing = toSign.filter(isMissing);
     setReview({
       ...review,
       nextAttempt: review.nextAttempt + 1,
       attempts: [
         ...review.attempts,
-        {
-          n: review.nextAttempt,
-          indexes: [...missing, ...toSign.filter((index) => !isMissing(index))],
-          firstNonce: missing.length > 0 ? undefined : review.nextNonce
-        }
+        { n: review.nextAttempt, indexes: toSign, firstNonce: review.nextNonce }
       ]
     });
+  };
+
+  // The lines of this creation that created nothing (never sent, failed, or
+  // not found), to create again later from a file, with the same settings.
+  const downloadNotCreated = () => {
+    if (!review) return;
+    const lines = indexes
+      .filter((index) =>
+        ['not sent', 'failed', 'missing'].includes(resultOf(index))
+      )
+      .flatMap((index) => review.batches[index])
+      .map((v) => [v.beneficiary, plainAmount(v.total, review.decimals)]);
+    downloadFile(
+      `mvxvest-not-created-${review.ticker || review.tokenId}.csv`,
+      toCsv(['address', 'amount'], lines)
+    );
   };
 
   const startOver = () => {
@@ -1177,34 +1187,62 @@ export const Create = () => {
                 />
               );
             })}
-            {anySent && toSign.length > 0 && !openAttempt && !review.busy && (
+            {anySent && lost.length > 0 && !review.busy && (
               <div className='space-y-2'>
-                {!sameAccount ? (
-                  <Notice tone='warn'>
-                    {toSign.length} of {review.batches.length} transactions
-                    created nothing yet. They were prepared for{' '}
-                    <span className='font-mono'>{review.account}</span>: connect
-                    that account again to sign them.
-                  </Notice>
-                ) : waiting ? (
-                  <Notice>
-                    Waiting for the network to confirm the transaction above
-                    before the rest can be signed.
-                  </Notice>
-                ) : (
-                  <>
-                    <Notice tone='warn'>
-                      {toSign.length} of {review.batches.length} transactions
-                      created nothing yet (not sent, or failed). The vestings
-                      already created are listed above and are not signed again.
-                    </Notice>
-                    <Button onClick={signRemaining}>
-                      Sign the remaining {toSign.length}
-                    </Button>
-                  </>
-                )}
+                <Notice tone='warn'>
+                  {lost.length === 1
+                    ? 'One transaction was'
+                    : `${lost.length} transactions were`}{' '}
+                  not seen on the network for 2 minutes. Most likely{' '}
+                  {lost.length === 1 ? 'it' : 'they'} did not go through, but
+                  this cannot be certain, so nothing more of this creation is
+                  signed here: signing {lost.length === 1 ? 'it' : 'them'} again
+                  could create the same vestings twice. The page keeps looking.
+                  <span className='mt-2 block'>
+                    To create what is missing: download the lines not created,
+                    check on the explorer (links above) that the transaction is
+                    not there, disconnect and connect your wallet again, then
+                    start a new creation with the same settings and that file.
+                  </span>
+                </Notice>
+                <Button variant='secondary' onClick={downloadNotCreated}>
+                  Download the lines not created (CSV)
+                </Button>
               </div>
             )}
+            {anySent &&
+              lost.length === 0 &&
+              toSign.length > 0 &&
+              !openAttempt &&
+              !review.busy && (
+                <div className='space-y-2'>
+                  {!sameAccount ? (
+                    <Notice tone='warn'>
+                      {toSign.length} of {review.batches.length} transactions
+                      created nothing yet. They were prepared for{' '}
+                      <span className='font-mono'>{review.account}</span>:
+                      connect that account again to sign them.
+                    </Notice>
+                  ) : waiting ? (
+                    <Notice>
+                      Waiting for the network to confirm the transaction above
+                      before the rest can be signed.
+                    </Notice>
+                  ) : (
+                    <>
+                      <Notice tone='warn'>
+                        {toSign.length} of {review.batches.length} transactions
+                        created nothing yet (not sent, or failed). The vestings
+                        already created are listed above and are not signed
+                        again.
+                      </Notice>
+                      <Button onClick={signRemaining}>
+                        Sign the remaining {toSign.length}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             {anySent && !review.busy && (
               <Button variant='secondary' onClick={startOver}>
                 Start a new creation

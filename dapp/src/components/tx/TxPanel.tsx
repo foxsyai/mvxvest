@@ -32,7 +32,7 @@ const outcomeText = (outcome?: TxOutcome) => {
   if (!outcome || outcome.status === 'pending') return 'processing';
   if (outcome.status === 'success') return 'done';
   if (outcome.status === 'missing')
-    return 'not found on the network: it did not go through';
+    return 'not found on the network for 2 minutes: most likely it did not go through (still looking)';
   return `failed: ${outcome.reason ?? outcome.status}`;
 };
 
@@ -169,6 +169,7 @@ export const TxPanel = ({
     const { hashes } = phase.sent;
     let stopped = false;
     const unknownSince = new Map<string, number>();
+    let reported = '';
     const poll = async () => {
       const next: Record<string, TxOutcome> = {};
       for (const hash of hashes) {
@@ -185,13 +186,23 @@ export const TxPanel = ({
       }
       if (stopped) return;
       setOutcomes(next);
-      if (Object.values(next).some((outcome) => outcome.status === 'pending'))
+      const statuses = hashes.map((hash) => next[hash].status);
+      if (statuses.includes('pending')) {
         setTimeout(poll, 3_000);
-      else
+        return;
+      }
+      // Reported again whenever it changes: a transaction called missing
+      // that turns up after all.
+      const signature = statuses.join(',');
+      if (signature !== reported) {
+        reported = signature;
         onFinished?.(
           hashes,
           hashes.map((hash) => next[hash])
         );
+      }
+      // "Missing" is never final: the page keeps looking, more slowly.
+      if (statuses.includes('missing')) setTimeout(poll, 6_000);
     };
     poll();
     return () => {
@@ -282,6 +293,17 @@ export const TxPanel = ({
               done. Nothing here sends them again by itself.
             </Notice>
           ) : null}
+          {Object.values(outcomes).some(
+            (outcome) => outcome.status === 'missing'
+          ) && (
+            <Notice tone='warn'>
+              A transaction below has not been seen on the network for 2
+              minutes. Do not sign it again: it may still turn up. Before
+              signing anything else, disconnect and connect your wallet again
+              (your wallet session still counts it, and would queue the next
+              transaction behind it).
+            </Notice>
+          )}
           <p className='text-sm font-semibold'>Sent. Following the result:</p>
           <ul className='space-y-1 text-sm'>
             {phase.sent.hashes.map((hash, index) => (

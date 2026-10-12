@@ -9,18 +9,9 @@ import { VestingCard } from 'components/vesting/VestingCard';
 import { useAsync } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import type { Vesting } from 'vesting/client';
-import { toCsv } from 'vesting/csv';
+import { downloadFile, toCsv } from 'vesting/csv';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
-import { formatAmountExact, isoDate } from 'vesting/format';
-
-const download = (name: string, text: string) => {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
-};
+import { isoDate, plainAmount } from 'vesting/format';
 
 export const Created = () => {
   const isLoggedIn = useGetIsLoggedIn();
@@ -52,8 +43,7 @@ export const Created = () => {
     const lines: (string | number)[][] = [];
     for (const v of data.data!.list) {
       const token = await tokenInfo(v.token);
-      const amount = (units: bigint) =>
-        formatAmountExact(units, token.decimals).replace(/,/g, '');
+      const amount = (units: bigint) => plainAmount(units, token.decimals);
       lines.push([
         v.id,
         v.label,
@@ -69,7 +59,7 @@ export const Created = () => {
         v.cancelable ? 'yes' : 'no'
       ]);
     }
-    download(
+    downloadFile(
       `mvxvest-created-${address.slice(0, 10)}.csv`,
       toCsv(
         [

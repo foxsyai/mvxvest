@@ -321,8 +321,8 @@ describe('review3: "Sign the remaining" after closing an earlier one', () => {
   });
 });
 
-describe('review3: signing a "not found" transaction again', () => {
-  it("gives the copy the lost one's nonce, so at most one of the two can execute", async () => {
+describe('review3 (revised in round 4): a "not found" transaction', () => {
+  it('is never signed again, and the rest waits until its fate is known', async () => {
     const realNow = Date.now.bind(Date);
     let skew = 0;
     jest.spyOn(Date, 'now').mockImplementation(() => realNow() + skew);
@@ -363,19 +363,41 @@ describe('review3: signing a "not found" transaction again', () => {
     await flush();
     expect(screen.getByText(/not found on the network/)).toBeTruthy();
 
-    fireEvent.click(screen.getByText('Sign the remaining 3'));
+    // Revised in round 4: a "not found" send is never signed again (its copy
+    // and the original could both execute), and nothing more of this
+    // creation is signed while its fate is unknown. The page offers the lines
+    // not created as a file instead, and keeps looking.
+    expect(screen.queryByText(/Sign the remaining/)).toBeNull();
+    expect(
+      screen.getByText('Download the lines not created (CSV)')
+    ).toBeTruthy();
+    const signedAgain = sendMock.mock.calls
+      .slice(1)
+      .flatMap((call) => call[0])
+      .map((tx: any) => tx.beneficiaries[0]);
+    expect(signedAgain).toEqual([]);
+
+    // If it turns up after all, the rest (A failed, C never sent) can be
+    // signed: B is created and is not among them.
+    outcomes = {
+      'hash-A': { status: 'fail', reason: 'out of gas' },
+      'hash-B': { status: 'success' }
+    };
+    // (A missing hash is looked at again every 6 s.)
+    await wait(6_500);
+    await flush();
+    fireEvent.click(screen.getByText('Sign the remaining 2'));
     await flush();
     sendMock.mockResolvedValueOnce({
-      hashes: ['hash-A2', 'hash-B2', 'hash-C2'],
+      hashes: ['hash-A2', 'hash-C2'],
       nextNonce: 46n
     });
     fireEvent.click(screen.getByText('Sign in your wallet'));
     await flush();
-
-    // Today: A@43, B@44, C@45. The lost B@43 and its copy B@44 can both
-    // execute (the copy of A, at 43, is the one that loses the race).
-    expect(String(nonceOf(1, B))).toBe('43');
-  }, 20_000);
+    expect(
+      sendMock.mock.calls[1][0].map((tx: any) => tx.beneficiaries[0])
+    ).toEqual([A, C]);
+  }, 40_000);
 });
 
 describe('review3: "Start a new creation"', () => {

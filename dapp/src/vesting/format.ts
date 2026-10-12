@@ -48,8 +48,12 @@ export const amountProblem = (
 ): string | null => {
   const clean = text.trim().replace(/[_\s]/g, '');
   if (!clean) return 'empty';
-  if (/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(clean))
-    return `${clean} could mean ${clean.replace(/\./g, '')}: write ${clean.replace(/\./g, '')} for that, or ${clean}0 if you mean ${clean}`;
+  if (/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(clean)) {
+    const whole = clean.replace(/\./g, '');
+    return clean.split('.').length > 2
+      ? `${clean} groups thousands with points: write ${whole}`
+      : `${clean} could mean ${whole}: write ${whole} for that, or ${clean}0 if you mean ${clean}`;
+  }
   let plain = clean;
   if (clean.includes(',')) {
     const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(clean);
@@ -78,6 +82,16 @@ export const parseAmount = (text: string, decimals: number): bigint | null => {
   const [whole, fraction = ''] = clean.split('.');
   const digits = (fraction + '0'.repeat(decimals)).slice(0, decimals);
   return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(digits || '0');
+};
+
+/**
+ * An amount as plain text that parseAmount reads back exactly: every digit,
+ * no thousands commas, and never a point followed by exactly three digits
+ * (refused as ambiguous), which gets a fourth decimal: "12.3450".
+ */
+export const plainAmount = (units: bigint, decimals: number): string => {
+  const text = formatAmountExact(units, decimals).replace(/,/g, '');
+  return /^[1-9]\d{0,2}\.\d{3}$/.test(text) ? `${text}0` : text;
 };
 
 /** `part` of `whole` as a percentage with one decimal, for progress bars. */

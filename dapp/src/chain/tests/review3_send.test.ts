@@ -277,8 +277,8 @@ describe('review3: a server error on the POST', () => {
   });
 });
 
-describe('review3: a transaction signed again after it was "not found"', () => {
-  it("keeps the nonce prepare() gave it (the lost one's nonce)", async () => {
+describe('review3 (revised in round 4): a transaction after a send that was never confirmed', () => {
+  it('is signed after it, never at its nonce (the page never signs the lost one again)', async () => {
     const { DappProvider } = jest.requireActual(
       '@multiversx/sdk-dapp/out/providers/DappProvider/DappProvider'
     );
@@ -313,18 +313,16 @@ describe('review3: a transaction signed again after it was "not found"', () => {
     expect(first.unconfirmed).toHaveLength(1);
     expect(posted[0]).toBe(42);
 
-    // 2. Two minutes later TxPanel calls it "not found", Create offers it
-    // again with firstNonce undefined, and prepare() reads the account's
-    // nonce from the network: still 42, nothing executed.
+    // 2. Round 4 removed the copy-at-the-same-nonce design: the page never
+    // signs a lost send again (pages/tests/review3_Create), and send() leaves
+    // sdk-dapp's record of it alone. A later transaction prepared at 42 goes
+    // after it, so the two can never be confused or replace each other.
     posted.length = 0;
     postMock.mockImplementation(async (_url: string, body: any) => {
       posted.push(body.nonce);
       return { data: { txHash: 'ab'.repeat(32) } };
     });
     await send([createTx(42n)], 'Create a vesting');
-
-    // Today: 43. Nonce 42 stays a gap: this copy never executes; or, if the
-    // first copy turns up after all, both execute.
-    expect(posted).toEqual([42]);
+    expect(posted).toEqual([43]);
   });
 });

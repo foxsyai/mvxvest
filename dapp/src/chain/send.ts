@@ -16,7 +16,6 @@ import {
   TransactionComputer
 } from '@multiversx/sdk-core';
 import { setAccountNonce } from '@multiversx/sdk-dapp/out/store/actions/account/accountActions';
-import { getStore } from '@multiversx/sdk-dapp/out/store/store';
 import { getAccountProvider, TransactionManager } from 'lib';
 import { api, forget, networkProvider } from './network';
 
@@ -217,51 +216,6 @@ const sendOne = async (
 };
 
 /**
- * Sends of ours the network never confirmed, by hash: their nonce may still
- * be free. sdk-dapp signs at no less than its highest tracked nonce plus one,
- * so one of them left in its store would push every later transaction behind
- * a gap that never fills.
- */
-const unconfirmedSends = new Map<string, { sender: string; nonce: bigint }>();
-
-/**
- * Before signing at a nonce one of our unconfirmed sends holds (prepare() read
- * it from the network, so nothing executed with it yet): that send is dropped
- * from sdk-dapp's store, so the new transaction keeps the nonce. Both can
- * never execute: the node takes one transaction per nonce. Returns the hash
- * each released nonce belonged to.
- */
-const releaseNonces = (transactions: Transaction[]) => {
-  const released = new Map<bigint, string>();
-  if (transactions.length === 0) return released;
-  const sender = transactions[0].sender.toBech32();
-  const first = transactions[0].nonce;
-  for (const [hash, held] of unconfirmedSends) {
-    if (held.sender === sender && held.nonce >= first) {
-      released.set(held.nonce, hash);
-      unconfirmedSends.delete(hash);
-    }
-  }
-  if (released.size === 0) return released;
-  const lost = new Set(released.values());
-  getStore().setState(
-    (state: any) => {
-      for (const [id, session] of Object.entries<any>(state.transactions)) {
-        const kept = (session.transactions ?? []).filter(
-          (tx: any) => !lost.has(tx.hash)
-        );
-        if (kept.length === 0) delete state.transactions[id];
-        else session.transactions = kept;
-      }
-    },
-    false,
-    { type: 'mvxvest/releaseNonces' }
-  );
-  setAccountNonce(Number(first));
-  return released;
-};
-
-/**
  * One wallet prompt for every transaction, then sent one at a time in nonce
  * order and tracked. Rejects when the wallet refuses or when not even the first
  * transaction reached the network; when some did, it resolves with their
@@ -274,36 +228,15 @@ export const send = async (
 ): Promise<Sent> => {
   const provider = getAccountProvider();
   const manager = TransactionManager.getInstance();
-  const released = releaseNonces(transactions);
   const signed = await provider.signTransactions(transactions);
   const sent: any[] = [];
   const unconfirmed: string[] = [];
   let stopped: Sent['stopped'];
   for (const [index, transaction] of signed.entries()) {
     try {
-      let one: Awaited<ReturnType<typeof sendOne>>;
-      try {
-        one = await sendOne(manager, transaction);
-      } catch (failure) {
-        // A copy of a send that was never confirmed, refused because its
-        // nonce is used: the earlier one went through after all. That one is
-        // what to follow (never sign it again).
-        const earlier = released.get(transaction.nonce);
-        if (!earlier || !nonceUsed(failure)) throw failure;
-        one = {
-          entry: {
-            ...transaction.toPlainObject(),
-            hash: earlier,
-            status: 'pending'
-          }
-        };
-      }
+      const one = await sendOne(manager, transaction);
       sent.push(one.entry);
       if (one.unconfirmed) {
-        unconfirmedSends.set(one.entry.hash, {
-          sender: transaction.sender.toBech32(),
-          nonce: transaction.nonce
-        });
         unconfirmed.push(one.entry.hash);
         // Its nonce may or may not be used: sending the next ones could leave
         // them waiting behind a gap. Stop, and let the reader look first.
