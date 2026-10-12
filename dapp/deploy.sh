@@ -75,12 +75,16 @@ esac
 echo "Shipping to $REMOTE:$DIR ..."
 rsync -a --delete build/ "$REMOTE:$DIR/"
 
-code=$(curl -s -o /dev/null -w '%{http_code}' "$URL")
+# During the private beta mvxvest.io asks for a password: pass it as
+# MVXVEST_BETA_AUTH=user:password to check the live build.
+AUTH=()
+[ -n "${MVXVEST_BETA_AUTH:-}" ] && AUTH=(-u "$MVXVEST_BETA_AUTH")
+code=$(curl -s "${AUTH[@]}" -o /dev/null -w '%{http_code}' "$URL")
 echo "$URL -> HTTP $code"
-[ "$code" = "200" ] || { echo "The site did not answer 200."; exit 1; }
+[ "$code" = "200" ] || { echo "The site did not answer 200 (behind the beta password? set MVXVEST_BETA_AUTH)."; exit 1; }
 
 # A 200 says nothing about WHICH build answered; the version file does.
-live="$(curl -s "${URL}version.txt")"
+live="$(curl -s "${AUTH[@]}" "${URL}version.txt")"
 [ "$live" = "$(cat build/version.txt)" ] ||
   { echo "The live site does not serve this build: version.txt says '$live'."; exit 1; }
 echo "Live: ${COMMIT:0:7} on $NETWORK."
