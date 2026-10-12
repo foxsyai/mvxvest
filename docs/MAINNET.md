@@ -30,6 +30,6 @@ Both collections are owned by the contract. They cannot be frozen, wiped or paus
 | Ownership to the multisig | `983087ff6c4675111d21f112ad41044aedfbef8055f99615312387910d524eb7` |
 | Leftover 0.114 EGLD to the multisig | `4471a3a89e27467c277c262cb7ddd9ea1c9e3a8174cc4a0485b2cd5d854ff825` |
 
-The deployer wallet `erd17yc20n8f4crqnu9f545p89gyts60ajag2ja5g7wu8lw5gc3duc2qzvrqwa` is empty and owns nothing. Every owner action from now on is a vote of the multisig. That covers pausing, the fee, upgrades and returning bounced keys.
+The deployer wallet `erd17yc20n8f4crqnu9f545p89gyts60ajag2ja5g7wu8lw5gc3duc2qzvrqwa` is empty and owns nothing. Its key was deleted after the sweep (shredded on 12 Oct 2026, with Sebastian's agreement). Every owner action from now on is a vote of the multisig. That covers pausing, the fee, upgrades and returning bounced keys.
 
 The gas each step needed is in [MEASUREMENTS.md](MEASUREMENTS.md).
