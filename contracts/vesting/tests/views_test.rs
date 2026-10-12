@@ -243,7 +243,8 @@ fn fee_and_limits_are_readable() {
         .returns(ReturnsResult)
         .run();
     assert_eq!(limits.max_tranches, 120);
-    assert_eq!(limits.max_batch, 75);
+    assert_eq!(limits.max_batch, 50);
+    assert_eq!(limits.max_batch_cancelable, 33);
     assert_eq!(limits.max_label_len, 64);
     assert_eq!(limits.max_page, 100);
 }

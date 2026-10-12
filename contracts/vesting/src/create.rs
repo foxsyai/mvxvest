@@ -13,10 +13,14 @@ use crate::{
     storage::{self, KeyKind, Vesting},
 };
 
-/// Most vestings one `createBatch` may create. 75 cancelable vestings with
-/// linear schedules use about 480M of the 600M gas a transaction may carry
-/// (docs/MEASUREMENTS.md); the dApp splits a CSV by simulated gas.
-pub const MAX_BATCH: usize = 75;
+/// Most vestings one `createBatch` may create. The network allows about 100
+/// built-in calls (NFT mints and transfers) per transaction: a vesting needs
+/// two (mint and send its claim key), so 50 fit; measured on devnet
+/// (docs/MEASUREMENTS.md). The dApp splits a CSV into several transactions.
+pub const MAX_BATCH: usize = 50;
+/// The same for cancelable vestings, which also mint a cancel key: three
+/// calls each, plus one transfer of all cancel keys, so 33 fit.
+pub const MAX_BATCH_CANCELABLE: usize = 33;
 /// Longest label, in bytes.
 pub const MAX_LABEL_LEN: usize = 64;
 /// A schedule must end within this many seconds of its creation (30 years),
@@ -81,7 +85,12 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
         entries: MultiValueEncoded<BatchEntry<Self::Api>>,
     ) -> MultiValueEncoded<u64> {
         let count = entries.len();
-        require!((1..=MAX_BATCH).contains(&count), ERR_BATCH_SIZE);
+        let max = if cancelable {
+            MAX_BATCH_CANCELABLE
+        } else {
+            MAX_BATCH
+        };
+        require!((1..=max).contains(&count), ERR_BATCH_SIZE);
         let (token, token_amount, egld_amount) = self.received_payments();
         let mut ids = MultiValueEncoded::new();
         let mut sum = BigUint::zero();

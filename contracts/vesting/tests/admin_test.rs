@@ -334,3 +334,27 @@ fn upgrade_keeps_every_vesting() {
     f.check_fox(ALICE, 500);
     f.check_invariant(Some(FOX));
 }
+
+#[test]
+fn only_the_owner_disables_key_burning_and_only_once_issued() {
+    let mut f = Fixture::without_keys();
+    f.world
+        .tx()
+        .from(OWNER)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .disable_key_burn_by_holders(KeyKind::Claim)
+        .returns(ExpectError(4, ERR_CLAIM_KEY_NOT_ISSUED))
+        .run();
+    f.issue_keys();
+    f.world
+        .tx()
+        .from(MALLORY)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .disable_key_burn_by_holders(KeyKind::Cancel)
+        .returns(ExpectError(4, ERR_ONLY_OWNER))
+        .run();
+    // The call itself goes to the ESDT system contract on the metachain; its
+    // effect is checked on devnet (scripts/src/setup.ts).
+}

@@ -1,5 +1,5 @@
 {
-  "name": "review4: createBatch of 75 cancelable delivers 75 distinct cancel keys to the creator in one transfer (pushed without add_payment), and they all cancel",
+  "name": "review4: createBatch of 33 cancelable (the most the network allows) delivers 33 distinct cancel keys to the creator in one transfer, and they all cancel",
   "steps": [
     {
       "step": "setState",
@@ -77,7 +77,7 @@
     },
     {
       "step": "scCall",
-      "id": "batch-75-cancelable",
+      "id": "batch-33-cancelable",
       "tx": {
         "from": "address:creator",
         "to": "sc:mvxvest",
@@ -183,138 +183,12 @@
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:b4",
           "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b5",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b6",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b0",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b1",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b2",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b3",
-          "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
         ],
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "750"
+            "value": "330"
           }
         ],
         "gasLimit": "600,000,000",
@@ -354,49 +228,7 @@
           "30",
           "31",
           "32",
-          "33",
-          "34",
-          "35",
-          "36",
-          "37",
-          "38",
-          "39",
-          "40",
-          "41",
-          "42",
-          "43",
-          "44",
-          "45",
-          "46",
-          "47",
-          "48",
-          "49",
-          "50",
-          "51",
-          "52",
-          "53",
-          "54",
-          "55",
-          "56",
-          "57",
-          "58",
-          "59",
-          "60",
-          "61",
-          "62",
-          "63",
-          "64",
-          "65",
-          "66",
-          "67",
-          "68",
-          "69",
-          "70",
-          "71",
-          "72",
-          "73",
-          "74",
-          "75"
+          "33"
         ],
         "status": "0",
         "logs": "*",
@@ -412,7 +244,7 @@
           "nonce": "*",
           "balance": "*",
           "esdt": {
-            "str:FOX-a1b2c3": "99250",
+            "str:FOX-a1b2c3": "99670",
             "str:VESTCANCEL-123456": {
               "instances": [
                 {
@@ -546,174 +378,6 @@
                 {
                   "nonce": "133",
                   "balance": "1"
-                },
-                {
-                  "nonce": "134",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "135",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "136",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "137",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "138",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "139",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "140",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "141",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "142",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "143",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "144",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "145",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "146",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "147",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "148",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "149",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "150",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "151",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "152",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "153",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "154",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "155",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "156",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "157",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "158",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "159",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "160",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "161",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "162",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "163",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "164",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "165",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "166",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "167",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "168",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "169",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "170",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "171",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "172",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "173",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "174",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "175",
-                  "balance": "1"
                 }
               ]
             }
@@ -727,14 +391,14 @@
           "storage": "*",
           "code": "*",
           "esdt": {
-            "str:FOX-a1b2c3": "750",
+            "str:FOX-a1b2c3": "330",
             "str:VESTKEY-123456": {
               "instances": [],
               "roles": [
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "175"
+              "lastNonce": "133"
             },
             "str:VESTCANCEL-123456": {
               "instances": [],
@@ -742,7 +406,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "175"
+              "lastNonce": "133"
             }
           }
         },
@@ -770,30 +434,6 @@
                 },
                 {
                   "nonce": "129",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "136",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "143",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "150",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "157",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "164",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "171",
                   "balance": "1"
                 }
               ]
@@ -827,30 +467,6 @@
                 {
                   "nonce": "130",
                   "balance": "1"
-                },
-                {
-                  "nonce": "137",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "144",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "151",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "158",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "165",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "172",
-                  "balance": "1"
                 }
               ]
             }
@@ -882,30 +498,6 @@
                 },
                 {
                   "nonce": "131",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "138",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "145",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "152",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "159",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "166",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "173",
                   "balance": "1"
                 }
               ]
@@ -939,30 +531,6 @@
                 {
                   "nonce": "132",
                   "balance": "1"
-                },
-                {
-                  "nonce": "139",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "146",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "153",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "160",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "167",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "174",
-                  "balance": "1"
                 }
               ]
             }
@@ -995,30 +563,6 @@
                 {
                   "nonce": "133",
                   "balance": "1"
-                },
-                {
-                  "nonce": "140",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "147",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "154",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "161",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "168",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "175",
-                  "balance": "1"
                 }
               ]
             }
@@ -1046,30 +590,6 @@
                 },
                 {
                   "nonce": "127",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "134",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "141",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "148",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "155",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "162",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "169",
                   "balance": "1"
                 }
               ]
@@ -1099,30 +619,6 @@
                 {
                   "nonce": "128",
                   "balance": "1"
-                },
-                {
-                  "nonce": "135",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "142",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "149",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "156",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "163",
-                  "balance": "1"
-                },
-                {
-                  "nonce": "170",
-                  "balance": "1"
                 }
               ]
             }
@@ -1135,7 +631,7 @@
     },
     {
       "step": "scCall",
-      "id": "cancel-all-75",
+      "id": "cancel-all-33",
       "tx": {
         "from": "address:creator",
         "to": "sc:mvxvest",
@@ -1306,216 +802,6 @@
             "tokenIdentifier": "str:VESTCANCEL-123456",
             "nonce": "133",
             "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "134",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "135",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "136",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "137",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "138",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "139",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "140",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "141",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "142",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "143",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "144",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "145",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "146",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "147",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "148",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "149",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "150",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "151",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "152",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "153",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "154",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "155",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "156",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "157",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "158",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "159",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "160",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "161",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "162",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "163",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "164",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "165",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "166",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "167",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "168",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "169",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "170",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "171",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "172",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "173",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "174",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "175",
-            "value": "1"
           }
         ],
         "gasLimit": "600,000,000",
@@ -1557,7 +843,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "175"
+              "lastNonce": "133"
             },
             "str:VESTCANCEL-123456": {
               "instances": [],
@@ -1565,7 +851,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "175"
+              "lastNonce": "133"
             }
           }
         },

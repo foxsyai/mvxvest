@@ -6,7 +6,7 @@ use multiversx_sc::{derive_imports::*, imports::*};
 use crate::{
     admin::MAX_FEE_PER_VESTING,
     claim,
-    create::{MAX_BATCH, MAX_HORIZON, MAX_LABEL_LEN},
+    create::{MAX_BATCH, MAX_BATCH_CANCELABLE, MAX_HORIZON, MAX_LABEL_LEN},
     errors::*,
     events, keys,
     schedule::MAX_TRANCHES,
@@ -44,6 +44,7 @@ pub struct VestingView<M: ManagedTypeApi> {
 pub struct Limits {
     pub max_tranches: u64,
     pub max_batch: u64,
+    pub max_batch_cancelable: u64,
     pub max_label_len: u64,
     pub max_horizon: u64,
     pub max_page: u64,
@@ -210,6 +211,7 @@ pub trait ViewsModule:
         Limits {
             max_tranches: MAX_TRANCHES as u64,
             max_batch: MAX_BATCH as u64,
+            max_batch_cancelable: MAX_BATCH_CANCELABLE as u64,
             max_label_len: MAX_LABEL_LEN as u64,
             max_horizon: MAX_HORIZON,
             max_page: MAX_PAGE,

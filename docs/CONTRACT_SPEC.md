@@ -79,7 +79,9 @@ more than 30 years ahead.
 
 ### `createBatch(cancelable, label, entries) -> ids`
 
-Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 75 of
+Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 50 of
+them (1 to 33 when cancelable: the network allows about 100 built-in calls
+per transaction, and each vesting mints and sends one or two keys),
 them, all of the payment's token, all sharing `cancelable` and `label`. Pay the
 sum of the totals exactly, plus the fee times the number of entries. The same
 checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
@@ -110,6 +112,7 @@ cannot be stopped.
 | Endpoint | Effect |
 |---|---|
 | `issueClaimKey(name, ticker)`, `issueCancelKey(name, ticker)` | Issue a collection once; pay the issue cost in EGLD |
+| `disableKeyBurnByHolders(kind)` | Remove the protocol's default `ESDTRoleBurnForAll` from a key collection, so a holder cannot burn a key (a burned claim key would lock its vesting forever). Once per collection, after issuing |
 | `setKeyDisplay(kind, metadata, uris...)` | How keys minted from now on look |
 | `setFee(fee)` | Flat EGLD fee per vesting, at most 1 EGLD (`MAX_FEE_PER_VESTING`) |
 | `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |

@@ -470,45 +470,14 @@ fn batch_must_pay_the_exact_sum() {
         .run();
 }
 
-#[test]
-fn batch_size_is_bounded() {
-    let mut f = Fixture::new();
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .create_batch(false, "x", MultiValueEncoded::new())
-        .payment(payments(&[(Some(FOX), 1)]))
-        .returns(ExpectError(4, ERR_BATCH_SIZE))
-        .run();
+/// A batch of `count` linear vestings of 10 FOX, alternating Alice and Bob.
+fn batch(
+    f: &mut Fixture,
+    cancelable: bool,
+    count: u64,
+) -> Result<Vec<u64>, multiversx_sc_scenario::scenario_model::TxResponseStatus> {
     let mut entries = MultiValueEncoded::new();
-    for _ in 0..76 {
-        entries.push(
-            (
-                ALICE.to_managed_address(),
-                big(1),
-                linear(T0, T0, 0, T0 + DAY),
-            )
-                .into(),
-        );
-    }
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .create_batch(false, "x", entries)
-        .payment(payments(&[(Some(FOX), 76)]))
-        .returns(ExpectError(4, ERR_BATCH_SIZE))
-        .run();
-}
-
-#[test]
-fn a_batch_of_the_maximum_size_works() {
-    let mut f = Fixture::new();
-    let mut entries = MultiValueEncoded::new();
-    for i in 0..75u64 {
+    for i in 0..count {
         let who = if i % 2 == 0 { ALICE } else { BOB };
         entries.push(
             (
@@ -519,17 +488,40 @@ fn a_batch_of_the_maximum_size_works() {
                 .into(),
         );
     }
-    let ids: MultiValueEncoded<StaticApi, u64> = f
-        .world
+    // An empty batch still needs some payment to reach the size check.
+    let amount = (10 * count as u128).max(1);
+    f.world
         .tx()
         .from(CREATOR)
         .to(SC)
         .typed(MvxvestProxy)
-        .create_batch(true, "max", entries)
-        .payment(payments(&[(Some(FOX), 750)]))
-        .returns(ReturnsResult)
-        .run();
-    assert_eq!(ids.to_vec().len(), 75);
-    f.check_holds_key(CREATOR, KeyKind::Cancel, 75, 75, FOX.as_str());
+        .create_batch(cancelable, "batch", entries)
+        .payment(payments(&[(Some(FOX), amount)]))
+        .returns(ReturnsHandledOrError::new().returns(ReturnsResult))
+        .run()
+        .map(|ids: MultiValueEncoded<StaticApi, u64>| ids.to_vec().into_iter().collect())
+}
+
+#[test]
+fn batch_size_is_bounded() {
+    // The network allows about 100 built-in calls per transaction: 50
+    // vestings, or 33 cancelable ones (devnet, docs/MEASUREMENTS.md).
+    let mut f = Fixture::new();
+    for (cancelable, count) in [(false, 0), (false, 51), (true, 34)] {
+        let error = batch(&mut f, cancelable, count).unwrap_err();
+        assert_eq!(
+            error.message, ERR_BATCH_SIZE,
+            "{count} vestings, cancelable {cancelable}"
+        );
+    }
+}
+
+#[test]
+fn the_largest_batches_work() {
+    let mut f = Fixture::new();
+    assert_eq!(batch(&mut f, false, 50).unwrap().len(), 50);
+    let ids = batch(&mut f, true, 33).unwrap();
+    assert_eq!(ids, (51..=83).collect::<Vec<u64>>());
+    f.check_holds_key(CREATOR, KeyKind::Cancel, 33, 83, FOX.as_str());
     f.check_invariant(Some(FOX));
 }

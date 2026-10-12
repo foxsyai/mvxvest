@@ -53,6 +53,30 @@ pub trait AdminModule:
         );
     }
 
+    /// Stops holders from burning keys of `kind` themselves. The protocol lets
+    /// every holder burn tokens of a new collection by default
+    /// (`ESDTRoleBurnForAll`), and a burned claim key would lock its vesting
+    /// forever. Call once per collection after issuing it; the contract keeps
+    /// its own burn role.
+    #[only_owner]
+    #[endpoint(disableKeyBurnByHolders)]
+    fn disable_key_burn_by_holders(&self, kind: KeyKind) {
+        let mapper = match kind {
+            KeyKind::Claim => self.claim_key(),
+            KeyKind::Cancel => self.cancel_key(),
+        };
+        let not_issued = match kind {
+            KeyKind::Claim => ERR_CLAIM_KEY_NOT_ISSUED,
+            KeyKind::Cancel => ERR_CANCEL_KEY_NOT_ISSUED,
+        };
+        require!(mapper.get_token_state().is_set(), not_issued);
+        self.tx()
+            .to(ESDTSystemSCAddress)
+            .raw_call("unsetBurnRoleGlobally")
+            .argument(&mapper.get_token_id())
+            .async_call_and_exit();
+    }
+
     /// Sets the media URIs and metadata of keys minted from now on. Keys
     /// already minted keep theirs.
     #[only_owner]

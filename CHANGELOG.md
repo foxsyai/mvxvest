@@ -11,8 +11,11 @@
 - `getNextRelease` is exact for linear curves and empty only when nothing more
   will vest.
 - Stepped schedules need `end > start`.
-- `MAX_BATCH` is 75 (a cancelable batch of 100 does not fit in 600M gas); the
-  cancel keys of a batch are collected without a quadratic search.
+- Batches hold at most 50 vestings, 33 when cancelable: the network allows
+  about 100 built-in calls per transaction (measured on devnet). The cancel
+  keys of a batch are collected without a quadratic search.
+- `disableKeyBurnByHolders(kind)`: removes the default `ESDTRoleBurnForAll`
+  from a key collection, so holders cannot burn keys.
 - The collection views return empty until the collections are issued.
 
 ### Added

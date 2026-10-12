@@ -7,7 +7,7 @@
 //   pnpm tsx src/flow.ts
 
 import { Address, Token, TokenTransfer } from "@multiversx/sdk-core";
-import { EGLD, abi, amount, api, contractAddress, entrypoint, loadState, send, signer } from "./lib.js";
+import { EGLD, abi, amount, api, contractAddress, createdIds, entrypoint, loadState, send, signer } from "./lib.js";
 
 const DAY = 86_400n;
 const owner = await signer("owner");
@@ -19,7 +19,9 @@ const contract = contractAddress();
 const controller = entrypoint().createSmartContractController(abi());
 const transfers = entrypoint().createTransfersController();
 
-const big = (value: { toString(): string }) => BigInt(value.toString());
+/** Query values come back as BigNumber, whose toString() may use exponents. */
+const big = (value: { toFixed?: () => string; toString(): string }) =>
+  BigInt(value.toFixed ? value.toFixed() : value.toString());
 
 async function view(id: bigint) {
   const [v] = await controller.query({ contract, function: "getVesting", arguments: [id] });
@@ -84,11 +86,11 @@ async function create(
     function: "create",
     arguments: [args[0], payment.amount, ...args.slice(1)],
     tokenTransfers: transfers,
-    gasLimit: 30_000_000n,
   });
   const result = await send(step, tx);
-  const outcome = await controller.awaitCompletedExecute(result.hash);
-  return big(outcome.values[0]);
+  const [id] = await createdIds(result.hash);
+  if (id === undefined) throw new Error(`${step}: no vestingCreated event in ${result.hash}`);
+  return id;
 }
 
 async function claim(step: string, from: typeof owner, nonces: bigint[], expectFailure = false) {
@@ -99,13 +101,17 @@ async function claim(step: string, from: typeof owner, nonces: bigint[], expectF
     tokenTransfers: nonces.map(
       (nonce) => new TokenTransfer({ token: new Token({ identifier: state.claimKey!, nonce }), amount: 1n }),
     ),
-    gasLimit: 30_000_000n,
+    // A claim that must fail cannot be simulated: give it a fixed limit.
+    ...(expectFailure ? { gasLimit: 15_000_000n } : {}),
   });
   return send(step, tx, { expectFailure });
 }
 
 const now = BigInt(Math.floor(Date.now() / 1000));
+// `pnpm tsx src/flow.ts more` runs only steps 8 to 10.
+const section = process.argv[2] ?? "all";
 
+if (section !== "more") {
 // 1. 3000 TFOX, linear, started a day ago, ends in two days, cancelable.
 const total = amount(3_000n, 18);
 const linear = { start: now - DAY, cliff: now - DAY, cliff_amount: 0n, end: now + 2n * DAY, curve: "Linear" };
@@ -159,7 +165,6 @@ const cancel = await controller.createTransactionForExecute(owner, owner.getNonc
   tokenTransfers: [
     new TokenTransfer({ token: new Token({ identifier: state.cancelKey, nonce: v.cancelNonce }), amount: 1n }),
   ],
-  gasLimit: 30_000_000n,
 });
 await send("cancel", cancel);
 after = await balance(owner.address, TFOX);
@@ -176,6 +181,7 @@ check("beneficiary side got exactly what had vested", v.claimed === v.finalAmoun
 check("everything accounted for", v.claimed + v.refunded === total);
 check("claim key burned", !(await holdsNft(holder.address, state.claimKey, v.claimNonce)));
 check("no TFOX surplus in the contract", (await surplus(TFOX)) === 0n);
+}
 
 // 8. EGLD: 0.6 xEGLD in hourly steps over a day that began 6 hours ago.
 const egldId = await create(
@@ -184,7 +190,7 @@ const egldId = await create(
   [holder.address, { start: now - 6n * 3_600n, cliff: now - 6n * 3_600n, cliff_amount: 0n, end: now + 18n * 3_600n, curve: { name: "Stepped", fields: { interval: 3_600n } } }, false, "egld steps"],
   TokenTransfer.newFromNativeAmount((EGLD * 6n) / 10n),
 );
-v = await view(egldId);
+let v = await view(egldId);
 check("a quarter vested (6 of 24 steps)", v.vested === (EGLD * 6n) / 10n / 4n, `${v.vested}`);
 await claim("claim EGLD", holder, [v.claimNonce]);
 check("no EGLD surplus in the contract", (await surplus("EGLD-000000")) === 0n);

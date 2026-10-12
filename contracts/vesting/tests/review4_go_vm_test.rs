@@ -28,10 +28,10 @@ fn run_on_go_vm(scenario: &str) {
     );
 }
 
-/// SAFE: cancel keys are now pushed without `add_payment`. A batch of 75
-/// cancelable vestings sends 75 distinct cancel keys (amount 1, one
+/// SAFE: cancel keys are now pushed without `add_payment`. A batch of 33
+/// cancelable vestings sends 33 distinct cancel keys (amount 1, one
 /// collection) to the creator in one multi-transfer, each claim key to its
-/// beneficiary, and keeps none; then all 75 cancel in one call. Key nonces
+/// beneficiary, and keeps none; then all 33 cancel in one call. Key nonces
 /// start at 101 because mx-scenario-go's state check mis-reads a nonce byte
 /// 0x2d ("-"), i.e. nonce 45.
 #[test]

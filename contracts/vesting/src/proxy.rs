@@ -114,6 +114,24 @@ where
             .original_result()
     }
 
+    /// Stops holders from burning keys of `kind` themselves. The protocol lets 
+    /// every holder burn tokens of a new collection by default 
+    /// (`ESDTRoleBurnForAll`), and a burned claim key would lock its vesting 
+    /// forever. Call once per collection after issuing it; the contract keeps 
+    /// its own burn role. 
+    pub fn disable_key_burn_by_holders<
+        Arg0: ProxyArg<KeyKind>,
+    >(
+        self,
+        kind: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("disableKeyBurnByHolders")
+            .argument(&kind)
+            .original_result()
+    }
+
     /// Sets the media URIs and metadata of keys minted from now on. Keys 
     /// already minted keep theirs. 
     pub fn set_key_display<
@@ -705,6 +723,7 @@ where
 pub struct Limits {
     pub max_tranches: u64,
     pub max_batch: u64,
+    pub max_batch_cancelable: u64,
     pub max_label_len: u64,
     pub max_horizon: u64,
     pub max_page: u64,

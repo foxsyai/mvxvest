@@ -4,7 +4,7 @@
 //
 //   pnpm tsx src/setup.ts
 
-import { EGLD, abi, amount, contractAddress, entrypoint, loadState, network, saveState, send, signer } from "./lib.js";
+import { EGLD, abi, amount, api, contractAddress, entrypoint, loadState, network, onNetwork, saveState, send, signer } from "./lib.js";
 
 const ISSUE_COST = EGLD / 20n;
 const owner = await signer("owner");
@@ -35,6 +35,36 @@ for (const [endpoint, view, name, ticker, field] of [
   }
   saveState({ ...loadState(), [field]: id });
   console.log(`${field}: ${id}`);
+}
+
+// Holders must not be able to burn keys: a burned claim key would lock its
+// vesting forever. New collections get ESDTRoleBurnForAll by default.
+async function burnForAll(collection: string): Promise<boolean> {
+  const body = (await (await fetch(`${api()}/collections/${collection}`)).json()) as {
+    roles?: { address?: string; roles?: string[] }[];
+  };
+  return (body.roles ?? []).some((r) => !r.address && (r.roles ?? []).includes("ESDTRoleBurnForAll"));
+}
+for (const [kind, field] of [
+  ["Claim", "claimKey"],
+  ["Cancel", "cancelKey"],
+] as const) {
+  const collection = loadState()[field]!;
+  if (await burnForAll(collection)) {
+    const tx = await controller.createTransactionForExecute(owner, owner.getNonceThenIncrement(), {
+      contract,
+      function: "disableKeyBurnByHolders",
+      arguments: [kind],
+      gasLimit: 60_000_000n,
+    });
+    await send(`disableKeyBurnByHolders ${kind}`, tx);
+    // The change lands on the metachain a few blocks later.
+    for (let attempt = 0; attempt < 20 && (await burnForAll(collection)); attempt++) {
+      await new Promise((done) => setTimeout(done, 6_000));
+    }
+  }
+  if (await burnForAll(collection)) throw new Error(`${collection} still lets holders burn keys`);
+  console.log(`${collection}: holders cannot burn keys`);
 }
 
 // How keys look. Devnet points at placeholder images on devnet.mvxvest.io.
@@ -76,7 +106,7 @@ for (const [ticker, decimals] of [
     gasLimit: 60_000_000n,
   });
   const result = await send(`issue ${ticker}`, tx);
-  const [issued] = await management.awaitCompletedIssueFungible(result.hash);
+  const [issued] = management.parseIssueFungible(await onNetwork(result.hash));
   tokens[ticker] = issued.tokenIdentifier;
   saveState({ ...loadState(), tokens });
   console.log(`${ticker}: ${issued.tokenIdentifier}`);

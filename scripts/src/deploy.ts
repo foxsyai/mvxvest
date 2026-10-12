@@ -13,7 +13,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONTRACT_OUTPUT, ROOT, abi, contractAddress, entrypoint, loadState, saveState, send, signer } from "./lib.js";
+import { CONTRACT_OUTPUT, ROOT, abi, contractAddress, entrypoint, loadState, onNetwork, saveState, send, signer } from "./lib.js";
 
 const REPRODUCIBLE = join(ROOT, "output-docker/mvxvest");
 const local = process.env.MVXVEST_LOCAL_WASM === "1";
@@ -54,7 +54,7 @@ if (process.argv[2] === "upgrade") {
     ...metadata,
   });
   const result = await send("deploy", tx, { note: `code hash ${codeHash}` });
-  const outcome = await controller.awaitCompletedDeploy(result.hash);
+  const outcome = controller.parseDeploy(await onNetwork(result.hash));
   const address = outcome.contracts[0].address.toBech32();
   saveState({ ...loadState(), contract: address });
   console.log(`contract ${address}`);

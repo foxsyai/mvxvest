@@ -40,8 +40,12 @@ made while building milestone 1.
   creator recover keys was the source of a finding in every review. With an
   upgradeable contract the multisig is trusted anyway, so this adds no new
   trust.
-- **Limits:** 120 tranches, 75 vestings per batch (gas sets the practical
-  limit; see MEASUREMENTS.md), 64-byte labels, 30-year horizon, pages of 100.
+- **Limits:** 120 tranches, 50 vestings per batch or 33 cancelable ones (the
+  network's limit of about 100 built-in calls per transaction, measured on
+  devnet; see MEASUREMENTS.md), 64-byte labels, 30-year horizon, pages of 100.
+- **Keys cannot be burned by holders:** new collections get the protocol's
+  `ESDTRoleBurnForAll`; `disableKeyBurnByHolders` removes it, so nobody can
+  destroy a claim key and lock a vesting forever by accident.
 - **Payments:** EGLD is accepted both as plain value and as `EGLD-000000`
   inside a multi-transfer. `create` takes the total as an argument (like
   `createBatch`), so the payment must be exactly the total plus the fee.

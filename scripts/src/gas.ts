@@ -5,7 +5,7 @@
 //
 //   pnpm tsx src/gas.ts
 
-import { Token, TokenTransfer } from "@multiversx/sdk-core";
+import { Token, TokenTransfer, Transaction } from "@multiversx/sdk-core";
 import { abi, amount, api, contractAddress, entrypoint, loadState, send, signer } from "./lib.js";
 
 const DAY = 86_400n;
@@ -19,6 +19,20 @@ const controller = entrypoint().createSmartContractController(abi());
 const now = BigInt(Math.floor(Date.now() / 1000));
 const linear = { start: now, cliff: now, cliff_amount: 0n, end: now + 365n * DAY, curve: "Linear" };
 const results: Record<string, number | string> = {};
+const provider = entrypoint().createNetworkProvider();
+
+/**
+ * Simulates `tx` and sets its limit to 1.2 times the estimate, at most 600M,
+ * then signs it again. A limit far above the gas used is charged in full, so
+ * only a close limit makes the reported gas real.
+ */
+async function fit(tx: Transaction, signerAccount: typeof owner): Promise<Transaction> {
+  const estimate = BigInt((await provider.estimateTransactionCost(tx)).gasLimit);
+  const limit = (estimate * 12n) / 10n;
+  tx.gasLimit = limit > MAX_GAS ? MAX_GAS : limit;
+  tx.signature = await signerAccount.signTransaction(tx);
+  return tx;
+}
 
 async function storageBytes(): Promise<number> {
   const gateway = api().replace("-api.", "-gateway.").replace("://api.", "://gateway.");
@@ -40,7 +54,7 @@ async function batch(size: number, cancelable: boolean): Promise<number> {
     tokenTransfers: [fox(10n * BigInt(size))],
     gasLimit: MAX_GAS,
   });
-  const result = await send(`createBatch ${size}${cancelable ? " cancelable" : ""}`, tx);
+  const result = await send(`createBatch ${size}${cancelable ? " cancelable" : ""}`, await fit(tx, owner));
   return result.gasUsed ?? 0;
 }
 
@@ -53,7 +67,7 @@ for (const cancelable of [false, true]) {
     tokenTransfers: [fox(10n)],
     gasLimit: 30_000_000n,
   });
-  results[`create ${cancelable ? "cancelable" : "non-cancelable"}`] = (await send(`create ${cancelable}`, tx)).gasUsed ?? 0;
+  results[`create ${cancelable ? "cancelable" : "non-cancelable"}`] = (await send(`create ${cancelable}`, await fit(tx, owner))).gasUsed ?? 0;
 }
 
 // The largest schedule: 120 explicit tranches.
@@ -65,17 +79,17 @@ const tx120 = await controller.createTransactionForExecute(owner, owner.getNonce
   tokenTransfers: [fox(120n)],
   gasLimit: 100_000_000n,
 });
-results["create 120 tranches cancelable"] = (await send("create 120 tranches", tx120)).gasUsed ?? 0;
+results["create 120 tranches cancelable"] = (await send("create 120 tranches", await fit(tx120, owner))).gasUsed ?? 0;
 
 // Batches, and the storage one vesting adds.
-for (const size of [1, 10, 25, 50]) {
+for (const size of [1, 10, 25, 33]) {
   results[`createBatch ${size} cancelable`] = await batch(size, true);
 }
 const bytesBefore = await storageBytes();
-results["createBatch 75 cancelable"] = await batch(75, true);
+results["createBatch 33 cancelable (again, for storage)"] = await batch(33, true);
 const bytesAfter = await storageBytes();
-results["storage bytes per vesting (batch of 75, cancelable)"] = Math.round((bytesAfter - bytesBefore) / 75);
-results["createBatch 75 non-cancelable"] = await batch(75, false);
+results["storage bytes per vesting (batch of 33, cancelable)"] = Math.round((bytesAfter - bytesBefore) / 33);
+results["createBatch 50 non-cancelable"] = await batch(50, false);
 
 // Claims: one key, then ten at once (the holder got every other vesting).
 const nfts = (await (
@@ -91,8 +105,8 @@ const claimTx = async (nonces: number[]) =>
     ),
     gasLimit: 100_000_000n,
   });
-results["claim 1 key (cross-shard)"] = (await send("claim 1", await claimTx([nfts[0].nonce]))).gasUsed ?? 0;
-results["claim 10 keys (cross-shard)"] = (await send("claim 10", await claimTx(nfts.slice(1, 11).map((n) => n.nonce)))).gasUsed ?? 0;
+results["claim 1 key (cross-shard)"] = (await send("claim 1", await fit(await claimTx([nfts[0].nonce]), holder))).gasUsed ?? 0;
+results["claim 10 keys (cross-shard)"] = (await send("claim 10", await fit(await claimTx(nfts.slice(1, 11).map((n) => n.nonce)), holder))).gasUsed ?? 0;
 
 // Cancel one key.
 const cancels = (await (
@@ -105,6 +119,6 @@ const cancelTx = await controller.createTransactionForExecute(owner, owner.getNo
   tokenTransfers: [new TokenTransfer({ token: new Token({ identifier: state.cancelKey!, nonce: BigInt(cancels[0].nonce) }), amount: 1n })],
   gasLimit: 30_000_000n,
 });
-results["cancel 1 key"] = (await send("cancel 1", cancelTx)).gasUsed ?? 0;
+results["cancel 1 key"] = (await send("cancel 1", await fit(cancelTx, owner))).gasUsed ?? 0;
 
 console.table(results);

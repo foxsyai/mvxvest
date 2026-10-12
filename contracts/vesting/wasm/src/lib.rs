@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           34
+// Endpoints:                           35
 // Async Callback:                       1
-// Total number of exported functions:  37
+// Total number of exported functions:  38
 
 #![no_std]
 
@@ -22,6 +22,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         upgrade => upgrade
         issueClaimKey => issue_claim_key
         issueCancelKey => issue_cancel_key
+        disableKeyBurnByHolders => disable_key_burn_by_holders
         setKeyDisplay => set_key_display
         setFee => set_fee
         pauseCreation => pause_creation

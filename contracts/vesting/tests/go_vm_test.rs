@@ -48,8 +48,8 @@ fn lifecycle() {
     run_on_go_vm("lifecycle.scen.json");
 }
 
-/// The largest batch allowed (75 cancelable vestings) fits in the 600M gas a
-/// transaction may carry.
+/// The largest batches allowed (33 cancelable, 50 plain: the network's limit
+/// of about 100 built-in calls per transaction, measured on devnet) work.
 #[test]
 fn batch_max() {
     run_on_go_vm("batch_max.scen.json");
