@@ -7,7 +7,7 @@ const sections: [string, string][] = [
   ],
   [
     'Schedules',
-    'A cliff (nothing before it, optionally a share unlocked at it), then the rest released every second, in equal steps every N days, on the same day every N months (the day in the creator’s own time zone), or on dates you choose. The last release absorbs any rounding, so the total vests exactly.'
+    'A cliff (nothing before it, optionally a share unlocked at it), then the rest released every second, in equal steps every N days, on the same day every N months (the day in the creator’s own time zone) or on dates you choose. The last release absorbs any rounding, so the total vests exactly.'
   ],
   [
     'The two keys',

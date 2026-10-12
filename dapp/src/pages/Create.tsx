@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   Field,
+  Info,
   inputClass,
   Notice,
   PageTitle,
@@ -67,11 +68,14 @@ const runsOf = (ids: number[]): [number, number][] => {
 const Step = ({
   n,
   title,
+  info,
   children,
   done
 }: {
   n: number;
   title: string;
+  /** What the step decides, behind an "i" next to its title. */
+  info?: ReactNode;
   children: ReactNode;
   done?: boolean;
 }) => (
@@ -83,6 +87,7 @@ const Step = ({
         {n}
       </span>
       {title}
+      {info && <Info>{info}</Info>}
     </h2>
     {children}
   </Card>
@@ -625,7 +630,7 @@ export const Create = () => {
       <div>
         <PageTitle
           title='Create vestings'
-          lead='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel.'
+          info='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel.'
         />
         <Notice>
           Connect your wallet (top right) to choose a token from it. Connecting
@@ -642,7 +647,7 @@ export const Create = () => {
     <div className='space-y-6'>
       <PageTitle
         title='Create vestings'
-        lead='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel. Nothing is sent until you sign at the end.'
+        info='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel. Nothing is sent until you sign at the end.'
       />
       {settings.data?.paused && (
         <Notice tone='warn'>
@@ -809,7 +814,7 @@ export const Create = () => {
                       loaded: check the lines below.
                     </>
                   ) : (
-                    'or drop a file on the box below, or paste the lines into it'
+                    'or drop a file on the box below or paste the lines into it'
                   )}
                 </span>
               </div>
@@ -1058,8 +1063,11 @@ export const Create = () => {
                   decimals={decimals}
                   ticker={ticker}
                 />
-                ); every other one follows the same schedule in proportion to
-                their amount.
+                )
+                <Info>
+                  Every other beneficiary follows the same schedule in
+                  proportion to their amount.
+                </Info>
               </p>
               <ScheduleChart
                 schedule={previewEntry.schedule}
@@ -1083,7 +1091,25 @@ export const Create = () => {
           )}
         </Step>
 
-        <Step n={4} title='Options' done={cancelable !== null}>
+        <Step
+          n={4}
+          title='Options'
+          info={
+            <>
+              <b>Cannot be cancelled:</b> once created, no key can stop it; the
+              beneficiaries receive everything on schedule. The strongest
+              promise to a community (the contract itself is upgradeable by its
+              multisig; see How it works).
+              <br />
+              <br />
+              <b>Cancelable:</b> you receive a cancel key NFT per vesting.
+              Sending it back stops that vesting: what has vested stays with the
+              beneficiary and the rest comes back to you. Anyone can see that a
+              vesting is cancelable.
+            </>
+          }
+          done={cancelable !== null}
+        >
           <div className='grid gap-3 sm:grid-cols-2'>
             <button
               type='button'
@@ -1092,9 +1118,7 @@ export const Create = () => {
             >
               <span className='font-semibold'>Cannot be cancelled</span>
               <span className='mt-1 block text-sm text-muted'>
-                Once created, no key can stop it: the beneficiaries receive
-                everything on schedule. The strongest promise to a community
-                (the contract is upgradeable by its multisig; see the guide).
+                Nobody can stop it.
               </span>
             </button>
             <button
@@ -1104,15 +1128,14 @@ export const Create = () => {
             >
               <span className='font-semibold'>Cancelable</span>
               <span className='mt-1 block text-sm text-muted'>
-                You receive a cancel key NFT per vesting. Sending it back stops
-                that vesting: what has vested stays with the beneficiary, the
-                rest comes back. Anyone can see that it is cancelable.
+                You get a cancel key for each vesting.
               </span>
             </button>
           </div>
           <Field
             label='Label (optional)'
-            hint={`Shown on every vesting, for example "Team 2027" or "Seed round". ${labelBytes}/${limits.maxLabelLen} bytes.`}
+            hint='Shown on every vesting, for example "Team 2027" or "Seed round".'
+            note={`${labelBytes}/${limits.maxLabelLen} bytes`}
           >
             <input
               className={inputClass}
@@ -1156,13 +1179,11 @@ export const Create = () => {
               <dd>
                 {batches.length}
                 {batches.length > 1 && (
-                  <span className='text-muted'>
-                    {' '}
-                    (at most {Math.max(
-                      ...batches.map((batch) => batch.length)
-                    )}{' '}
-                    vestings each; one wallet prompt for all)
-                  </span>
+                  <Info>
+                    At most {Math.max(...batches.map((batch) => batch.length))}{' '}
+                    vestings per transaction. Your wallet asks once for all of
+                    them.
+                  </Info>
                 )}
               </dd>
             </div>
@@ -1354,7 +1375,7 @@ export const Create = () => {
                     <>
                       <Notice tone='warn'>
                         {toSign.length} of {review.batches.length} transactions
-                        created nothing yet (not sent, or failed). The vestings
+                        created nothing yet (not sent or failed). The vestings
                         already created are listed above and are not signed
                         again.
                       </Notice>

@@ -30,7 +30,7 @@ export const Home = () => {
     if (target) navigate(target);
     else
       setProblem(
-        'Enter an erd1 address, a token identifier such as FOXSY-123abc, or a vesting number.'
+        'Enter an erd1 address, a token identifier such as FOXSY-123abc or a vesting number.'
       );
   };
 

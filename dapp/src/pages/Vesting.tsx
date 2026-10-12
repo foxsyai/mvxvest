@@ -165,6 +165,7 @@ export const VestingPage = () => {
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
           <Fact label='Vested'>
             <Amount
+              digits={4}
               units={v.vested}
               decimals={token.decimals}
               ticker={ticker}
@@ -172,6 +173,7 @@ export const VestingPage = () => {
           </Fact>
           <Fact label='Claimed'>
             <Amount
+              digits={4}
               units={v.claimed}
               decimals={token.decimals}
               ticker={ticker}
@@ -180,6 +182,7 @@ export const VestingPage = () => {
           <Fact label='Claimable now'>
             <span className='font-semibold'>
               <Amount
+                digits={4}
                 units={v.claimable}
                 decimals={token.decimals}
                 ticker={ticker}

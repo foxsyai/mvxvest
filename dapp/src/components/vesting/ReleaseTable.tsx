@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Amount, When } from 'components/ui';
+import { Amount, Info, When } from 'components/ui';
 import { releases } from 'vesting/builder';
 import { Schedule } from 'vesting/schedule';
 
@@ -32,9 +32,12 @@ export const ReleaseTable = ({
   return (
     <div>
       {continuous && (
-        <p className='mb-2 text-xs text-muted'>
-          Linear: tokens vest every second. The rows below are checkpoints, not
-          separate releases.
+        <p className='mb-2 flex items-center text-xs text-muted'>
+          Checkpoints
+          <Info>
+            Linear: tokens vest every second. These rows are checkpoints along
+            the way, not separate releases.
+          </Info>
         </p>
       )}
       <div className='overflow-x-auto'>

@@ -5,8 +5,12 @@ import {
   ButtonHTMLAttributes,
   PropsWithChildren,
   ReactNode,
+  useEffect,
+  useId,
+  useRef,
   useState
 } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { explorerUrl } from 'chain/network';
 import {
@@ -69,19 +73,121 @@ export const BackLink = () => {
   );
 };
 
+/**
+ * A small "i" that holds an explanation, so pages show data rather than
+ * paragraphs: it opens on hover (desktop) and on tap (phone). A tap elsewhere,
+ * Escape or scrolling closes it. Not for use inside a button or a link.
+ */
+export const Info = ({
+  children,
+  label = 'More information'
+}: PropsWithChildren<{ label?: string }>) => {
+  const [place, setPlace] = useState<{
+    left: number;
+    top: number;
+    width: number;
+  } | null>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  // Opened by a tap or a click: it stays until closed, not on mouse leave.
+  const pinned = useRef(false);
+  const id = useId();
+
+  const show = () => {
+    const rect = button.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.min(300, window.innerWidth - 32);
+    const left = Math.min(
+      Math.max(16, rect.left + rect.width / 2 - width / 2),
+      window.innerWidth - width - 16
+    );
+    setPlace({ left, top: rect.bottom + 8, width });
+  };
+  const hide = () => {
+    pinned.current = false;
+    setPlace(null);
+  };
+
+  useEffect(() => {
+    if (!place) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!button.current?.contains(event.target as Node)) hide();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') hide();
+    };
+    window.addEventListener('pointerdown', onPointer);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('pointerdown', onPointer);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, [place]);
+
+  return (
+    <>
+      <button
+        ref={button}
+        type='button'
+        aria-label={label}
+        aria-expanded={Boolean(place)}
+        aria-describedby={place ? id : undefined}
+        onMouseEnter={show}
+        onMouseLeave={() => {
+          if (!pinned.current) setPlace(null);
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (pinned.current) hide();
+          else {
+            pinned.current = true;
+            show();
+          }
+        }}
+        className='ml-1.5 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-faint align-middle text-[11px] font-bold leading-none text-muted hover:border-accent hover:text-accent'
+      >
+        i
+      </button>
+      {place &&
+        createPortal(
+          <span
+            id={id}
+            role='tooltip'
+            style={{ position: 'fixed', ...place }}
+            className='z-50 rounded-xl border border-line bg-raised p-3 text-sm font-normal leading-relaxed text-ink shadow-lg'
+          >
+            {children}
+          </span>,
+          document.body
+        )}
+    </>
+  );
+};
+
 export const PageTitle = ({
   title,
   lead,
+  info,
   back = false
 }: {
   title: string;
+  /** Data that belongs under the title (an address, a total). */
   lead?: ReactNode;
+  /** What the page is for, behind an "i" next to the title. */
+  info?: ReactNode;
   /** A detail page: "← Back" above the title. */
   back?: boolean;
 }) => (
   <div className='mb-6'>
     {back && <BackLink />}
-    <h1 className='text-2xl font-bold tracking-tight sm:text-3xl'>{title}</h1>
+    <h1 className='flex items-center text-2xl font-bold tracking-tight sm:text-3xl'>
+      {title}
+      {info && <Info label={`About ${title}`}>{info}</Info>}
+    </h1>
     {lead && <p className='mt-2 max-w-2xl text-muted'>{lead}</p>}
   </div>
 );
@@ -150,12 +256,15 @@ export const Amount = ({
   units,
   decimals,
   ticker,
+  digits = 6,
   className = ''
 }: {
   units: bigint;
   /** Undefined while the token's decimals are not known: no figure is shown. */
   decimals: number | undefined;
   ticker?: string;
+  /** Decimals shown (cut, never rounded up); every digit is in the tooltip. */
+  digits?: number;
   className?: string;
 }) =>
   decimals === undefined ? (
@@ -170,7 +279,7 @@ export const Amount = ({
       className={`tabular whitespace-nowrap ${className}`}
       title={`${formatAmountExact(units, decimals)}${ticker ? ` ${ticker}` : ''}`}
     >
-      {formatAmount(units, decimals)}
+      {formatAmount(units, decimals, digits)}
       {ticker && <span className='ml-1 text-muted'>{ticker}</span>}
     </span>
   );
@@ -319,16 +428,33 @@ export const Badge = ({
   );
 };
 
+/**
+ * A labelled form field. `hint` is an explanation behind an "i" next to the
+ * label; `note` is short live information shown under the field (a counter).
+ * The "i" sits outside the <label>, which would otherwise hand its clicks to
+ * the button instead of the input.
+ */
 export const Field = ({
   label,
   hint,
+  note,
   children
-}: PropsWithChildren<{ label: ReactNode; hint?: ReactNode }>) => (
-  <label className='block'>
-    <span className='mb-1 block text-sm font-semibold'>{label}</span>
-    {children}
-    {hint && <span className='mt-1 block text-xs text-muted'>{hint}</span>}
-  </label>
+}: PropsWithChildren<{
+  label: ReactNode;
+  hint?: ReactNode;
+  note?: ReactNode;
+}>) => (
+  <div>
+    <div className='mb-1 flex items-center text-sm font-semibold'>
+      <span aria-hidden>{label}</span>
+      {hint && <Info>{hint}</Info>}
+    </div>
+    <label className='block'>
+      <span className='sr-only'>{label}</span>
+      {children}
+    </label>
+    {note && <span className='mt-1 block text-xs text-muted'>{note}</span>}
+  </div>
 );
 
 export const inputClass =

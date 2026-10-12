@@ -2,7 +2,12 @@ import { PropsWithChildren, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { networkName } from 'chain/network';
 import { useGetIsLoggedIn } from 'lib';
-import { ConnectButton } from './ConnectButton';
+import {
+  AddressChip,
+  ConnectButton,
+  DisconnectButton,
+  useConnected
+} from './ConnectButton';
 import { Logo } from './Logo';
 import { ThemeSwitch } from './ThemeSwitch';
 
@@ -41,6 +46,7 @@ const Nav = ({ onPick }: { onPick?: () => void }) => {
 
 export const Layout = ({ children }: PropsWithChildren) => {
   const [menu, setMenu] = useState(false);
+  const connected = useConnected();
   return (
     <div className='flex min-h-screen flex-col'>
       {networkName !== 'mainnet' && (
@@ -49,7 +55,11 @@ export const Layout = ({ children }: PropsWithChildren) => {
         </div>
       )}
       <header className='border-b border-line bg-surface'>
-        <div className='mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3'>
+        {/* Left: the logo, then the pages (desktop). Right: the theme, the
+            address (desktop), the menu (phone) and, at the far right,
+            disconnect or connect. On a phone the address gets a row of its
+            own below. */}
+        <div className='mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3'>
           <Link to='/' className='shrink-0'>
             <Logo />
           </Link>
@@ -58,17 +68,36 @@ export const Layout = ({ children }: PropsWithChildren) => {
           </nav>
           <div className='flex min-w-0 items-center gap-2'>
             <ThemeSwitch />
-            <ConnectButton />
+            {connected && (
+              <span className='hidden md:flex'>
+                <AddressChip />
+              </span>
+            )}
             <button
               type='button'
-              className='rounded-lg border border-line px-2.5 py-2 text-xs font-semibold md:hidden'
+              className='shrink-0 rounded-lg border border-line p-2 text-muted hover:border-accent hover:text-ink md:hidden'
               onClick={() => setMenu((open) => !open)}
               aria-expanded={menu}
+              aria-label='Menu'
             >
-              Menu
+              <svg width='16' height='16' viewBox='0 0 24 24' aria-hidden>
+                <path
+                  d={menu ? 'M6 6l12 12M18 6L6 18' : 'M4 7h16M4 12h16M4 17h16'}
+                  stroke='currentColor'
+                  strokeWidth='1.8'
+                  strokeLinecap='round'
+                  fill='none'
+                />
+              </svg>
             </button>
+            {connected ? <DisconnectButton /> : <ConnectButton />}
           </div>
         </div>
+        {connected && (
+          <div className='flex justify-end border-t border-line px-4 py-2 md:hidden'>
+            <AddressChip />
+          </div>
+        )}
         {menu && (
           <nav className='flex flex-col gap-3 border-t border-line px-4 py-3 md:hidden'>
             <Nav onPick={() => setMenu(false)} />

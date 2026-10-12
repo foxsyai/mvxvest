@@ -4,7 +4,14 @@ import { cancelKeysOfOthers, createdVestings } from 'chain/mine';
 import { keysHeld, tokenInfo } from 'chain/reads';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
-import { Button, Notice, PageTitle, ReadFailed, Spinner } from 'components/ui';
+import {
+  Button,
+  Info,
+  Notice,
+  PageTitle,
+  ReadFailed,
+  Spinner
+} from 'components/ui';
 import { VestingCard } from 'components/vesting/VestingCard';
 import { useAsync } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
@@ -87,7 +94,7 @@ export const Created = () => {
       <div>
         <PageTitle
           title='Created by me'
-          lead='The vestings this wallet created.'
+          info='The vestings this wallet created.'
         />
         <Notice>
           Connect your wallet (top right) to see them. Connecting signs nothing.
@@ -126,7 +133,7 @@ export const Created = () => {
     <div className='space-y-6'>
       <PageTitle
         title='Created by me'
-        lead='Every vesting this wallet created, and every beneficiary’s progress. Cancel is offered where this wallet holds the cancel key, including vestings created by another wallet whose cancel key was sent here.'
+        info='Every vesting this wallet created and how far each beneficiary has got. Cancel appears wherever this wallet holds the cancel key, also for vestings another wallet created and whose cancel key was sent here.'
       />
       {cancelling && (
         <TxPanel
@@ -179,12 +186,13 @@ export const Created = () => {
       )}
       {held.length > 0 && (
         <section className='space-y-3'>
-          <h2 className='font-bold'>Cancel keys in this wallet</h2>
-          <p className='text-sm text-muted'>
-            Vestings another wallet created, whose cancel key was sent to this
-            one: this wallet can cancel them, and what has not vested comes
-            here.
-          </p>
+          <h2 className='flex items-center font-bold'>
+            Cancel keys in this wallet
+            <Info>
+              Vestings another wallet created whose cancel key was sent to this
+              one. This wallet can cancel them; what has not vested comes here.
+            </Info>
+          </h2>
           <div className='grid gap-4 lg:grid-cols-2'>
             {held.map((v) => (
               <VestingCard

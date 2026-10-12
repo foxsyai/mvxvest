@@ -39,7 +39,7 @@ export const Mine = () => {
       <div>
         <PageTitle
           title='My vestings'
-          lead='The vestings whose claim key is in your wallet.'
+          info='The vestings whose claim key is in your wallet.'
         />
         <Notice>
           Connect your wallet (top right) to see them. Connecting signs nothing.
@@ -70,7 +70,7 @@ export const Mine = () => {
     <div className='space-y-6'>
       <PageTitle
         title='My vestings'
-        lead='Every vesting whose claim key is in this wallet. Whoever holds the key claims: send the key to another wallet and the vesting goes with it.'
+        info='Every vesting whose claim key is in this wallet. Whoever holds the key claims: send the key to another wallet and the vesting goes with it.'
       />
       {list.length === 0 ? (
         <Notice>

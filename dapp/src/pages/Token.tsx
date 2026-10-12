@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Card,
+  Info,
   Notice,
   PageTitle,
   Progress,
@@ -92,7 +93,8 @@ export const Token = () => {
       <PageTitle
         back
         title={token.ticker || identifier}
-        lead={`${identifier}: every vesting of this token, read from the contract. ${count.toLocaleString('en-US')} vestings.`}
+        lead={`${identifier} · ${count.toLocaleString('en-US')} vestings`}
+        info='Every vesting of this token, read from the contract.'
       />
       <Card className='space-y-4'>
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
@@ -100,6 +102,7 @@ export const Token = () => {
             <dt className='text-xs text-muted'>Deposited in total</dt>
             <dd className='font-semibold'>
               <Amount
+                digits={2}
                 units={totals.deposited}
                 decimals={d}
                 ticker={token.ticker}
@@ -109,20 +112,30 @@ export const Token = () => {
           <div>
             <dt className='text-xs text-muted'>Still in the contract</dt>
             <dd className='font-semibold'>
-              <Amount units={locked} decimals={d} ticker={token.ticker} />
+              <Amount
+                digits={2}
+                units={locked}
+                decimals={d}
+                ticker={token.ticker}
+              />
             </dd>
           </div>
           <div>
             <dt className='text-xs text-muted'>Vested so far</dt>
             <dd>
-              <Amount units={vestedNow} decimals={d} ticker={token.ticker} />
+              <Amount
+                digits={2}
+                units={vestedNow}
+                decimals={d}
+                ticker={token.ticker}
+              />
             </dd>
           </div>
           <div>
             <dt className='text-xs text-muted'>Claimed / refunded on cancel</dt>
             <dd>
-              <Amount units={totals.claimed} decimals={d} /> /{' '}
-              <Amount units={totals.refunded} decimals={d} />
+              <Amount digits={2} units={totals.claimed} decimals={d} /> /{' '}
+              <Amount digits={2} units={totals.refunded} decimals={d} />
             </dd>
           </div>
         </dl>
@@ -143,10 +156,12 @@ export const Token = () => {
       </Card>
 
       <Card>
-        <h2 className='mb-1 font-bold'>Unlock calendar</h2>
-        <p className='mb-4 text-xs text-muted'>
-          What vests each month over the next two years (months in UTC).
-        </p>
+        <h2 className='mb-4 flex items-center font-bold'>
+          Unlock calendar
+          <Info>
+            What vests each month over the next two years (months in UTC).
+          </Info>
+        </h2>
         <div className='space-y-1.5'>
           {calendar.map((month) => (
             <div key={month.start} className='flex items-center gap-3 text-sm'>
