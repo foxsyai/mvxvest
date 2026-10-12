@@ -92,4 +92,36 @@ describe('beneficiaries typed one by one', () => {
     await flush();
     expect(screen.queryByText(/Fix these lines first/)).toBeNull();
   });
+
+  it('every line can be removed; the last one is emptied', async () => {
+    render(
+      <MemoryRouter>
+        <Create />
+      </MemoryRouter>
+    );
+    await flush();
+    fireEvent.change(screen.getByDisplayValue('Choose a token'), {
+      target: { value: 'TFOX-d61b09' }
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText('erd1... beneficiary address'),
+      {
+        target: { value: A }
+      }
+    );
+    fireEvent.click(screen.getByText('Add a beneficiary'));
+    fireEvent.change(
+      screen.getAllByPlaceholderText('erd1... beneficiary address')[1],
+      { target: { value: B } }
+    );
+    fireEvent.click(screen.getAllByText('Remove')[0]);
+    await flush();
+    expect(screen.getByDisplayValue(B)).toBeTruthy();
+    fireEvent.click(screen.getByText('Remove'));
+    await flush();
+    expect(screen.queryByDisplayValue(B)).toBeNull();
+    expect(
+      screen.getAllByPlaceholderText('erd1... beneficiary address')
+    ).toHaveLength(1);
+  });
 });

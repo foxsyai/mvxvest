@@ -730,11 +730,17 @@ export const Create = () => {
                       )
                     }
                   />
-                  {rows.length > 1 && (
+                  {(rows.length > 1 || row.address || row.amount) && (
                     <Button
                       variant='ghost'
                       onClick={() => {
-                        setRows(rows.filter((_, i) => i !== index));
+                        // The last line is emptied rather than removed: there
+                        // is always one to type into.
+                        setRows(
+                          rows.length > 1
+                            ? rows.filter((_, i) => i !== index)
+                            : [{ address: '', amount: '' }]
+                        );
                         // The rows below move up one place.
                         setJudged(
                           (previous) =>
