@@ -11,14 +11,29 @@ import { validateSchedule, vestedAt } from '../schedule';
 const T0 = Date.UTC(2026, 0, 31, 12, 0, 0) / 1000; // 31 Jan 2026, 12:00 UTC
 const iso = (seconds: number) => new Date(seconds * 1000).toISOString();
 
+// In the reader's calendar (tests run in Europe/Bucharest): the same wall
+// clock time across summer time, so the UTC hour moves by one in April.
+const local = (seconds: number) => {
+  const d = new Date(seconds * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 describe('calendar months', () => {
   it('keeps the day of the month, clamped to the month, without drifting', () => {
-    expect(iso(addMonths(T0, 1))).toBe('2026-02-28T12:00:00.000Z');
-    expect(iso(addMonths(T0, 2))).toBe('2026-03-31T12:00:00.000Z');
-    expect(iso(addMonths(T0, 13))).toBe('2027-02-28T12:00:00.000Z');
-    expect(iso(addMonths(Date.UTC(2027, 11, 31) / 1000, 2))).toBe(
-      '2028-02-29T00:00:00.000Z'
+    const anchor = new Date(2026, 0, 31, 12, 0, 0).getTime() / 1000;
+    expect(local(addMonths(anchor, 1))).toBe('2026-02-28 12:00');
+    expect(local(addMonths(anchor, 2))).toBe('2026-03-31 12:00');
+    expect(local(addMonths(anchor, 13))).toBe('2027-02-28 12:00');
+    expect(local(addMonths(new Date(2027, 11, 31).getTime() / 1000, 2))).toBe(
+      '2028-02-29 00:00'
     );
+  });
+
+  it('keeps the wall clock time across summer time', () => {
+    const anchor = new Date(2026, 0, 15, 9, 30).getTime() / 1000;
+    expect(iso(addMonths(anchor, 1))).toBe('2026-02-15T07:30:00.000Z');
+    expect(iso(addMonths(anchor, 4))).toBe('2026-05-15T06:30:00.000Z');
   });
 });
 

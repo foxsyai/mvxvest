@@ -1,6 +1,7 @@
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { balancesOf, createdIdsOf } from 'chain/reads';
+import type { Sent } from 'chain/send';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
 import {
@@ -36,9 +37,16 @@ const fromLocalInput = (value: string) => {
   const ms = new Date(value).getTime();
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : NaN;
 };
-/** "12.5" (percent) to basis points; NaN when not a number. */
-const toBps = (value: string) =>
-  Math.round(Number(value.replace(',', '.')) * 100);
+/**
+ * "12.5" or "12,5" (percent) to basis points; NaN when it is not a percentage
+ * with at most two decimals (12.345% is refused, not rounded).
+ */
+const toBps = (value: string) => {
+  const match = /^(\d{1,3})(?:[.,](\d{0,2}))?$/.exec(value.trim());
+  return match
+    ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'))
+    : NaN;
+};
 
 const Step = ({
   n,
@@ -63,6 +71,29 @@ const Step = ({
     {children}
   </Card>
 );
+
+/** What was reviewed and is being signed: frozen while the panel is open. */
+interface Review {
+  key: string;
+  tokenId: string;
+  batches: NewVesting[][];
+  cancelable: boolean;
+  label: string;
+  fee: bigint;
+  count: number;
+  sum: bigint;
+  decimals: number;
+  ticker: string;
+  /** Batches already accepted by the network. */
+  done: number;
+  /** Bumped to sign the remaining batches after a partial send. */
+  attempt: number;
+  /** Something was sent: the form stays locked. */
+  sending?: boolean;
+  /** The last send stopped before the end. */
+  stopped?: boolean;
+  nextNonce?: bigint;
+}
 
 interface Row {
   address: string;
@@ -122,9 +153,10 @@ export const Create = () => {
   const [cancelable, setCancelable] = useState<boolean | null>(null);
   const [label, setLabel] = useState('');
 
-  // 5. signing
-  const [signing, setSigning] = useState(false);
-  const [created, setCreated] = useState<number[] | null>(null);
+  // 5. signing: what was reviewed is frozen until it is sent or dropped
+  const [review, setReview] = useState<Review | null>(null);
+  const [created, setCreated] = useState<number[]>([]);
+  const [changed, setChanged] = useState(false);
 
   // ------------------------------------------------------------ derived
 
@@ -141,11 +173,12 @@ export const Create = () => {
         repeated: result.repeated
       };
     }
+    // One line per row, empty ones included, so "line N" is row N; an empty
+    // row is skipped by the parser, and no row is ever taken for a header.
     const text = rows
-      .filter((row) => row.address.trim() || row.amount.trim())
       .map((row) => `${row.address.trim()}\t${row.amount.trim()}`)
       .join('\n');
-    const result = parseBeneficiaries(text, decimals);
+    const result = parseBeneficiaries(text, decimals, { header: false });
     return {
       list: result.rows,
       errors: result.errors,
@@ -264,6 +297,7 @@ export const Create = () => {
   const labelBytes = new TextEncoder().encode(label).length;
 
   const ready =
+    !!settings.data &&
     !!token &&
     beneficiaries.list.length > 0 &&
     beneficiaries.errors.length === 0 &&
@@ -275,35 +309,114 @@ export const Create = () => {
     !noFeeMoney &&
     !settings.data?.paused;
 
+  // Everything the transactions are built from, as one string: when it
+  // changes after the review opened, what is shown is no longer what would be
+  // signed.
+  const formKey = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          tokenId,
+          entries,
+          cancelable,
+          label,
+          fee,
+          batches: batches.map((batch) => batch.length)
+        },
+        (_, value) => (typeof value === 'bigint' ? value.toString() : value)
+      ),
+    [tokenId, entries, cancelable, label, fee, batches]
+  );
+
+  const openReview = () => {
+    setChanged(false);
+    setCreated([]);
+    setReview({
+      key: formKey,
+      tokenId,
+      batches,
+      cancelable: cancelable === true,
+      label,
+      fee,
+      count: beneficiaries.list.length,
+      sum,
+      decimals,
+      ticker: token?.ticker ?? '',
+      done: 0,
+      attempt: 0
+    });
+  };
+
+  // Nothing sent yet and the form changed: close the review; it must be
+  // checked again. (The form is disabled while it is open; this is the guard
+  // behind that.)
+  useEffect(() => {
+    if (
+      review &&
+      review.done === 0 &&
+      !review.sending &&
+      review.key !== formKey
+    ) {
+      setReview(null);
+      setChanged(true);
+    }
+  }, [review, formKey]);
+
+  const remaining = review ? review.batches.slice(review.done) : [];
   const build = useCallback(
     () =>
       Promise.all(
-        batches.map((batch) =>
+        remaining.map((batch) =>
           batch.length === 1
             ? client.create(
                 address,
-                tokenId,
+                review!.tokenId,
                 batch[0],
-                cancelable === true,
-                label,
-                fee
+                review!.cancelable,
+                review!.label,
+                review!.fee
               )
             : client.createBatch(
                 address,
-                tokenId,
+                review!.tokenId,
                 batch,
-                cancelable === true,
-                label,
-                fee
+                review!.cancelable,
+                review!.label,
+                review!.fee
               )
         )
       ),
-    [batches, address, tokenId, cancelable, label, fee]
+    // A new build only for a new review or a new attempt at the remaining.
+
+    [review?.key, review?.attempt, address]
   );
+
+  const sent = (result: Sent) => {
+    setReview((current) =>
+      current
+        ? {
+            ...current,
+            sending: true,
+            done: current.done + result.hashes.length,
+            nextNonce: result.nextNonce,
+            stopped: Boolean(result.stopped)
+          }
+        : current
+    );
+  };
 
   const finished = async (hashes: string[]) => {
     const ids = (await Promise.all(hashes.map(createdIdsOf))).flat();
-    setCreated(ids);
+    setCreated((previous) =>
+      [...new Set([...previous, ...ids])].sort((a, b) => a - b)
+    );
+  };
+
+  const startOver = () => {
+    setReview(null);
+    setCreated([]);
+    setRows([{ address: '', amount: '' }]);
+    setCsv('');
   };
 
   // ------------------------------------------------------------- render
@@ -339,404 +452,424 @@ export const Create = () => {
         </Notice>
       )}
 
-      <Step n={1} title='Token' done={!!token}>
-        {!balances.data ? (
-          <Spinner label='Reading your wallet' />
-        ) : (
-          <Field
-            label='The token to lock'
-            hint='EGLD or any fungible token in this wallet.'
-          >
-            <select
-              className={inputClass}
-              value={tokenId}
-              onChange={(event) => setTokenId(event.target.value)}
-            >
-              <option value=''>Choose a token</option>
-              {balances.data
-                .filter((balance) => balance.balance > 0n)
-                .map((balance) => (
-                  <option key={balance.identifier} value={balance.identifier}>
-                    {balance.ticker} (
-                    {balance.identifier === EGLD ? 'EGLD' : balance.identifier}
-                    ): {formatAmount(balance.balance, balance.decimals)}
-                  </option>
-                ))}
-            </select>
-          </Field>
-        )}
-      </Step>
-
-      <Step
-        n={2}
-        title='Beneficiaries'
-        done={
-          beneficiaries.list.length > 0 && beneficiaries.errors.length === 0
-        }
+      {/* Locked while a review is open: what is signed is what was checked. */}
+      <fieldset
+        disabled={!!review}
+        className='min-w-0 space-y-6 disabled:opacity-60'
       >
-        <div className='flex gap-2'>
-          <Button
-            variant={mode === 'rows' ? 'primary' : 'secondary'}
-            onClick={() => setMode('rows')}
-          >
-            One by one
-          </Button>
-          <Button
-            variant={mode === 'csv' ? 'primary' : 'secondary'}
-            onClick={() => setMode('csv')}
-          >
-            From a CSV
-          </Button>
-        </div>
-        {mode === 'rows' ? (
-          <div className='space-y-2'>
-            {rows.map((row, index) => (
-              <div key={index} className='flex flex-col gap-2 sm:flex-row'>
-                <input
-                  className={`${inputClass} font-mono sm:flex-[3]`}
-                  placeholder='erd1... beneficiary address'
-                  value={row.address}
-                  onChange={(event) =>
-                    setRows(
-                      rows.map((r, i) =>
-                        i === index ? { ...r, address: event.target.value } : r
-                      )
-                    )
-                  }
-                />
-                <input
-                  className={`${inputClass} sm:flex-1`}
-                  placeholder={`Amount${ticker ? ` of ${ticker}` : ''}`}
-                  inputMode='decimal'
-                  value={row.amount}
-                  onChange={(event) =>
-                    setRows(
-                      rows.map((r, i) =>
-                        i === index ? { ...r, amount: event.target.value } : r
-                      )
-                    )
-                  }
-                />
-                {rows.length > 1 && (
-                  <Button
-                    variant='ghost'
-                    onClick={() => setRows(rows.filter((_, i) => i !== index))}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              variant='secondary'
-              onClick={() => setRows([...rows, { address: '', amount: '' }])}
+        <Step n={1} title='Token' done={!!token}>
+          {!balances.data ? (
+            <Spinner label='Reading your wallet' />
+          ) : (
+            <Field
+              label='The token to lock'
+              hint='EGLD or any fungible token in this wallet.'
             >
-              Add a beneficiary
+              <select
+                className={inputClass}
+                value={tokenId}
+                onChange={(event) => setTokenId(event.target.value)}
+              >
+                <option value=''>Choose a token</option>
+                {balances.data
+                  .filter((balance) => balance.balance > 0n)
+                  .map((balance) => (
+                    <option key={balance.identifier} value={balance.identifier}>
+                      {balance.ticker} (
+                      {balance.identifier === EGLD
+                        ? 'EGLD'
+                        : balance.identifier}
+                      ): {formatAmount(balance.balance, balance.decimals)}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+          )}
+        </Step>
+
+        <Step
+          n={2}
+          title='Beneficiaries'
+          done={
+            beneficiaries.list.length > 0 && beneficiaries.errors.length === 0
+          }
+        >
+          <div className='flex gap-2'>
+            <Button
+              variant={mode === 'rows' ? 'primary' : 'secondary'}
+              onClick={() => setMode('rows')}
+            >
+              One by one
+            </Button>
+            <Button
+              variant={mode === 'csv' ? 'primary' : 'secondary'}
+              onClick={() => setMode('csv')}
+            >
+              From a CSV
             </Button>
           </div>
-        ) : (
-          <div className='space-y-2'>
-            <Field
-              label='One line per vesting: address, amount'
-              hint={`A header line is fine. Amounts in ${ticker || 'token'} units, at most ${decimals} decimals. Comma, semicolon or tab between the two.`}
-            >
-              <textarea
-                className={`${inputClass} h-48 font-mono`}
-                value={csv}
-                onChange={(event) => setCsv(event.target.value)}
-                placeholder={'address,amount\nerd1...,1000\nerd1...,2500.5'}
-              />
-            </Field>
-            <input
-              type='file'
-              accept='.csv,text/csv,text/plain'
-              className='text-sm'
-              onChange={(event) => event.target.files?.[0]?.text().then(setCsv)}
-            />
-          </div>
-        )}
-        {beneficiaries.errors.length > 0 && (
-          <Notice tone='danger'>
-            Fix these lines first:
-            <ul className='mt-1 list-disc pl-5'>
-              {beneficiaries.errors.slice(0, 20).map((error) => (
-                <li key={error.line}>
-                  Line {error.line}: {error.message}
-                </li>
+          {mode === 'rows' ? (
+            <div className='space-y-2'>
+              {rows.map((row, index) => (
+                <div key={index} className='flex flex-col gap-2 sm:flex-row'>
+                  <input
+                    className={`${inputClass} font-mono sm:flex-[3]`}
+                    placeholder='erd1... beneficiary address'
+                    value={row.address}
+                    onChange={(event) =>
+                      setRows(
+                        rows.map((r, i) =>
+                          i === index
+                            ? { ...r, address: event.target.value }
+                            : r
+                        )
+                      )
+                    }
+                  />
+                  <input
+                    className={`${inputClass} sm:flex-1`}
+                    placeholder={`Amount${ticker ? ` of ${ticker}` : ''}`}
+                    inputMode='decimal'
+                    value={row.amount}
+                    onChange={(event) =>
+                      setRows(
+                        rows.map((r, i) =>
+                          i === index ? { ...r, amount: event.target.value } : r
+                        )
+                      )
+                    }
+                  />
+                  {rows.length > 1 && (
+                    <Button
+                      variant='ghost'
+                      onClick={() =>
+                        setRows(rows.filter((_, i) => i !== index))
+                      }
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
               ))}
-            </ul>
-            {beneficiaries.errors.length > 20 && (
-              <p>and {beneficiaries.errors.length - 20} more.</p>
-            )}
-          </Notice>
-        )}
-        {beneficiaries.repeated.length > 0 && (
-          <Notice tone='warn'>
-            {beneficiaries.repeated.length} address
-            {beneficiaries.repeated.length === 1
-              ? ' appears'
-              : 'es appear'}{' '}
-            more than once. Each line becomes its own vesting.
-          </Notice>
-        )}
-        {beneficiaries.list.length > 0 && token && (
-          <p className='text-sm text-muted'>
-            {beneficiaries.list.length} vesting
-            {beneficiaries.list.length === 1 ? '' : 's'},{' '}
-            <Amount units={sum} decimals={decimals} ticker={ticker} /> in total.
-          </p>
-        )}
-      </Step>
-
-      <Step n={3} title='Schedule' done={!planIssue}>
-        <div className='grid gap-4 sm:grid-cols-2'>
-          <Field
-            label='Start'
-            hint='When vesting begins. It may be in the past: what has vested since is claimable at once.'
-          >
-            <input
-              type='datetime-local'
-              className={inputClass}
-              value={start}
-              onChange={(event) => setStart(event.target.value)}
-            />
-          </Field>
-          <Field label='Cliff' hint='Nothing can be claimed before the cliff.'>
-            <select
-              className={inputClass}
-              value={cliffChoice}
-              onChange={(event) =>
-                setCliffChoice(event.target.value as CliffChoice)
-              }
-            >
-              <option value='none'>No cliff</option>
-              <option value='catch-up'>
-                Cliff: what vested before it unlocks at once
-              </option>
-              <option value='lump'>
-                Cliff: a share unlocks at it, the rest vests after
-              </option>
-            </select>
-          </Field>
-          {cliffChoice !== 'none' && (
-            <Field label='Cliff date'>
-              <input
-                type='datetime-local'
-                className={inputClass}
-                value={cliffAt}
-                onChange={(event) => setCliffAt(event.target.value)}
-              />
-            </Field>
-          )}
-          {cliffChoice === 'lump' && (
-            <Field label='Share unlocked at the cliff (%)'>
-              <input
-                className={inputClass}
-                inputMode='decimal'
-                value={cliffShare}
-                onChange={(event) => setCliffShare(event.target.value)}
-              />
-            </Field>
-          )}
-          <Field label='How the rest is released'>
-            <select
-              className={inputClass}
-              value={shapeChoice}
-              onChange={(event) =>
-                setShapeChoice(event.target.value as ShapeChoice)
-              }
-            >
-              <option value='linear'>
-                Every second (linear) until an end date
-              </option>
-              <option value='days'>Every N days</option>
-              <option value='months'>Every N months, on the same day</option>
-              <option value='tranches'>On dates I choose</option>
-            </select>
-          </Field>
-          {shapeChoice === 'linear' && (
-            <Field label='End' hint='Everything has vested at this moment.'>
-              <input
-                type='datetime-local'
-                className={inputClass}
-                value={end}
-                onChange={(event) => setEnd(event.target.value)}
-              />
-            </Field>
-          )}
-          {(shapeChoice === 'days' || shapeChoice === 'months') && (
-            <>
-              <Field
-                label={
-                  shapeChoice === 'days'
-                    ? 'Every how many days'
-                    : 'Every how many months'
-                }
+              <Button
+                variant='secondary'
+                onClick={() => setRows([...rows, { address: '', amount: '' }])}
               >
-                <input
-                  className={inputClass}
-                  inputMode='numeric'
-                  value={shapeChoice === 'days' ? everyDays : everyMonths}
-                  onChange={(event) =>
-                    (shapeChoice === 'days' ? setEveryDays : setEveryMonths)(
-                      event.target.value
-                    )
-                  }
+                Add a beneficiary
+              </Button>
+            </div>
+          ) : (
+            <div className='space-y-2'>
+              <Field
+                label='One line per vesting: address, amount'
+                hint={`A header line is fine. Amounts in ${ticker || 'token'} units, at most ${decimals} decimals. Comma, semicolon or tab between the two.`}
+              >
+                <textarea
+                  className={`${inputClass} h-48 font-mono`}
+                  value={csv}
+                  onChange={(event) => setCsv(event.target.value)}
+                  placeholder={'address,amount\nerd1...,1000\nerd1...,2500.5'}
                 />
               </Field>
-              <Field
-                label='Number of releases'
-                hint={
-                  shapeChoice === 'months'
-                    ? `At most ${limits.maxTranches}.`
-                    : undefined
+              <input
+                type='file'
+                accept='.csv,text/csv,text/plain'
+                className='text-sm'
+                onChange={(event) =>
+                  event.target.files?.[0]?.text().then(setCsv)
                 }
-              >
-                <input
-                  className={inputClass}
-                  inputMode='numeric'
-                  value={count}
-                  onChange={(event) => setCount(event.target.value)}
-                />
-              </Field>
-            </>
+              />
+            </div>
           )}
-        </div>
-        {shapeChoice === 'tranches' && (
-          <div className='space-y-2'>
+          {beneficiaries.errors.length > 0 && (
+            <Notice tone='danger'>
+              Fix these lines first:
+              <ul className='mt-1 list-disc pl-5'>
+                {beneficiaries.errors.slice(0, 20).map((error) => (
+                  <li key={error.line}>
+                    Line {error.line}: {error.message}
+                  </li>
+                ))}
+              </ul>
+              {beneficiaries.errors.length > 20 && (
+                <p>and {beneficiaries.errors.length - 20} more.</p>
+              )}
+            </Notice>
+          )}
+          {beneficiaries.repeated.length > 0 && (
+            <Notice tone='warn'>
+              {beneficiaries.repeated.length} address
+              {beneficiaries.repeated.length === 1
+                ? ' appears'
+                : 'es appear'}{' '}
+              more than once. Each line becomes its own vesting.
+            </Notice>
+          )}
+          {beneficiaries.list.length > 0 && token && (
             <p className='text-sm text-muted'>
-              Each release: a date and its share of each beneficiary’s total.
-              The shares must add up to 100%.
+              {beneficiaries.list.length} vesting
+              {beneficiaries.list.length === 1 ? '' : 's'},{' '}
+              <Amount units={sum} decimals={decimals} ticker={ticker} /> in
+              total.
             </p>
-            {dates.map((row, index) => (
-              <div key={index} className='flex flex-col gap-2 sm:flex-row'>
+          )}
+        </Step>
+
+        <Step n={3} title='Schedule' done={!planIssue}>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <Field
+              label='Start'
+              hint='When vesting begins. It may be in the past: what has vested since is claimable at once.'
+            >
+              <input
+                type='datetime-local'
+                className={inputClass}
+                value={start}
+                onChange={(event) => setStart(event.target.value)}
+              />
+            </Field>
+            <Field
+              label='Cliff'
+              hint='Nothing can be claimed before the cliff.'
+            >
+              <select
+                className={inputClass}
+                value={cliffChoice}
+                onChange={(event) =>
+                  setCliffChoice(event.target.value as CliffChoice)
+                }
+              >
+                <option value='none'>No cliff</option>
+                <option value='catch-up'>
+                  Cliff: what vested before it unlocks at once
+                </option>
+                <option value='lump'>
+                  Cliff: a share unlocks at it, the rest vests after
+                </option>
+              </select>
+            </Field>
+            {cliffChoice !== 'none' && (
+              <Field label='Cliff date'>
                 <input
                   type='datetime-local'
-                  className={`${inputClass} sm:flex-[2]`}
-                  value={row.at}
-                  onChange={(event) =>
-                    setDates(
-                      dates.map((d, i) =>
-                        i === index ? { ...d, at: event.target.value } : d
-                      )
-                    )
-                  }
+                  className={inputClass}
+                  value={cliffAt}
+                  onChange={(event) => setCliffAt(event.target.value)}
                 />
+              </Field>
+            )}
+            {cliffChoice === 'lump' && (
+              <Field label='Share unlocked at the cliff (%)'>
                 <input
-                  className={`${inputClass} sm:flex-1`}
+                  className={inputClass}
                   inputMode='decimal'
-                  placeholder='%'
-                  value={row.share}
-                  onChange={(event) =>
-                    setDates(
-                      dates.map((d, i) =>
-                        i === index ? { ...d, share: event.target.value } : d
-                      )
-                    )
-                  }
+                  value={cliffShare}
+                  onChange={(event) => setCliffShare(event.target.value)}
                 />
-                {dates.length > 1 && (
-                  <Button
-                    variant='ghost'
-                    onClick={() =>
-                      setDates(dates.filter((_, i) => i !== index))
+              </Field>
+            )}
+            <Field label='How the rest is released'>
+              <select
+                className={inputClass}
+                value={shapeChoice}
+                onChange={(event) =>
+                  setShapeChoice(event.target.value as ShapeChoice)
+                }
+              >
+                <option value='linear'>
+                  Every second (linear) until an end date
+                </option>
+                <option value='days'>Every N days</option>
+                <option value='months'>
+                  Every N months, on the same day (your time zone)
+                </option>
+                <option value='tranches'>On dates I choose</option>
+              </select>
+            </Field>
+            {shapeChoice === 'linear' && (
+              <Field label='End' hint='Everything has vested at this moment.'>
+                <input
+                  type='datetime-local'
+                  className={inputClass}
+                  value={end}
+                  onChange={(event) => setEnd(event.target.value)}
+                />
+              </Field>
+            )}
+            {(shapeChoice === 'days' || shapeChoice === 'months') && (
+              <>
+                <Field
+                  label={
+                    shapeChoice === 'days'
+                      ? 'Every how many days'
+                      : 'Every how many months'
+                  }
+                >
+                  <input
+                    className={inputClass}
+                    inputMode='numeric'
+                    value={shapeChoice === 'days' ? everyDays : everyMonths}
+                    onChange={(event) =>
+                      (shapeChoice === 'days' ? setEveryDays : setEveryMonths)(
+                        event.target.value
+                      )
                     }
-                  >
-                    Remove
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              variant='secondary'
-              onClick={() =>
-                setDates([
-                  ...dates,
-                  { at: dates[dates.length - 1].at, share: '' }
-                ])
-              }
-            >
-              Add a release
-            </Button>
+                  />
+                </Field>
+                <Field
+                  label='Number of releases'
+                  hint={
+                    shapeChoice === 'months'
+                      ? `At most ${limits.maxTranches}.`
+                      : undefined
+                  }
+                >
+                  <input
+                    className={inputClass}
+                    inputMode='numeric'
+                    value={count}
+                    onChange={(event) => setCount(event.target.value)}
+                  />
+                </Field>
+              </>
+            )}
           </div>
-        )}
-        {planIssue ? (
-          <Notice tone='warn'>{planIssue}</Notice>
-        ) : previewEntry && token ? (
-          <div className='space-y-3'>
-            <p className='text-sm text-muted'>
-              Preview for the first beneficiary (
-              <Amount
-                units={previewEntry.total}
+          {shapeChoice === 'tranches' && (
+            <div className='space-y-2'>
+              <p className='text-sm text-muted'>
+                Each release: a date and its share of each beneficiary’s total.
+                The shares must add up to 100%.
+              </p>
+              {dates.map((row, index) => (
+                <div key={index} className='flex flex-col gap-2 sm:flex-row'>
+                  <input
+                    type='datetime-local'
+                    className={`${inputClass} sm:flex-[2]`}
+                    value={row.at}
+                    onChange={(event) =>
+                      setDates(
+                        dates.map((d, i) =>
+                          i === index ? { ...d, at: event.target.value } : d
+                        )
+                      )
+                    }
+                  />
+                  <input
+                    className={`${inputClass} sm:flex-1`}
+                    inputMode='decimal'
+                    placeholder='%'
+                    value={row.share}
+                    onChange={(event) =>
+                      setDates(
+                        dates.map((d, i) =>
+                          i === index ? { ...d, share: event.target.value } : d
+                        )
+                      )
+                    }
+                  />
+                  {dates.length > 1 && (
+                    <Button
+                      variant='ghost'
+                      onClick={() =>
+                        setDates(dates.filter((_, i) => i !== index))
+                      }
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                variant='secondary'
+                onClick={() =>
+                  setDates([
+                    ...dates,
+                    { at: dates[dates.length - 1].at, share: '' }
+                  ])
+                }
+              >
+                Add a release
+              </Button>
+            </div>
+          )}
+          {planIssue ? (
+            <Notice tone='warn'>{planIssue}</Notice>
+          ) : previewEntry && token ? (
+            <div className='space-y-3'>
+              <p className='text-sm text-muted'>
+                Preview for the first beneficiary (
+                <Amount
+                  units={previewEntry.total}
+                  decimals={decimals}
+                  ticker={ticker}
+                />
+                ); every other one follows the same schedule in proportion to
+                their amount.
+              </p>
+              <ScheduleChart
+                schedule={previewEntry.schedule}
+                total={previewEntry.total}
+                decimals={decimals}
+                ticker={ticker}
+                now={now}
+              />
+              <ReleaseTable
+                schedule={previewEntry.schedule}
+                total={previewEntry.total}
                 decimals={decimals}
                 ticker={ticker}
               />
-              ); every other one follows the same schedule in proportion to
-              their amount.
+            </div>
+          ) : (
+            <p className='text-sm text-muted'>
+              The chart and every release appear here once a token and a
+              beneficiary are set.
             </p>
-            <ScheduleChart
-              schedule={previewEntry.schedule}
-              total={previewEntry.total}
-              decimals={decimals}
-              ticker={ticker}
-              now={now}
-            />
-            <ReleaseTable
-              schedule={previewEntry.schedule}
-              total={previewEntry.total}
-              decimals={decimals}
-              ticker={ticker}
-            />
+          )}
+        </Step>
+
+        <Step n={4} title='Options' done={cancelable !== null}>
+          <div className='grid gap-3 sm:grid-cols-2'>
+            <button
+              type='button'
+              onClick={() => setCancelable(false)}
+              className={`rounded-xl border p-4 text-left ${cancelable === false ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'}`}
+            >
+              <span className='font-semibold'>Cannot be cancelled</span>
+              <span className='mt-1 block text-sm text-muted'>
+                Once created, no key can stop it: the beneficiaries receive
+                everything on schedule. The strongest promise to a community
+                (the contract is upgradeable by its multisig; see the guide).
+              </span>
+            </button>
+            <button
+              type='button'
+              onClick={() => setCancelable(true)}
+              className={`rounded-xl border p-4 text-left ${cancelable === true ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'}`}
+            >
+              <span className='font-semibold'>Cancelable</span>
+              <span className='mt-1 block text-sm text-muted'>
+                You receive a cancel key NFT per vesting. Sending it back stops
+                that vesting: what has vested stays with the beneficiary, the
+                rest comes back. Anyone can see that it is cancelable.
+              </span>
+            </button>
           </div>
-        ) : (
-          <p className='text-sm text-muted'>
-            The chart and every release appear here once a token and a
-            beneficiary are set.
-          </p>
-        )}
-      </Step>
-
-      <Step n={4} title='Options' done={cancelable !== null}>
-        <div className='grid gap-3 sm:grid-cols-2'>
-          <button
-            type='button'
-            onClick={() => setCancelable(false)}
-            className={`rounded-xl border p-4 text-left ${cancelable === false ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'}`}
+          <Field
+            label='Label (optional)'
+            hint={`Shown on every vesting, for example "Team 2027" or "Seed round". ${labelBytes}/${limits.maxLabelLen} bytes.`}
           >
-            <span className='font-semibold'>Cannot be cancelled</span>
-            <span className='mt-1 block text-sm text-muted'>
-              Once created, nobody can stop it: the beneficiaries are sure to
-              receive everything on schedule. The strongest promise to a
-              community.
-            </span>
-          </button>
-          <button
-            type='button'
-            onClick={() => setCancelable(true)}
-            className={`rounded-xl border p-4 text-left ${cancelable === true ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'}`}
-          >
-            <span className='font-semibold'>Cancelable</span>
-            <span className='mt-1 block text-sm text-muted'>
-              You receive a cancel key NFT per vesting. Sending it back stops
-              that vesting: what has vested stays with the beneficiary, the rest
-              comes back. Anyone can see that it is cancelable.
-            </span>
-          </button>
-        </div>
-        <Field
-          label='Label (optional)'
-          hint={`Shown on every vesting, for example "Team 2027" or "Seed round". ${labelBytes}/${limits.maxLabelLen} bytes.`}
-        >
-          <input
-            className={inputClass}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            maxLength={limits.maxLabelLen}
-          />
-        </Field>
-      </Step>
+            <input
+              className={inputClass}
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              maxLength={limits.maxLabelLen}
+            />
+          </Field>
+        </Step>
+      </fieldset>
 
-      <Step n={5} title='Review and sign' done={!!created}>
+      <Step n={5} title='Review and sign' done={created.length > 0}>
         {token && beneficiaries.list.length > 0 ? (
           <dl className='grid gap-3 text-sm sm:grid-cols-2'>
             <div>
@@ -807,7 +940,12 @@ export const Create = () => {
             Choose whether the vestings can be cancelled (step 4).
           </Notice>
         )}
-        {created ? (
+        {changed && !review && (
+          <Notice tone='warn'>
+            The form changed after the review opened. Check and sign again.
+          </Notice>
+        )}
+        {created.length > 0 && (
           <Notice tone='ok'>
             Created {created.length} vesting{created.length === 1 ? '' : 's'}:{' '}
             {created.map((id, index) => (
@@ -819,34 +957,81 @@ export const Create = () => {
               </span>
             ))}
             . The claim keys are in the beneficiaries’ wallets
-            {cancelable ? ', the cancel keys in yours' : ''}.
+            {review?.cancelable ? ', the cancel keys in yours' : ''}.
           </Notice>
-        ) : signing ? (
-          <TxPanel
-            sender={address}
-            label={
-              beneficiaries.list.length === 1
-                ? 'Create a vesting'
-                : `Create ${beneficiaries.list.length} vestings`
-            }
-            summary={
-              <p>
-                Locks <Amount units={sum} decimals={decimals} ticker={ticker} />{' '}
-                in {beneficiaries.list.length} vesting
-                {beneficiaries.list.length === 1 ? '' : 's'}
-                {cancelable
-                  ? ' that you can cancel'
-                  : ' that nobody can cancel'}
-                . Each beneficiary receives a claim key NFT
-                {cancelable ? '; you receive a cancel key per vesting' : ''}.
-              </p>
-            }
-            build={build}
-            onFinished={finished}
-            onClose={() => setSigning(false)}
-          />
+        )}
+        {review ? (
+          <>
+            {(remaining.length > 0 || review.sending) && (
+              <TxPanel
+                key={`${review.key}:${review.attempt}`}
+                sender={address}
+                label={
+                  review.count === 1
+                    ? 'Create a vesting'
+                    : `Create ${review.count} vestings`
+                }
+                summary={
+                  <p>
+                    {review.done > 0 && !review.sending
+                      ? `The remaining ${remaining.length} of ${review.batches.length} transactions: `
+                      : ''}
+                    Locks{' '}
+                    <Amount
+                      units={review.sum}
+                      decimals={review.decimals}
+                      ticker={review.ticker}
+                    />{' '}
+                    in {review.count} vesting{review.count === 1 ? '' : 's'}
+                    {review.cancelable
+                      ? ' that you can cancel'
+                      : ' that cannot be cancelled'}
+                    {review.batches.length > 1
+                      ? `, in ${review.batches.length} transactions`
+                      : ''}
+                    . Each beneficiary receives a claim key NFT
+                    {review.cancelable
+                      ? '; you receive a cancel key per vesting'
+                      : ''}
+                    .
+                  </p>
+                }
+                build={build}
+                firstNonce={review.nextNonce}
+                onSent={sent}
+                onFinished={finished}
+                onClose={() => (review.sending ? undefined : setReview(null))}
+              />
+            )}
+            {review.sending && review.stopped && remaining.length > 0 && (
+              <div className='space-y-2'>
+                <Notice tone='warn'>
+                  {review.done} of {review.batches.length} transactions were
+                  sent; {remaining.length} were not. Check the created vestings
+                  above before going on.
+                </Notice>
+                <Button
+                  onClick={() =>
+                    setReview({
+                      ...review,
+                      sending: false,
+                      stopped: false,
+                      attempt: review.attempt + 1
+                    })
+                  }
+                >
+                  Sign the remaining {remaining.length}
+                </Button>
+              </div>
+            )}
+            {review.sending && (
+              <Button variant='secondary' onClick={startOver}>
+                Start a new creation
+              </Button>
+            )}
+          </>
         ) : (
-          <Button disabled={!ready} onClick={() => setSigning(true)}>
+          <Button disabled={!ready} onClick={openReview}>
             Check and sign
           </Button>
         )}

@@ -37,11 +37,13 @@ export const claimableVestings = async (
   return found.sort((a, b) => b.id - a.id);
 };
 
-/** Vestings `address` created, newest first (at most `limit`). */
+/**
+ * Vestings `address` created, newest first: the newest `limit` of `count`.
+ */
 export const createdVestings = async (
   address: string,
   limit = 500
-): Promise<Vesting[]> => {
+): Promise<{ list: Vesting[]; count: number }> => {
   const count = await vesting.countByCreator(address);
   const ids: number[] = [];
   // The newest `limit`: the index is oldest first.
@@ -51,7 +53,7 @@ export const createdVestings = async (
   const list: Vesting[] = [];
   for (const part of chunks(ids, 100))
     list.push(...(await vesting.vestings(part)));
-  return list.sort((a, b) => b.id - a.id);
+  return { list: list.sort((a, b) => b.id - a.id), count };
 };
 
 /** Every vesting of a token (at most `limit`), newest first. */

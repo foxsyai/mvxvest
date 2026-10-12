@@ -28,11 +28,16 @@ export const GAS_BUDGET = 500_000_000;
 
 /**
  * About the gas one vesting costs in a batch, measured on devnet: 8.5M
- * cancelable or 5.7M not (linear, 279M for 33 and 284M for 50), plus about
- * 0.42M per explicit tranche (30 monthly vestings of 12 tranches: 407M).
+ * cancelable or 5.7M not (linear, 279M for 33 and 284M for 50), plus what its
+ * explicit tranches cost. That grows faster than the count (the list is
+ * decoded, checked and stored whole): 0.42M each at 12 tranches (30 monthly
+ * vestings of 12: 407M), 1.06M each at 120 (one `create` of 120: 132M). The
+ * fit 0.3624M n + 0.005216M n^2 goes through both, with 15% on top; the
+ * simulation at signing has the last word.
  */
 export const gasPerVesting = (cancelable: boolean, tranches: number) =>
-  (cancelable ? 8_500_000 : 5_700_000) + 420_000 * tranches;
+  (cancelable ? 8_500_000 : 5_700_000) +
+  Math.ceil(1.15 * (362_400 * tranches + 5_216 * tranches * tranches));
 
 /** Most vestings of this shape one transaction can carry. */
 export const maxPerBatch = (

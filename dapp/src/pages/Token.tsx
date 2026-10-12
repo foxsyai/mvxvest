@@ -6,6 +6,7 @@ import { vesting as client } from 'chain/vesting';
 import {
   Amount,
   Badge,
+  Button,
   Card,
   Notice,
   PageTitle,
@@ -37,12 +38,26 @@ export const Token = () => {
     return { totals, list, count };
   }, [identifier]);
 
-  if (!data.data) {
+  if (!data.data || token.decimals === undefined) {
+    const failed = (data.error && !data.data) || token.failed;
     return (
-      <div>
+      <div className='space-y-4'>
         <PageTitle title={identifier} />
-        {data.error ? (
-          <Notice tone='warn'>This token could not be read.</Notice>
+        {failed ? (
+          <>
+            <Notice tone='warn'>
+              This token could not be read right now: the network did not
+              answer.
+            </Notice>
+            <Button
+              onClick={() => {
+                if (!data.data) data.reload();
+                if (token.failed) token.reload();
+              }}
+            >
+              Try again
+            </Button>
+          </>
         ) : (
           <Spinner />
         )}
@@ -61,6 +76,10 @@ export const Token = () => {
     (sum, v) => sum + (v.cancelledAt ? v.finalAmount : v.total),
     0n
   );
+  // With more vestings than are read, what is vested and when it unlocks is
+  // computed from the newest ones only; the contract's totals are exact.
+  const partial = count > list.length;
+  const claimedListed = list.reduce((sum, v) => sum + v.claimed, 0n);
   const calendar = unlockCalendar(list, now);
   const biggest = calendar.reduce(
     (max, month) => (month.unlocked > max ? month.unlocked : max),
@@ -109,8 +128,17 @@ export const Token = () => {
         <Progress
           total={committed === 0n ? 1n : committed}
           vested={vestedNow}
-          claimed={totals.claimed}
+          claimed={partial ? claimedListed : totals.claimed}
         />
+        {partial && (
+          <p className='text-xs text-muted'>
+            Deposited, in the contract, claimed and refunded are the
+            contract&apos;s totals. Vested so far, the bar and the calendar
+            below are computed from the newest{' '}
+            {list.length.toLocaleString('en-US')} of{' '}
+            {count.toLocaleString('en-US')} vestings.
+          </p>
+        )}
       </Card>
 
       <Card>
@@ -159,7 +187,11 @@ export const Token = () => {
                   <td className='py-1.5 pr-3'>
                     <Link to={`/v/${v.id}`} className='hover:text-accent'>
                       #{v.id}{' '}
-                      {v.label && <span className='text-muted'>{v.label}</span>}
+                      {v.label && (
+                        <span className='text-muted'>
+                          <bdi>{v.label}</bdi>
+                        </span>
+                      )}
                     </Link>
                   </td>
                   <td className='py-1.5 pr-3 text-right'>

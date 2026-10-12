@@ -105,7 +105,7 @@ export const Home = () => {
             A cancelable vesting gives its creator a second NFT. Sending it back
             stops the vesting at that moment: what has vested stays claimable
             with the claim key, the rest returns to whoever cancelled. A vesting
-            created without it can never be stopped.
+            created without it cannot be stopped by any key.
           </p>
         </Card>
       </section>

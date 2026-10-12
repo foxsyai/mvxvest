@@ -31,18 +31,43 @@ export const formatAmountExact = (units: bigint, decimals: number) =>
   formatAmount(units, decimals, decimals);
 
 /**
+ * Why `text` is not an amount, in words, or null when it reads as one. A comma
+ * is only taken as a thousands separator where it cannot be a decimal comma:
+ * "1,234.5" and "1,234,567" are fine, "1,5", "1,500" and "1.500,75" are refused
+ * (in much of Europe they mean 1.5, 1.5 and 1500.75), never guessed.
+ */
+export const amountProblem = (
+  text: string,
+  decimals: number
+): string | null => {
+  const clean = text.trim().replace(/[_\s]/g, '');
+  if (!clean) return 'empty';
+  let plain = clean;
+  if (clean.includes(',')) {
+    const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(clean);
+    const unambiguous = clean.includes('.') || clean.split(',').length > 2;
+    if (!grouped || !unambiguous)
+      return 'use a point for decimals and no comma, like 1500.25';
+    plain = clean.replace(/,/g, '');
+  }
+  const match = /^(\d+)(?:\.(\d*))?$/.exec(plain);
+  if (!match) return 'not a positive number';
+  const fraction = match[2] ?? '';
+  if (fraction.length > decimals && /[^0]/.test(fraction.slice(decimals)))
+    return `at most ${decimals} decimals`;
+  return null;
+};
+
+/**
  * Parses what a person typed ("1,234.5", "1234.50", " 7 ") into token units.
- * Null when it is not a plain positive number or has more decimals than the
- * token allows: an amount must never be rounded silently.
+ * Null when it is not a plain positive number, when a comma could be a decimal
+ * comma (see amountProblem), or when it has more decimals than the token
+ * allows: an amount must never be rounded or guessed silently.
  */
 export const parseAmount = (text: string, decimals: number): bigint | null => {
+  if (amountProblem(text, decimals) !== null) return null;
   const clean = text.trim().replace(/[,_\s]/g, '');
-  const match = /^(\d+)(?:\.(\d*))?$/.exec(clean);
-  if (!match) return null;
-  const [, whole, fraction = ''] = match;
-  if (fraction.length > decimals) {
-    if (/[^0]/.test(fraction.slice(decimals))) return null;
-  }
+  const [whole, fraction = ''] = clean.split('.');
   const digits = (fraction + '0'.repeat(decimals)).slice(0, decimals);
   return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(digits || '0');
 };

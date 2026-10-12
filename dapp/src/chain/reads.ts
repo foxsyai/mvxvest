@@ -132,31 +132,50 @@ const firstAmount = (dataHex: string): bigint => {
 
 const toBech32 = (hex: string) => Address.newFromHex(hex).toBech32();
 
+/** The endpoints that log a vesting's events, as the API names them. */
+const HISTORY_ENDPOINTS = ['create', 'createBatch', 'claim', 'cancel'];
+/** How far the API pages (its search window). */
+const API_WINDOW = 10_000;
+
 /**
  * The created, claimed and cancelled events of vesting `id`, oldest first. The
- * API filters events by one topic only, and a small id also matches NFT events
- * of the same nonce, so pages are read until the end (at most 1,000 events).
+ * API filters by one topic, which matches it in any position: a small id also
+ * matches every key moved one at a time (quantity 01). Asking per endpoint
+ * leaves those out (they are logged as ESDT transfers), and each list is read
+ * to its end.
  */
 export const historyOf = async (id: number): Promise<HistoryEvent[]> => {
+  const lists = await Promise.all(
+    HISTORY_ENDPOINTS.map(async (endpoint) => {
+      const found: any[] = [];
+      for (let from = 0; from < API_WINDOW; from += 100) {
+        const events =
+          (await api<any[]>(
+            `/events?address=${contractAddress}&identifier=${endpoint}&topics=${hexOf(id)}&from=${from}&size=100`
+          )) ?? [];
+        found.push(...events.filter((event) => event.identifier === endpoint));
+        if (events.length < 100) break;
+      }
+      return found;
+    })
+  );
   const history: HistoryEvent[] = [];
-  for (let from = 0; from < 1_000; from += 100) {
-    const events = await api<any[]>(
-      `/events?address=${contractAddress}&topics=${hexOf(id)}&from=${from}&size=100`
-    );
-    for (const event of events ?? []) {
-      const topics: string[] = event.topics ?? [];
-      const kind = NAMES[topics[0]];
-      if (!kind || topics[1] !== hexOf(id)) continue;
-      const data = Array.isArray(event.data) ? event.data[0] : event.data;
-      history.push({
-        kind,
-        txHash: String(event.txHash ?? '').split('-')[0],
-        timestamp: Number(event.timestamp ?? 0),
-        address: toBech32(topics[2]),
-        amount: data ? firstAmount(String(data)) : 0n
-      });
-    }
-    if ((events ?? []).length < 100) break;
+  const seen = new Set<string>();
+  for (const event of lists.flat()) {
+    const topics: string[] = event.topics ?? [];
+    const kind = NAMES[topics[0]];
+    if (!kind || topics[1] !== hexOf(id)) continue;
+    const txHash = String(event.txHash ?? '').split('-')[0];
+    if (seen.has(`${kind}:${event.txHash}`)) continue;
+    seen.add(`${kind}:${event.txHash}`);
+    const data = Array.isArray(event.data) ? event.data[0] : event.data;
+    history.push({
+      kind,
+      txHash,
+      timestamp: Number(event.timestamp ?? 0),
+      address: toBech32(topics[2]),
+      amount: data ? firstAmount(String(data)) : 0n
+    });
   }
   return history.sort((a, b) => a.timestamp - b.timestamp);
 };

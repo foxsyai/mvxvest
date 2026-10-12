@@ -1,7 +1,7 @@
 import { Transaction } from '@multiversx/sdk-core';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { outcomeOf, TxOutcome } from 'chain/reads';
-import { prepare, send } from 'chain/send';
+import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
 import { Amount, Button, ExplorerLink, Notice, Spinner } from 'components/ui';
 
@@ -9,7 +9,7 @@ type Phase =
   | { step: 'checking' }
   | { step: 'ready'; transactions: Transaction[]; problems: (string | null)[] }
   | { step: 'signing' }
-  | { step: 'sent'; hashes: string[] }
+  | { step: 'sent'; sent: Sent; total: number }
   | { step: 'error'; message: string };
 
 /**
@@ -31,12 +31,20 @@ const outcomeText = (outcome?: TxOutcome) => {
 /**
  * Shows what will happen, checks every transaction against the network first,
  * then asks the wallet once and follows each transaction to its result.
+ *
+ * What is signed is always the latest check of the latest `build`: an older
+ * check that answers late is dropped. Once the wallet is asked, nothing is
+ * checked or offered again: a re-render of the page (sdk-dapp refreshes the
+ * account when signing, the app reloads its reads when a transaction settles)
+ * must never put "Sign" back in front of transactions already signed.
  */
 export const TxPanel = ({
   sender,
   label,
   summary,
   build,
+  firstNonce,
+  onSent,
   onFinished,
   onClose
 }: {
@@ -46,35 +54,52 @@ export const TxPanel = ({
   /** What will happen, in words, shown before signing. */
   summary: ReactNode;
   build: () => Promise<Transaction[]>;
+  /** The nonce to start from when earlier transactions are still pending. */
+  firstNonce?: bigint;
+  /** Called once, as soon as the network has accepted what it accepted. */
+  onSent?: (sent: Sent) => void;
   onFinished?: (hashes: string[], outcomes: TxOutcome[]) => void;
   onClose: () => void;
 }) => {
   const [phase, setPhase] = useState<Phase>({ step: 'checking' });
   const [outcomes, setOutcomes] = useState<Record<string, TxOutcome>>({});
+  const run = useRef(0);
+  const locked = useRef(false);
 
-  const check = useCallback(async () => {
+  const check = async () => {
+    if (locked.current) return;
+    const id = ++run.current;
     setPhase({ step: 'checking' });
     try {
-      const prepared = await prepare(sender, await build());
-      setPhase({ step: 'ready', ...prepared });
+      const prepared = await prepare(sender, await build(), firstNonce);
+      if (id === run.current && !locked.current)
+        setPhase({ step: 'ready', ...prepared });
     } catch (failure) {
-      setPhase({
-        step: 'error',
-        message: `Could not prepare it: ${String((failure as any)?.message ?? failure)}`
-      });
+      if (id === run.current && !locked.current) {
+        setPhase({
+          step: 'error',
+          message: `Could not prepare it: ${String((failure as any)?.message ?? failure)}`
+        });
+      }
     }
-  }, [sender, build]);
+  };
 
   useEffect(() => {
     check();
-  }, [check]);
+    // Only a new build (or sender) asks for a new check, never a re-render.
+  }, [build, sender]);
 
   const sign = async (transactions: Transaction[]) => {
+    locked.current = true;
+    run.current++;
     setPhase({ step: 'signing' });
     try {
-      const { hashes } = await send(transactions, label);
-      setPhase({ step: 'sent', hashes });
+      const sent = await send(transactions, label);
+      setPhase({ step: 'sent', sent, total: transactions.length });
+      onSent?.(sent);
     } catch (failure) {
+      // Nothing reached the network: checking again is safe.
+      locked.current = false;
       setPhase({
         step: 'error',
         message: explainWalletFailure(failure, label)
@@ -85,28 +110,30 @@ export const TxPanel = ({
   // Follow each sent transaction until the network has its result.
   useEffect(() => {
     if (phase.step !== 'sent') return;
+    const { hashes } = phase.sent;
     let stopped = false;
     const poll = async () => {
       const next: Record<string, TxOutcome> = {};
-      for (const hash of phase.hashes)
+      for (const hash of hashes) {
         next[hash] = await outcomeOf(hash).catch(() => ({
           status: 'pending' as const
         }));
+      }
       if (stopped) return;
       setOutcomes(next);
       if (Object.values(next).some((outcome) => outcome.status === 'pending'))
         setTimeout(poll, 3_000);
       else
         onFinished?.(
-          phase.hashes,
-          phase.hashes.map((hash) => next[hash])
+          hashes,
+          hashes.map((hash) => next[hash])
         );
     };
     poll();
     return () => {
       stopped = true;
     };
-  }, [phase]);
+  }, [phase.step]);
 
   return (
     <div className='space-y-4'>
@@ -169,9 +196,20 @@ export const TxPanel = ({
       {phase.step === 'signing' && <Spinner label='Waiting for your wallet' />}
       {phase.step === 'sent' && (
         <div className='space-y-2'>
+          {phase.sent.stopped ? (
+            <Notice tone='warn'>
+              {phase.sent.hashes.length} of {phase.total} transactions were
+              sent. Transaction {phase.sent.stopped.at + 1}
+              {phase.sent.stopped.at + 1 < phase.total
+                ? ' and the ones after it were'
+                : ' was'}{' '}
+              not sent ({phase.sent.stopped.reason}): what they hold was not
+              done. Nothing here sends them again by itself.
+            </Notice>
+          ) : null}
           <p className='text-sm font-semibold'>Sent. Following the result:</p>
           <ul className='space-y-1 text-sm'>
-            {phase.hashes.map((hash, index) => (
+            {phase.sent.hashes.map((hash, index) => (
               <li key={hash} className='flex flex-wrap items-center gap-2'>
                 <span className='text-muted'>Transaction {index + 1}:</span>
                 <span
@@ -201,7 +239,7 @@ export const TxPanel = ({
         <div className='space-y-2'>
           <Notice tone='danger'>{phase.message}</Notice>
           <div className='flex gap-2'>
-            <Button onClick={check}>Try again</Button>
+            <Button onClick={check}>Check again</Button>
             <Button variant='secondary' onClick={onClose}>
               Close
             </Button>

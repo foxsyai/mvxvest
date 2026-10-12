@@ -38,8 +38,12 @@ export const SCHEDULE_ERRORS = {
   trancheBeforeStart: 'tranche before start',
   trancheOrder: 'tranche times must strictly increase',
   lastTrancheNotEnd: 'last tranche must be at the end',
-  trancheSum: 'tranches plus cliff amount must equal the total'
+  trancheSum: 'tranches plus cliff amount must equal the total',
+  /** Never from the contract (it only sees integers): a cleared form field. */
+  notATime: 'every time must be a whole number of seconds'
 } as const;
+
+const isTime = (t: number) => Number.isSafeInteger(t) && t >= 0;
 
 /** The contract's own check: null when valid, else the error it would return. */
 export const validateSchedule = (
@@ -48,6 +52,14 @@ export const validateSchedule = (
 ): string | null => {
   const { start, cliff, end, cliffAmount, curve } = schedule;
   if (total <= 0n) return SCHEDULE_ERRORS.zeroTotal;
+  if (![start, cliff, end].every(isTime)) return SCHEDULE_ERRORS.notATime;
+  if (curve.kind === 'stepped' && !isTime(curve.interval))
+    return SCHEDULE_ERRORS.notATime;
+  if (
+    curve.kind === 'tranches' &&
+    !curve.tranches.every((tranche) => isTime(tranche.time))
+  )
+    return SCHEDULE_ERRORS.notATime;
   if (start > cliff || cliff > end) return SCHEDULE_ERRORS.timeOrder;
   if (cliffAmount > total) return SCHEDULE_ERRORS.cliffAboveTotal;
   switch (curve.kind) {

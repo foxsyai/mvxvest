@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { claimableVestings } from 'chain/mine';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
-import { Button, Notice, PageTitle, Spinner } from 'components/ui';
+import { Button, Notice, PageTitle, ReadFailed, Spinner } from 'components/ui';
 import { VestingCard } from 'components/vesting/VestingCard';
 import { useAsync } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
@@ -50,7 +50,20 @@ export const Mine = () => {
       </div>
     );
   }
-  if (!data.data) return <Spinner />;
+  if (!data.data) {
+    return data.error ? (
+      <div className='space-y-4'>
+        <PageTitle title='My vestings' />
+        <ReadFailed
+          what='your vestings'
+          retry={data.reload}
+          busy={data.loading}
+        />
+      </div>
+    ) : (
+      <Spinner />
+    );
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const list = data.data.list;

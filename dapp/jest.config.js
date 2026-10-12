@@ -2,6 +2,7 @@ module.exports = {
   roots: ['<rootDir>/src'],
   collectCoverageFrom: ['src/**/tests/*.{test.ts,test.tsx,spec.tsx,spec.ts}'],
   coveragePathIgnorePatterns: [],
+  globalSetup: './jest.globalSetup.js',
   setupFilesAfterEnv: ['./src/setupTests.ts'],
   testEnvironment: 'jsdom',
   modulePaths: ['<rootDir>/src'],

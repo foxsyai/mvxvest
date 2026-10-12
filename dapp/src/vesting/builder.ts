@@ -13,7 +13,9 @@ import {
   MAX_TRANCHES,
   nextRelease,
   Schedule,
+  SCHEDULE_ERRORS,
   Tranche,
+  validateSchedule,
   vestedAt
 } from './schedule';
 
@@ -45,32 +47,36 @@ export interface Plan {
 }
 
 /**
- * The same day of the month `months` later, in UTC, at the same time of day;
- * the 31st becomes the 30th or the 28th where the month is shorter. Always
- * from the anchor, never from the previous date, so the clamp does not drift
- * (as foxsy-ops does).
+ * The same day of the month `months` later, at the same time of day, in the
+ * reader's own calendar (the time zone the form's dates are typed in); the
+ * 31st becomes the 30th or the 28th where the month is shorter. Always from the
+ * anchor, never from the previous date, so the clamp does not drift (as
+ * foxsy-ops does).
  */
 export const addMonths = (anchor: number, months: number): number => {
   const date = new Date(anchor * 1000);
-  const totalMonths = date.getUTCMonth() + months;
-  const year = date.getUTCFullYear() + Math.floor(totalMonths / 12);
+  const totalMonths = date.getMonth() + months;
+  const year = date.getFullYear() + Math.floor(totalMonths / 12);
   const month = ((totalMonths % 12) + 12) % 12;
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  const day = Math.min(date.getUTCDate(), lastDay);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const day = Math.min(date.getDate(), lastDay);
   return (
-    Date.UTC(
+    new Date(
       year,
       month,
       day,
-      date.getUTCHours(),
-      date.getUTCMinutes(),
-      date.getUTCSeconds()
-    ) / 1000
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds()
+    ).getTime() / 1000
   );
 };
 
 const share = (total: bigint, bps: number) =>
-  (total * BigInt(Math.round(bps))) / 10_000n;
+  Number.isFinite(bps) ? (total * BigInt(Math.round(bps))) / 10_000n : 0n;
+
+const isTime = (t: number) => Number.isSafeInteger(t) && t >= 0;
+const isCount = (n: number) => Number.isSafeInteger(n) && n >= 1;
 
 /** Equal amounts of `rest` over `count` releases, the remainder in the last. */
 const equalSplit = (rest: bigint, count: number): bigint[] => {
@@ -83,28 +89,33 @@ const equalSplit = (rest: bigint, count: number): bigint[] => {
 /** Why a plan cannot be built, in words for the form; null when it can. */
 export const planProblem = (plan: Plan): string | null => {
   const { shape, cliff } = plan;
+  // A cleared or half-typed field reaches here as NaN: say so, never build.
+  if (!isTime(plan.start)) return 'Choose a start date.';
   if (cliff) {
+    if (!isTime(cliff.at)) return 'Choose a cliff date.';
     if (cliff.at < plan.start) return 'The cliff cannot be before the start.';
-    if (cliff.style === 'lump' && (cliff.bps < 0 || cliff.bps > 10_000)) {
-      return 'The share at the cliff must be between 0% and 100%.';
+    if (
+      cliff.style === 'lump' &&
+      !(Number.isInteger(cliff.bps) && cliff.bps >= 0 && cliff.bps <= 10_000)
+    ) {
+      return 'The share at the cliff must be a percentage from 0 to 100, with at most two decimals.';
     }
   }
   switch (shape.kind) {
     case 'linear':
+      if (!isTime(shape.end)) return 'Choose an end date.';
       if (shape.end <= (cliff?.at ?? plan.start))
         return 'The end must come after the start and the cliff.';
       return null;
     case 'days':
-      if (!Number.isInteger(shape.days) || shape.days < 1)
+      if (!isCount(shape.days))
         return 'Choose at least 1 day between releases.';
-      if (!Number.isInteger(shape.count) || shape.count < 1)
-        return 'Choose at least 1 release.';
+      if (!isCount(shape.count)) return 'Choose at least 1 release.';
       return null;
     case 'months':
-      if (!Number.isInteger(shape.months) || shape.months < 1)
+      if (!isCount(shape.months))
         return 'Choose at least 1 month between releases.';
-      if (!Number.isInteger(shape.count) || shape.count < 1)
-        return 'Choose at least 1 release.';
+      if (!isCount(shape.count)) return 'Choose at least 1 release.';
       if (shape.count > MAX_TRANCHES)
         return `At most ${MAX_TRANCHES} releases.`;
       return null;
@@ -116,6 +127,10 @@ export const planProblem = (plan: Plan): string | null => {
       if (tranches.length === 0) return 'Add at least one release.';
       if (tranches.length > MAX_TRANCHES)
         return `At most ${MAX_TRANCHES} releases.`;
+      if (!tranches.every((tranche) => isTime(tranche.time)))
+        return 'Every release needs a date.';
+      if (!tranches.every((tranche) => Number.isInteger(tranche.bps)))
+        return 'Every share must be a percentage with at most two decimals.';
       for (let i = 1; i < tranches.length; i++) {
         if (tranches[i].time <= tranches[i - 1].time)
           return 'Each release must come after the one before it.';
@@ -125,7 +140,7 @@ export const planProblem = (plan: Plan): string | null => {
       if (tranches.some((tranche) => tranche.bps <= 0))
         return 'Every release needs a share above 0%.';
       const sum = tranches.reduce((total, tranche) => total + tranche.bps, 0);
-      if (Math.round(sum) !== 10_000)
+      if (sum !== 10_000)
         return `The shares add up to ${(sum / 100).toFixed(2)}%, not 100%.`;
       return null;
     }
@@ -242,6 +257,12 @@ export const releases = (
   { limit = 2000, checkpoints = 24 } = {}
 ): { rows: Release[]; truncated: boolean } => {
   const rows: Release[] = [];
+  // A plan with a cleared date: nothing to show (planProblem says why).
+  if (
+    validateSchedule(schedule, total === 0n ? 1n : total) ===
+    SCHEDULE_ERRORS.notATime
+  )
+    return { rows, truncated: false };
   if (schedule.curve.kind === 'linear') {
     const atCliff = vestedAt(schedule, total, schedule.cliff);
     if (atCliff > 0n)

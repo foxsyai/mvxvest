@@ -4,7 +4,7 @@ import { createdVestings } from 'chain/mine';
 import { keysHeld, tokenInfo } from 'chain/reads';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
-import { Button, Notice, PageTitle, Spinner } from 'components/ui';
+import { Button, Notice, PageTitle, ReadFailed, Spinner } from 'components/ui';
 import { VestingCard } from 'components/vesting/VestingCard';
 import { useAsync } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
@@ -30,11 +30,11 @@ export const Created = () => {
   const data = useAsync(async () => {
     if (!address) return null;
     const collections = await client.collections();
-    const [list, cancelKeys] = await Promise.all([
+    const [{ list, count }, cancelKeys] = await Promise.all([
       createdVestings(address),
       keysHeld(address, collections.cancel)
     ]);
-    return { collections, list, cancelKeys: new Set(cancelKeys) };
+    return { collections, list, count, cancelKeys: new Set(cancelKeys) };
   }, [address]);
 
   const build = useCallback(
@@ -104,10 +104,23 @@ export const Created = () => {
       </div>
     );
   }
-  if (!data.data) return <Spinner />;
+  if (!data.data) {
+    return data.error ? (
+      <div className='space-y-4'>
+        <PageTitle title='Created by me' />
+        <ReadFailed
+          what='the vestings you created'
+          retry={data.reload}
+          busy={data.loading}
+        />
+      </div>
+    ) : (
+      <Spinner />
+    );
+  }
 
   const now = Math.floor(Date.now() / 1000);
-  const { list, cancelKeys } = data.data;
+  const { list, count, cancelKeys } = data.data;
 
   return (
     <div className='space-y-6'>
@@ -125,6 +138,13 @@ export const Created = () => {
         </Notice>
       ) : (
         <>
+          {count > list.length && (
+            <Notice>
+              This wallet created {count.toLocaleString('en-US')} vestings; the
+              newest {list.length} are listed here and in the export. Each
+              vesting has its own page at /v/ and its number.
+            </Notice>
+          )}
           <Button variant='secondary' onClick={exportCsv}>
             Export to CSV
           </Button>

@@ -36,6 +36,10 @@ if [ "$NETWORK" = mainnet ]; then
     { echo "REFUSING: $(git rev-parse --short HEAD) is not on origin/main. Push it first."; exit 1; }
 fi
 
+# Exactly the locked dependencies, and nothing ships that fails its tests.
+pnpm install --frozen-lockfile
+pnpm -s exec jest --bail=0 --silent
+
 echo "Building for $NETWORK..."
 pnpm "build-$NETWORK"
 

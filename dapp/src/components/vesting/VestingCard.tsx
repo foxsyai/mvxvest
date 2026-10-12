@@ -39,7 +39,9 @@ export const VestingCard = ({
           >
             #{vesting.id}
             {vesting.label && (
-              <span className='ml-2 text-muted'>{vesting.label}</span>
+              <span className='ml-2 text-muted'>
+                <bdi>{vesting.label}</bdi>
+              </span>
             )}
           </Link>
           <div className='text-sm'>

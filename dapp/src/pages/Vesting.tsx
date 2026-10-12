@@ -21,7 +21,6 @@ import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { useAsync, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
-import { formatAmount } from 'vesting/format';
 import { nextRelease } from 'vesting/schedule';
 
 const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -74,12 +73,29 @@ export const VestingPage = () => {
   );
 
   if (data.error && !v) {
+    // Only the contract's own answer means there is no such vesting; a busy
+    // or unreachable API is a reason to try again, not a verdict.
+    const unknown = /unknown vesting|not a vesting number/i.test(
+      String((data.error as any)?.message ?? data.error)
+    );
     return (
-      <div>
+      <div className='space-y-4'>
         <PageTitle title={`Vesting #${params.id}`} />
-        <Notice tone='warn'>
-          No vesting with this number on this network.
-        </Notice>
+        {unknown ? (
+          <Notice tone='warn'>
+            No vesting with this number on this network.
+          </Notice>
+        ) : (
+          <>
+            <Notice tone='danger'>
+              Could not read this vesting right now: the network did not answer.
+              Nothing is wrong with the vesting itself.
+            </Notice>
+            <Button onClick={data.reload} disabled={data.loading}>
+              Try again
+            </Button>
+          </>
+        )}
       </div>
     );
   }
@@ -105,7 +121,9 @@ export const VestingPage = () => {
           lead={
             <>
               {v.label && (
-                <span className='font-semibold text-ink'>{v.label}. </span>
+                <span className='font-semibold text-ink'>
+                  <bdi>{v.label}</bdi>.{' '}
+                </span>
               )}
               <Amount
                 units={v.total}
@@ -286,8 +304,12 @@ export const VestingPage = () => {
                 <When seconds={v.schedule.cliff} />
                 {v.schedule.cliffAmount > 0n && (
                   <span className='block text-xs text-muted'>
-                    {formatAmount(v.schedule.cliffAmount, token.decimals)}{' '}
-                    {ticker} at the cliff
+                    <Amount
+                      units={v.schedule.cliffAmount}
+                      decimals={token.decimals}
+                      ticker={ticker}
+                    />{' '}
+                    at the cliff
                   </span>
                 )}
               </>
@@ -300,22 +322,40 @@ export const VestingPage = () => {
           </Fact>
           <Fact label='Shape'>{describeCurve(v.schedule)}</Fact>
         </dl>
-        <ScheduleChart
-          schedule={v.schedule}
-          total={v.total}
-          decimals={token.decimals}
-          ticker={ticker}
-          now={now}
-          cancelledAt={v.cancelledAt}
-        />
-        <ReleaseTable
-          schedule={v.schedule}
-          total={v.total}
-          decimals={token.decimals}
-          ticker={ticker}
-          now={now}
-          cancelledAt={v.cancelledAt}
-        />
+        {token.decimals === undefined ? (
+          token.failed ? (
+            <div className='flex flex-wrap items-center gap-3 text-sm'>
+              <span className='text-muted'>
+                The token&apos;s decimals could not be read, so no amounts are
+                shown.
+              </span>
+              <Button variant='secondary' onClick={token.reload}>
+                Try again
+              </Button>
+            </div>
+          ) : (
+            <Spinner />
+          )
+        ) : (
+          <>
+            <ScheduleChart
+              schedule={v.schedule}
+              total={v.total}
+              decimals={token.decimals}
+              ticker={ticker}
+              now={now}
+              cancelledAt={v.cancelledAt}
+            />
+            <ReleaseTable
+              schedule={v.schedule}
+              total={v.total}
+              decimals={token.decimals}
+              ticker={ticker}
+              now={now}
+              cancelledAt={v.cancelledAt}
+            />
+          </>
+        )}
       </Card>
 
       <Card className='space-y-3'>
@@ -328,8 +368,14 @@ export const VestingPage = () => {
               <span className='text-muted'>could not be read right now</span>
             ) : claimHolder ? (
               <AddressText address={claimHolder} />
-            ) : (
+            ) : v.claimed === v.finalAmount ? (
               <span className='text-muted'>burned: nothing more to claim</span>
+            ) : (
+              // Not found though the vesting still holds tokens: the API has
+              // not indexed a fresh key yet.
+              <span className='text-muted'>
+                not listed by the API yet; try again in a minute
+              </span>
             )}
           </Fact>
           <Fact
@@ -347,8 +393,12 @@ export const VestingPage = () => {
               <span className='text-muted'>could not be read right now</span>
             ) : cancelHolder ? (
               <AddressText address={cancelHolder} />
-            ) : (
+            ) : v.cancelledAt !== 0 ? (
               <span className='text-muted'>used</span>
+            ) : (
+              <span className='text-muted'>
+                not listed by the API yet; try again in a minute
+              </span>
             )}
           </Fact>
           <Fact label='Created by'>
@@ -365,7 +415,20 @@ export const VestingPage = () => {
 
       <Card>
         <h2 className='mb-3 font-bold'>History</h2>
-        {history.loading && !history.data ? (
+        {history.error && !history.data ? (
+          <div className='flex flex-wrap items-center gap-3 text-sm'>
+            <span className='text-muted'>
+              Could not read the history right now.
+            </span>
+            <Button
+              variant='secondary'
+              onClick={history.reload}
+              disabled={history.loading}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : history.loading && !history.data ? (
           <Spinner />
         ) : history.data && history.data.length > 0 ? (
           <ul className='space-y-2 text-sm'>

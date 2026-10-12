@@ -76,6 +76,31 @@ export const Notice = ({
   </div>
 );
 
+/**
+ * A read that failed (the public API rate-limits under load): says so and
+ * offers to try again, rather than spinning for ever or guessing.
+ */
+export const ReadFailed = ({
+  what,
+  retry,
+  busy = false
+}: {
+  /** "your vestings", "this token". */
+  what: string;
+  retry: () => void;
+  busy?: boolean;
+}) => (
+  <div className='space-y-3'>
+    <Notice tone='warn'>
+      Could not read {what} right now: the network did not answer. Nothing is
+      lost; try again in a moment.
+    </Notice>
+    <Button onClick={retry} disabled={busy}>
+      Try again
+    </Button>
+  </div>
+);
+
 export const Spinner = ({
   label = 'Reading the chain'
 }: {
@@ -101,18 +126,27 @@ export const Amount = ({
   className = ''
 }: {
   units: bigint;
-  decimals: number;
+  /** Undefined while the token's decimals are not known: no figure is shown. */
+  decimals: number | undefined;
   ticker?: string;
   className?: string;
-}) => (
-  <span
-    className={`tabular whitespace-nowrap ${className}`}
-    title={`${formatAmountExact(units, decimals)}${ticker ? ` ${ticker}` : ''}`}
-  >
-    {formatAmount(units, decimals)}
-    {ticker && <span className='ml-1 text-muted'>{ticker}</span>}
-  </span>
-);
+}) =>
+  decimals === undefined ? (
+    <span
+      className={`tabular whitespace-nowrap text-muted ${className}`}
+      title="The token's decimals are not known yet"
+    >
+      …{ticker && <span className='ml-1'>{ticker}</span>}
+    </span>
+  ) : (
+    <span
+      className={`tabular whitespace-nowrap ${className}`}
+      title={`${formatAmountExact(units, decimals)}${ticker ? ` ${ticker}` : ''}`}
+    >
+      {formatAmount(units, decimals)}
+      {ticker && <span className='ml-1 text-muted'>{ticker}</span>}
+    </span>
+  );
 
 /** A moment in the reader's time zone, the same in UTC on hover. */
 export const When = ({

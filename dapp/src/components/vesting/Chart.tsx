@@ -5,6 +5,8 @@ import { Schedule, vestedAt, vestedWithCancel } from 'vesting/schedule';
 
 const W = 1000;
 const H = 300;
+/** Releases drawn one by one; past this many the curve is sampled. */
+const STEPS = 400;
 
 /** The vested-amount curve as points in a W x H box (y down). */
 const curve = (
@@ -27,14 +29,24 @@ const curve = (
       points.push([x(t), y(at(t))]);
     }
   } else {
-    let level = 0n;
-    for (const row of releases(schedule, total, { limit: 2000 }).rows) {
-      const next = at(row.time);
-      points.push([x(row.time), y(level)]);
-      points.push([x(row.time), y(next)]);
-      level = next;
+    const { rows, truncated } = releases(schedule, total, { limit: STEPS });
+    if (truncated) {
+      // More releases than the chart has pixels for: sample the curve evenly
+      // (each step is narrower than a line), up to its end.
+      for (let i = 0; i <= STEPS; i++) {
+        const t = from + Math.round(((to - from) * i) / STEPS);
+        points.push([x(t), y(at(t))]);
+      }
+    } else {
+      let level = 0n;
+      for (const row of rows) {
+        const next = at(row.time);
+        points.push([x(row.time), y(level)]);
+        points.push([x(row.time), y(next)]);
+        level = next;
+      }
+      points.push([W, y(level)]);
     }
-    points.push([W, y(level)]);
   }
   return points
     .map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`)

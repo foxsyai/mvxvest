@@ -49,32 +49,54 @@ const simulationReason = (failure: unknown) => {
   return (match?.[1] || message).replace(/^["\s]+|["\s]+$/g, '').slice(0, 300);
 };
 
+/**
+ * Nonces, guardian and gas for `transactions`, each checked by the network's
+ * simulation. `firstNonce` overrides the account's nonce when transactions of
+ * this sender are still pending (a resend of the rest of a batch).
+ */
 export const prepare = async (
   sender: string,
-  transactions: Transaction[]
+  transactions: Transaction[],
+  firstNonce?: bigint
 ): Promise<Prepared> => {
   const account = await networkProvider.getAccount(
     Address.newFromBech32(sender)
   );
-  const firstNonce = BigInt(account.nonce);
+  const accountNonce = BigInt(account.nonce);
+  const startNonce =
+    firstNonce !== undefined && firstNonce > accountNonce
+      ? firstNonce
+      : accountNonce;
   const guardian = await guardianOf(sender);
+  // The guardian's extra gas must fit too: the network refuses any limit
+  // above 600M.
+  const cap = guardian ? MAX_GAS - GUARDED_EXTRA_GAS : MAX_GAS;
   const computer = new TransactionComputer();
   const problems: (string | null)[] = [];
 
   for (const [index, transaction] of transactions.entries()) {
-    // Simulated one by one with the current nonce: each transaction of a
+    // Simulated one by one with the account's nonce: each transaction of a
     // batch stands on its own.
-    transaction.nonce = firstNonce;
+    transaction.nonce = accountNonce;
     transaction.gasLimit = MAX_GAS;
     try {
-      const cost = await networkProvider.estimateTransactionCost(transaction);
-      const fitted = (BigInt(cost.gasLimit) * 12n) / 10n;
-      transaction.gasLimit = fitted > MAX_GAS ? MAX_GAS : fitted;
-      problems.push(null);
+      const cost = BigInt(
+        (await networkProvider.estimateTransactionCost(transaction)).gasLimit
+      );
+      if (cost > cap) {
+        transaction.gasLimit = cap;
+        problems.push(
+          `it needs ${cost.toLocaleString('en-US')} gas, more than one transaction may carry: send fewer vestings at once`
+        );
+      } else {
+        const fitted = (cost * 12n) / 10n;
+        transaction.gasLimit = fitted > cap ? cap : fitted;
+        problems.push(null);
+      }
     } catch (failure) {
       problems.push(simulationReason(failure));
     }
-    transaction.nonce = firstNonce + BigInt(index);
+    transaction.nonce = startNonce + BigInt(index);
     if (guardian) {
       computer.applyGuardian(transaction, Address.newFromBech32(guardian));
       transaction.gasLimit += GUARDED_EXTRA_GAS;
@@ -84,12 +106,62 @@ export const prepare = async (
 };
 
 export interface Sent {
+  /** Hashes of the transactions the network accepted, in order. */
   hashes: string[];
+  /**
+   * When not every transaction was sent: the index of the first one that was
+   * not (it and every later one did not reach the network), and why.
+   */
+  stopped?: { at: number; reason: string };
+  /** The nonce the next transaction of this sender should use. */
+  nextNonce: bigint;
 }
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const reasonOf = (failure: unknown) =>
+  String(
+    (failure as any)?.response?.data?.message ??
+      (failure as any)?.message ??
+      failure ??
+      'unknown error'
+  ).slice(0, 200);
+
+const retryable = (failure: unknown) =>
+  /\b(429|500|502|503|504)\b|too many|timeout|timed out|network|failed to fetch/i.test(
+    `${(failure as any)?.response?.status ?? ''} ${reasonOf(failure)}`
+  );
+
 /**
- * One wallet prompt for every transaction, then sent and tracked. Rejects with
- * the wallet's error (see chain/walletFailure.ts for the words to show).
+ * Sends one signed transaction, asking again on a refusal that may pass later
+ * (rate limit, server error). A transaction the network already holds is
+ * accepted as sent: the signed bytes, and so the hash, are the same.
+ */
+const sendOne = async (manager: any, transaction: Transaction) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const sent = await manager.send([transaction]);
+      return Array.isArray(sent) ? sent.flat() : [sent];
+    } catch (failure) {
+      if (/already|duplicat/i.test(reasonOf(failure))) {
+        const hash = Buffer.from(
+          new TransactionComputer().computeTransactionHash(transaction)
+        ).toString('hex');
+        return [{ ...transaction.toPlainObject(), hash, status: 'pending' }];
+      }
+      if (attempt >= 3 || !retryable(failure)) throw failure;
+      // The API counts requests per second: 0.4, 0.8 then 1.6 s is enough.
+      await wait(400 * 2 ** attempt);
+    }
+  }
+};
+
+/**
+ * One wallet prompt for every transaction, then sent one at a time in nonce
+ * order and tracked. Rejects when the wallet refuses or when not even the first
+ * transaction reached the network; when some did, it resolves with their
+ * hashes and says where it stopped, so nothing sent is ever reported as lost
+ * (and nothing is offered twice).
  */
 export const send = async (
   transactions: Transaction[],
@@ -98,17 +170,21 @@ export const send = async (
   const provider = getAccountProvider();
   const manager = TransactionManager.getInstance();
   const signed = await provider.signTransactions(transactions);
-  let sent: any;
-  try {
-    sent = await manager.send(signed);
-  } catch (failure) {
-    // sdk-dapp moves its stored nonce forward when the wallet signs; if the
-    // send then fails, nothing reached the network, so the nonce goes back
-    // (mvxsafe tx audit TX-08).
-    setAccountNonce(Number(transactions[0].nonce));
-    throw failure;
+  const sent: any[] = [];
+  let stopped: Sent['stopped'];
+  for (const [index, transaction] of signed.entries()) {
+    try {
+      sent.push(...(await sendOne(manager, transaction)));
+    } catch (failure) {
+      // sdk-dapp moved its stored nonce forward when the wallet signed; the
+      // ones not sent did not use theirs (mvxsafe tx audit TX-08).
+      setAccountNonce(Number(transactions[index].nonce));
+      if (sent.length === 0) throw failure;
+      stopped = { at: index, reason: reasonOf(failure) };
+      break;
+    }
   }
-  const hashes: string[] = (Array.isArray(sent) ? sent.flat() : [sent])
+  const hashes: string[] = sent
     .map((transaction: any) => transaction?.hash ?? '')
     .filter(Boolean);
   const touched = new Set<string>();
@@ -124,18 +200,23 @@ export const send = async (
       })
     );
   };
-  await manager.track(sent, {
-    transactionsDisplayInfo: {
-      processingMessage: `${label}...`,
-      errorMessage: `${label} failed`,
-      successMessage: `${label} done`
-    },
-    onSuccess: async () => settled(),
-    onFail: async () => settled()
-  });
+  try {
+    await manager.track(sent, {
+      transactionsDisplayInfo: {
+        processingMessage: `${label}...`,
+        errorMessage: `${label} failed`,
+        successMessage: `${label} done`
+      },
+      onSuccess: async () => settled(),
+      onFail: async () => settled()
+    });
+  } catch {
+    // Tracking only drives the toasts; the page follows each hash itself.
+  }
   // And on a clock, which does not depend on the SDK's socket: a block takes
   // about six seconds, a cross-shard result a little longer.
   setTimeout(settled, 8_000);
   setTimeout(settled, 18_000);
-  return { hashes };
+  const lastSent = transactions[(stopped?.at ?? transactions.length) - 1];
+  return { hashes, stopped, nextNonce: (lastSent?.nonce ?? 0n) + 1n };
 };

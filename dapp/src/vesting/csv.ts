@@ -3,7 +3,7 @@
 // with its line number: a wrong address in a vesting is money sent to nobody.
 
 import { Address } from '@multiversx/sdk-core';
-import { parseAmount } from './format';
+import { amountProblem, parseAmount } from './format';
 
 export interface Beneficiary {
   /** 1-based line in the file, for messages. */
@@ -43,10 +43,22 @@ const splitLine = (line: string): string[] => {
   return cells.map((value) => value.trim());
 };
 
-/** Parses "address,amount" lines; a header line and blank lines are skipped. */
+/** A first line that names its columns rather than holding a vesting. */
+const isHeader = (address: string, amount: string) =>
+  !isAddress(address.toLowerCase()) &&
+  !/^erd1/i.test(address) &&
+  !/^[\d.,\s_]+$/.test(amount);
+
+/**
+ * Parses "address,amount" lines; blank lines are skipped, and so is a header
+ * when the file has one (`header`: a first line whose cells are neither an
+ * address nor a number). Rows typed one by one pass `header: false`: their
+ * first line is always a vesting, so a typo in it is an error, never skipped.
+ */
 export const parseBeneficiaries = (
   text: string,
-  decimals: number
+  decimals: number,
+  { header = true }: { header?: boolean } = {}
 ): CsvResult => {
   const rows: Beneficiary[] = [];
   const errors: CsvResult['errors'] = [];
@@ -64,7 +76,12 @@ export const parseBeneficiaries = (
     const line = index + 1;
     if (!raw.trim()) return;
     const [address = '', amountText = '', ...rest] = splitLine(raw);
-    if (index === 0 && !address.startsWith('erd1')) return; // a header
+    if (
+      header &&
+      rows.length + errors.length === 0 &&
+      isHeader(address, amountText)
+    )
+      return;
     if (rest.some((cell) => cell !== '')) {
       errors.push({
         line,
@@ -83,7 +100,7 @@ export const parseBeneficiaries = (
     if (amount === null) {
       errors.push({
         line,
-        message: `Not a valid amount: ${amountText || '(empty)'} (at most ${decimals} decimals)`
+        message: `Not a valid amount: ${amountText || '(empty)'} (${amountProblem(amountText, decimals)})`
       });
       return;
     }
@@ -102,15 +119,18 @@ export const parseBeneficiaries = (
   return { rows, errors, repeated };
 };
 
+/**
+ * One CSV cell. Text a spreadsheet would run as a formula (= + - @, or a tab or
+ * carriage return before one) gets a leading apostrophe: labels are anyone's
+ * bytes on chain. Plain numbers, negative ones included, are left alone.
+ */
+const csvCell = (cell: string | number) => {
+  let text = String(cell);
+  if (typeof cell !== 'number' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
 /** Back to CSV, for an export: address, amount in token units as text. */
 export const toCsv = (header: string[], lines: (string | number)[][]) =>
-  [header, ...lines]
-    .map((cells) =>
-      cells
-        .map((cell) => {
-          const text = String(cell);
-          return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-        })
-        .join(',')
-    )
-    .join('\n') + '\n';
+  [header, ...lines].map((cells) => cells.map(csvCell).join(',')).join('\n') +
+  '\n';
