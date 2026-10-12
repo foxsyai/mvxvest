@@ -29,3 +29,6 @@ coverage/
 # Logs and local state
 *.log
 scripts/state/
+
+# Claude Code local state (agent worktrees)
+.claude/
