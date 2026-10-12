@@ -1,0 +1,9 @@
+# Default gitleaks rules, plus one exception: MultiversX token identifiers
+# (TICKER-abcdef, with an optional NFT nonce) are public on chain, but
+# "VESTKEY-8f217c-c9" looks like a generic API key to the default rules.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "MultiversX token identifiers"
+regexes = ['''\b[A-Z0-9]{3,10}-[0-9a-f]{6}(-[0-9a-f]{2,16})?\b''']
