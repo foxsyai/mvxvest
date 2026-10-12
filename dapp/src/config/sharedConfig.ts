@@ -4,5 +4,7 @@ export const apiTimeout = 6000;
 // exists to prove an address to a server we do not have.
 export const nativeAuth = false;
 
-// WalletConnect 2 project id (the same FOXSY project as mvxsafe.io).
-export const walletConnectV2ProjectId = 'f5dd01272414f227d26c1306ae5eedd6';
+// WalletConnect 2 (Reown) project "mvxvest.io", team MvxVest. Its allowlist
+// holds mvxvest.io and devnet.mvxvest.io: any other origin is refused, so a
+// new host (testnet, a preview) must be added there first.
+export const walletConnectV2ProjectId = '31f5d931d4dd6195188fcd218c96f07a';
