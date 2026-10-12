@@ -182,7 +182,10 @@ export class VestingClient {
         this.controller.query({
           contract: this.address,
           function: fn,
-          arguments: args
+          // A copy: sdk-core packs variadic arguments by rewriting the array
+          // it is given, which turned the caller's [326, 327, 328] into
+          // [[326, 327, 328], 327, 328] (My vestings failed on devnet).
+          arguments: [...args]
         })
     );
   }
