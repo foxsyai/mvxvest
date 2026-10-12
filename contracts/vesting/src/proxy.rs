@@ -117,8 +117,9 @@ where
     /// Stops holders from burning keys of `kind` themselves. The protocol lets 
     /// every holder burn tokens of a new collection by default 
     /// (`ESDTRoleBurnForAll`), and a burned claim key would lock its vesting 
-    /// forever. Call once per collection after issuing it; the contract keeps 
-    /// its own burn role. 
+    /// forever. Call once per collection after issuing it, with about 100M gas 
+    /// (the ESDT system contract charges 50M, then notifies every shard); the 
+    /// contract keeps its own burn role. 
     pub fn disable_key_burn_by_holders<
         Arg0: ProxyArg<KeyKind>,
     >(

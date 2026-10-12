@@ -101,6 +101,8 @@ export interface State {
   claimKey?: string;
   cancelKey?: string;
   tokens?: Record<string, string>;
+  /** Transaction that removed ESDTRoleBurnForAll, per key kind. */
+  burnDisabled?: Partial<Record<"Claim" | "Cancel", string>>;
   runs?: RunRecord[];
 }
 

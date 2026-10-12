@@ -38,33 +38,43 @@ for (const [endpoint, view, name, ticker, field] of [
 }
 
 // Holders must not be able to burn keys: a burned claim key would lock its
-// vesting forever. New collections get ESDTRoleBurnForAll by default.
-async function burnForAll(collection: string): Promise<boolean> {
-  const body = (await (await fetch(`${api()}/collections/${collection}`)).json()) as {
-    roles?: { address?: string; roles?: string[] }[];
+// vesting forever. New collections get ESDTRoleBurnForAll by default. (The
+// API's collection roles lag behind: the proof is the system contract's
+// ESDTUnSetBurnRoleForAll event, and a holder's burn being refused.)
+async function unsetEventFound(hash: string, collection: string): Promise<boolean> {
+  const body = (await (await fetch(`${api()}/transactions/${hash}?withLogs=true&withResults=true`)).json()) as {
+    logs?: { events?: { identifier: string; topics?: string[] }[] };
+    results?: { logs?: { events?: { identifier: string; topics?: string[] }[] } }[];
   };
-  return (body.roles ?? []).some((r) => !r.address && (r.roles ?? []).includes("ESDTRoleBurnForAll"));
+  const events = [...(body.logs?.events ?? []), ...(body.results ?? []).flatMap((r) => r.logs?.events ?? [])];
+  return events.some(
+    (e) =>
+      e.identifier === "ESDTUnSetBurnRoleForAll" &&
+      Buffer.from(e.topics?.[0] ?? "", "base64").toString() === collection,
+  );
 }
 for (const [kind, field] of [
   ["Claim", "claimKey"],
   ["Cancel", "cancelKey"],
 ] as const) {
-  const collection = loadState()[field]!;
-  if (await burnForAll(collection)) {
+  const state = loadState();
+  const collection = state[field]!;
+  const done = state.burnDisabled?.[kind];
+  if (!done) {
     const tx = await controller.createTransactionForExecute(owner, owner.getNonceThenIncrement(), {
       contract,
       function: "disableKeyBurnByHolders",
       arguments: [kind],
-      gasLimit: 60_000_000n,
+      // The ESDT system contract charges 50M and then notifies every shard.
+      gasLimit: 100_000_000n,
     });
-    await send(`disableKeyBurnByHolders ${kind}`, tx);
-    // The change lands on the metachain a few blocks later.
-    for (let attempt = 0; attempt < 20 && (await burnForAll(collection)); attempt++) {
-      await new Promise((done) => setTimeout(done, 6_000));
+    const result = await send(`disableKeyBurnByHolders ${kind}`, tx);
+    if (!(await unsetEventFound(result.hash, collection))) {
+      throw new Error(`${collection}: no ESDTUnSetBurnRoleForAll event in ${result.hash}`);
     }
+    saveState({ ...loadState(), burnDisabled: { ...loadState().burnDisabled, [kind]: result.hash } });
   }
-  if (await burnForAll(collection)) throw new Error(`${collection} still lets holders burn keys`);
-  console.log(`${collection}: holders cannot burn keys`);
+  console.log(`${collection}: holders cannot burn keys (${loadState().burnDisabled![kind]})`);
 }
 
 // How keys look. Devnet points at placeholder images on devnet.mvxvest.io.
