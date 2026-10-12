@@ -37,7 +37,7 @@ if (process.argv[2] === "upgrade") {
   const tx = await controller.createTransactionForUpgrade(owner, owner.getNonceThenIncrement(), {
     contract: contractAddress(),
     bytecode,
-    gasLimit: 150_000_000n,
+    // No gasLimit: simulated and given 1.2x (a limit far above use is charged).
     arguments: [],
     ...metadata,
   });
@@ -49,7 +49,7 @@ if (process.argv[2] === "upgrade") {
   }
   const tx = await controller.createTransactionForDeploy(owner, owner.getNonceThenIncrement(), {
     bytecode,
-    gasLimit: 150_000_000n,
+    // No gasLimit: simulated and given 1.2x (a limit far above use is charged).
     arguments: [],
     ...metadata,
   });

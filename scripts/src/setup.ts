@@ -7,6 +7,12 @@
 import { EGLD, abi, amount, api, contractAddress, entrypoint, loadState, network, onNetwork, saveState, send, signer } from "./lib.js";
 
 const ISSUE_COST = EGLD / 20n;
+// Calls that go on to the ESDT system contract (issue, unset burn role): the
+// network's simulation cannot follow them, so a measured limit is used. On
+// mainnet (12 Oct 2026) they needed ~5M here + the system contract's fixed
+// 50M + the callback, ~60-65M; 60M failed on devnet. 75M is ~1.2x the need:
+// a limit far above use is charged in full.
+const SYSTEM_CALL_GAS = 75_000_000n;
 const owner = await signer("owner");
 const contract = contractAddress();
 const controller = entrypoint().createSmartContractController(abi());
@@ -27,7 +33,7 @@ for (const [endpoint, view, name, ticker, field] of [
       function: endpoint,
       arguments: [name, ticker],
       nativeTransferAmount: ISSUE_COST,
-      gasLimit: 100_000_000n,
+      gasLimit: SYSTEM_CALL_GAS,
     });
     await send(endpoint, tx);
     id = await collection(view);
@@ -66,7 +72,7 @@ for (const [kind, field] of [
       function: "disableKeyBurnByHolders",
       arguments: [kind],
       // The ESDT system contract charges 50M and then notifies every shard.
-      gasLimit: 100_000_000n,
+      gasLimit: SYSTEM_CALL_GAS,
     });
     const result = await send(`disableKeyBurnByHolders ${kind}`, tx);
     if (!(await unsetEventFound(result.hash, collection))) {

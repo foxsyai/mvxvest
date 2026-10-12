@@ -27,6 +27,12 @@ const GO = process.env.MVXVEST_MAINNET_GO === "yes";
 const SITE = "https://mvxvest.io";
 const REPRODUCIBLE = join(ROOT, "output-docker/mvxvest");
 const ISSUE_COST = EGLD / 20n;
+// Calls that go on to the ESDT system contract (issue, unset burn role): the
+// network's simulation cannot follow them, so a measured limit is used. On
+// mainnet (12 Oct 2026) they needed ~5M here + the system contract's fixed
+// 50M + the callback, ~60-65M; 60M failed on devnet. 75M is ~1.2x the need:
+// a limit far above use is charged in full.
+const SYSTEM_CALL_GAS = 75_000_000n;
 const step = process.argv[2] ?? "status";
 const controller = entrypoint().createSmartContractController(abi());
 
@@ -81,9 +87,9 @@ async function deploy() {
   const codeHash = readFileSync(join(REPRODUCIBLE, "mvxvest.codehash.txt"), "utf8").trim();
   if (!announce(`deploy ${bytecode.length} bytes, code hash ${codeHash}, upgradeable, readable, not payable`)) return;
   const deployer = await signer("deployer");
+  // No gasLimit: the deploy is simulated and gets 1.2x (lib.ts entrypoint).
   const tx = await controller.createTransactionForDeploy(deployer, deployer.getNonceThenIncrement(), {
     bytecode,
-    gasLimit: 150_000_000n,
     arguments: [],
     isUpgradeable: true,
     isReadable: true,
@@ -114,7 +120,7 @@ async function collections() {
     let id = (await view(getter))?.toString() ?? "";
     if (!id) {
       if (!announce(`${endpoint}("${name}", "${ticker}") paying 0.05 EGLD`)) continue;
-      await call(endpoint, endpoint, [name, ticker], { gasLimit: 100_000_000n, value: ISSUE_COST });
+      await call(endpoint, endpoint, [name, ticker], { gasLimit: SYSTEM_CALL_GAS, value: ISSUE_COST });
       id = (await view(getter))?.toString() ?? "";
       if (!id) throw new Error(`${endpoint} completed but ${getter} is empty`);
     }
@@ -132,8 +138,8 @@ async function noburn() {
     const collection = state[field];
     if (!collection) throw new Error("Run the collections step first.");
     if (state.burnDisabled?.[kind]) continue;
-    if (!announce(`disableKeyBurnByHolders(${kind}) on ${collection}, 100M gas`)) continue;
-    const result = await call(`disableKeyBurnByHolders ${kind}`, "disableKeyBurnByHolders", [kind], { gasLimit: 100_000_000n });
+    if (!announce(`disableKeyBurnByHolders(${kind}) on ${collection}, 75M gas`)) continue;
+    const result = await call(`disableKeyBurnByHolders ${kind}`, "disableKeyBurnByHolders", [kind], { gasLimit: SYSTEM_CALL_GAS });
     const body = (await (await fetch(`${api()}/transactions/${result.hash}?withLogs=true&withResults=true`)).json()) as {
       logs?: { events?: { identifier: string; topics?: string[] }[] };
       results?: { logs?: { events?: { identifier: string; topics?: string[] }[] } }[];

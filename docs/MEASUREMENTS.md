@@ -88,3 +88,21 @@ Script: `scripts/src/gas.ts`; every hash is in `scripts/state/devnet.json`.
 The first devnet deployment (`58fcdb51…`) was upgraded to `fd32f4e1…`
 (batch limits, `disableKeyBurnByHolders`); storage and all 46 existing
 vestings were kept.
+
+## Mainnet launch (12 October 2026)
+
+Read from the transactions' results:
+- **Gas used** is what the API reports.
+- **Needed** is our contract's part, plus what the system contract charged, plus the callback. For the deploy, it is a simulation run afterwards.
+
+| Step | Limit given | Needed | Fee (EGLD) |
+|---|---|---|---|
+| deploy | 150M (fixed) | 87.9M (simulated) | 0.0804 |
+| pauseCreation | 4.6M (simulated x1.2) | 3.85M | 0.0001 |
+| issueClaimKey / issueCancelKey | 100M (fixed) | ~5M + 50M (system contract, fixed) + callback, ~60M | 0.0011 each, plus 0.05 issue cost |
+| disableKeyBurnByHolders (x2) | 100M (fixed) | ~4M + 50M + callback, ~65M (60M failed on devnet) | 0.0011 each |
+
+The fixed limits were charged in full, about 1.5-1.7x the need: roughly 0.02 EGLD wasted on the deploy and 0.001 on the rest. Since then the scripts follow two rules:
+
+- **Deploys and upgrades** are simulated and given 1.2x.
+- **Calls that reach the ESDT system contract** use a measured 75M. The simulation cannot follow them.
