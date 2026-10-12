@@ -162,6 +162,9 @@ export const Create = () => {
   const [mode, setMode] = useState<'rows' | 'csv'>('rows');
   const [rows, setRows] = useState<Row[]>([{ address: '', amount: '' }]);
   const [csv, setCsv] = useState('');
+  // Rows typed one by one are judged once the reader leaves them (focus goes
+  // outside the row), or presses "Check and sign": not while still typing.
+  const [judged, setJudged] = useState<Set<number>>(new Set());
 
   // 3. schedule
   const now = useMemo(() => Math.floor(Date.now() / 60_000) * 60, []);
@@ -216,6 +219,12 @@ export const Create = () => {
       repeated: result.repeated
     };
   }, [mode, csv, rows, decimals]);
+
+  // In rows mode a line's problems show once it was left (see `judged`).
+  const shownErrors =
+    mode === 'rows'
+      ? beneficiaries.errors.filter((error) => judged.has(error.line - 1))
+      : beneficiaries.errors;
 
   const plan = useMemo((): Plan | null => {
     const startAt = fromLocalInput(start);
@@ -395,6 +404,7 @@ export const Create = () => {
   const reviewId = useRef(0);
 
   const openReview = () => {
+    setJudged(new Set(rows.map((_, index) => index)));
     builds.current.clear();
     reviewId.current += 1;
     setClosed(null);
@@ -681,7 +691,18 @@ export const Create = () => {
           {mode === 'rows' ? (
             <div className='space-y-2'>
               {rows.map((row, index) => (
-                <div key={index} className='flex flex-col gap-2 sm:flex-row'>
+                <div
+                  key={index}
+                  className='flex flex-col gap-2 sm:flex-row'
+                  onBlur={(event) => {
+                    if (
+                      !event.currentTarget.contains(
+                        event.relatedTarget as Node | null
+                      )
+                    )
+                      setJudged((previous) => new Set(previous).add(index));
+                  }}
+                >
                   <input
                     className={`${inputClass} font-mono sm:flex-[3]`}
                     placeholder='erd1... beneficiary address'
@@ -712,9 +733,18 @@ export const Create = () => {
                   {rows.length > 1 && (
                     <Button
                       variant='ghost'
-                      onClick={() =>
-                        setRows(rows.filter((_, i) => i !== index))
-                      }
+                      onClick={() => {
+                        setRows(rows.filter((_, i) => i !== index));
+                        // The rows below move up one place.
+                        setJudged(
+                          (previous) =>
+                            new Set(
+                              [...previous]
+                                .filter((i) => i !== index)
+                                .map((i) => (i > index ? i - 1 : i))
+                            )
+                        );
+                      }}
                     >
                       Remove
                     </Button>
@@ -751,18 +781,18 @@ export const Create = () => {
               />
             </div>
           )}
-          {beneficiaries.errors.length > 0 && (
+          {shownErrors.length > 0 && (
             <Notice tone='danger'>
               Fix these lines first:
               <ul className='mt-1 list-disc pl-5'>
-                {beneficiaries.errors.slice(0, 20).map((error) => (
+                {shownErrors.slice(0, 20).map((error) => (
                   <li key={error.line}>
                     Line {error.line}: {error.message}
                   </li>
                 ))}
               </ul>
-              {beneficiaries.errors.length > 20 && (
-                <p>and {beneficiaries.errors.length - 20} more.</p>
+              {shownErrors.length > 20 && (
+                <p>and {shownErrors.length - 20} more.</p>
               )}
             </Notice>
           )}
@@ -1103,6 +1133,16 @@ export const Create = () => {
                 <li key={issue}>{issue}</li>
               ))}
             </ul>
+          </Notice>
+        )}
+        {shownErrors.length < beneficiaries.errors.length && (
+          <Notice tone='warn'>
+            Finish line{' '}
+            {beneficiaries.errors
+              .filter((error) => !shownErrors.includes(error))
+              .map((error) => error.line)
+              .join(', ')}{' '}
+            of the beneficiaries (step 2).
           </Notice>
         )}
         {cancelable === null && token && beneficiaries.list.length > 0 && (

@@ -102,7 +102,9 @@ export const parseBeneficiaries = (
     if (!isAddress(address.toLowerCase())) {
       errors.push({
         line,
-        message: `Not a valid MultiversX address: ${address || '(empty)'}`
+        message: address
+          ? `Not a valid MultiversX address: ${address}`
+          : 'The address is missing.'
       });
       return;
     }
@@ -110,7 +112,9 @@ export const parseBeneficiaries = (
     if (amount === null) {
       errors.push({
         line,
-        message: `Not a valid amount: ${amountText || '(empty)'} (${amountProblem(amountText, decimals)})`
+        message: amountText
+          ? `Not a valid amount: ${amountText} (${amountProblem(amountText, decimals)})`
+          : 'The amount is missing.'
       });
       return;
     }
