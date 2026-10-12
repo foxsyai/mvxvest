@@ -41,16 +41,16 @@ fn deploy() {
     run_on_go_vm("deploy.scen.json");
 }
 
-/// A payable contract refuses to create, and an upgrade back to non-payable
-/// repairs it.
-#[test]
-fn payable_contract() {
-    run_on_go_vm("payable_contract.scen.json");
-}
-
 /// Create (ESDT and EGLD), claim, move the key, claim as the new holder,
 /// cancel, final claim: every balance and key holding checked.
 #[test]
 fn lifecycle() {
     run_on_go_vm("lifecycle.scen.json");
+}
+
+/// The largest batch allowed (75 cancelable vestings) fits in the 600M gas a
+/// transaction may carry.
+#[test]
+fn batch_max() {
+    run_on_go_vm("batch_max.scen.json");
 }

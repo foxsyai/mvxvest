@@ -8,14 +8,15 @@ use multiversx_sc::{derive_imports::*, imports::*};
 use crate::{
     errors::*,
     events::{self, CreatedEvent},
-    keys::{self, add_payment},
+    keys,
     schedule::Schedule,
     storage::{self, KeyKind, Vesting},
 };
 
-/// Most vestings one `createBatch` may create. Gas sets the practical limit
-/// lower; docs/MEASUREMENTS.md has the measured figure.
-pub const MAX_BATCH: usize = 100;
+/// Most vestings one `createBatch` may create. 75 cancelable vestings with
+/// linear schedules use about 480M of the 600M gas a transaction may carry
+/// (docs/MEASUREMENTS.md); the dApp splits a CSV by simulated gas.
+pub const MAX_BATCH: usize = 75;
 /// Longest label, in bytes.
 pub const MAX_LABEL_LEN: usize = 64;
 /// A schedule must end within this many seconds of its creation (30 years),
@@ -109,7 +110,6 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
     /// was sent) and the EGLD that came with it.
     fn received_payments(&self) -> (TokenId, BigUint, BigUint) {
         require!(!self.creation_paused().get(), ERR_CREATION_PAUSED);
-        require!(!self.is_payable(), ERR_PAYABLE_CONTRACT);
         self.require_key_issued(KeyKind::Claim);
         let payments = self.call_value().all();
         require!(!payments.is_empty(), ERR_NO_PAYMENT);
@@ -238,8 +238,8 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
             nonce: claim_nonce,
         });
         if cancelable {
-            let collection = self.key_collection(KeyKind::Cancel);
-            add_payment(cancel_keys, &collection, cancel_nonce, &BigUint::from(1u32));
+            // Every cancel nonce is new: push, no merge needed.
+            cancel_keys.push(self.key_payment(KeyKind::Cancel, cancel_nonce));
         }
         id
     }

@@ -215,35 +215,55 @@ fn surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot() {
         .run();
 }
 
-#[test]
-fn claim_key_that_bounced_at_creation_goes_where_the_creator_says() {
-    let mut f = Fixture::new();
-    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
-    // Simulate the bounce: the key comes back to the contract.
+/// The contract takes `key` back, as when sending it to a smart contract
+/// that cannot receive it bounces.
+fn bounce(f: &mut Fixture, from: TestAddress, kind: KeyKind, nonce: u64) {
     f.world
         .tx()
-        .from(ALICE)
+        .from(from)
         .to(SC)
-        .payment(key(KeyKind::Claim, 1))
+        .payment(key(kind, nonce))
         .whitebox(mvxvest::contract_obj, |_| {});
-    // Neither the beneficiary nor a stranger may redirect it.
-    for caller in [ALICE, MALLORY] {
-        f.world
-            .tx()
-            .from(caller)
-            .to(SC)
-            .typed(MvxvestProxy)
-            .recover_bounced_keys(1u64, caller)
-            .returns(ExpectError(4, ERR_NOT_ALLOWED))
-            .run();
-    }
+}
+
+fn recover(f: &mut Fixture, caller: TestAddress, id: u64, kind: KeyKind, to: TestAddress) {
     f.world
         .tx()
-        .from(CREATOR)
+        .from(caller)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, BOB)
+        .recover_bounced_key(id, kind, to)
         .run();
+}
+
+fn recover_fails(
+    f: &mut Fixture,
+    caller: TestAddress,
+    id: u64,
+    kind: KeyKind,
+    to: TestAddress,
+    error: &str,
+) {
+    f.world
+        .tx()
+        .from(caller)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .recover_bounced_key(id, kind, to)
+        .returns(ExpectError(4, error))
+        .run();
+}
+
+#[test]
+fn only_the_owner_moves_a_key_that_bounced_at_creation() {
+    let mut f = Fixture::new();
+    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
+    bounce(&mut f, ALICE, KeyKind::Claim, 1);
+    // Not the creator, not the beneficiary, not a stranger.
+    for caller in [CREATOR, ALICE, MALLORY] {
+        recover_fails(&mut f, caller, 1, KeyKind::Claim, caller, ERR_ONLY_OWNER);
+    }
+    recover(&mut f, OWNER, 1, KeyKind::Claim, BOB);
     f.check_holds_key(BOB, KeyKind::Claim, 1, 1, FOX.as_str());
     f.set_time(T0 + 1_000);
     f.claim(BOB, &[1]);
@@ -252,33 +272,27 @@ fn claim_key_that_bounced_at_creation_goes_where_the_creator_says() {
 }
 
 #[test]
-fn claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return() {
+fn a_key_that_bounced_after_a_claim_goes_back_through_the_owner() {
     let mut f = Fixture::new();
-    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
+    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), false);
     f.set_time(T0 + 100);
     f.claim(ALICE, &[1]);
-    f.world
-        .tx()
-        .from(ALICE)
-        .to(SC)
-        .payment(key(KeyKind::Claim, 1))
-        .whitebox(mvxvest::contract_obj, |_| {});
-    // Something was claimed, so the creator may no longer redirect it.
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, CREATOR)
-        .returns(ExpectError(4, ERR_NOT_ALLOWED))
-        .run();
-    f.world
-        .tx()
-        .from(OWNER)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, ALICE)
-        .run();
+    bounce(&mut f, ALICE, KeyKind::Claim, 1);
+    recover_fails(&mut f, CREATOR, 1, KeyKind::Claim, CREATOR, ERR_ONLY_OWNER);
+    recover(&mut f, OWNER, 1, KeyKind::Claim, ALICE);
+    f.check_holds_key(ALICE, KeyKind::Claim, 1, 1, FOX.as_str());
+    f.check_invariant(Some(FOX));
+}
+
+#[test]
+fn each_bounced_key_goes_back_to_its_own_holder() {
+    let mut f = Fixture::new();
+    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
+    bounce(&mut f, ALICE, KeyKind::Claim, 1);
+    bounce(&mut f, CREATOR, KeyKind::Cancel, 1);
+    recover(&mut f, OWNER, 1, KeyKind::Cancel, CREATOR);
+    recover(&mut f, OWNER, 1, KeyKind::Claim, ALICE);
+    f.check_holds_key(CREATOR, KeyKind::Cancel, 1, 1, FOX.as_str());
     f.check_holds_key(ALICE, KeyKind::Claim, 1, 1, FOX.as_str());
 }
 
@@ -286,58 +300,21 @@ fn claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return() {
 fn recovery_needs_a_held_key_and_a_valid_recipient() {
     let mut f = Fixture::new();
     f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
+    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), false);
+    // Alice holds her key: nothing to recover.
+    recover_fails(&mut f, OWNER, 1, KeyKind::Claim, OWNER, ERR_NO_HELD_KEY);
+    // A non-cancelable vesting has no cancel key at all.
+    recover_fails(&mut f, OWNER, 2, KeyKind::Cancel, OWNER, ERR_NO_HELD_KEY);
+    bounce(&mut f, ALICE, KeyKind::Claim, 1);
     f.world
         .tx()
-        .from(CREATOR)
+        .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, CREATOR)
-        .returns(ExpectError(4, ERR_NO_HELD_KEY))
-        .run();
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, SC)
+        .recover_bounced_key(1u64, KeyKind::Claim, SC)
         .returns(ExpectError(4, ERR_BAD_RECIPIENT))
         .run();
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(9u64, CREATOR)
-        .returns(ExpectError(4, ERR_UNKNOWN_VESTING))
-        .run();
-}
-
-#[test]
-fn cancel_key_that_bounced_goes_back_to_the_creator() {
-    let mut f = Fixture::new();
-    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .payment(key(KeyKind::Cancel, 1))
-        .whitebox(mvxvest::contract_obj, |_| {});
-    f.world
-        .tx()
-        .from(MALLORY)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, MALLORY)
-        .returns(ExpectError(4, ERR_NOT_ALLOWED))
-        .run();
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, CREATOR)
-        .run();
-    f.check_holds_key(CREATOR, KeyKind::Cancel, 1, 1, FOX.as_str());
+    recover_fails(&mut f, OWNER, 9, KeyKind::Claim, OWNER, ERR_UNKNOWN_VESTING);
 }
 
 #[test]
@@ -356,66 +333,4 @@ fn upgrade_keeps_every_vesting() {
     f.claim(ALICE, &[1]);
     f.check_fox(ALICE, 500);
     f.check_invariant(Some(FOX));
-}
-
-#[test]
-fn a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator() {
-    let mut f = Fixture::new();
-    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
-    // The claim key bounced at creation: normally the creator's to redirect.
-    f.world
-        .tx()
-        .from(ALICE)
-        .to(SC)
-        .payment(key(KeyKind::Claim, 1))
-        .whitebox(mvxvest::contract_obj, |_| {});
-
-    // Upgraded to payable by mistake: a key could now arrive without a
-    // bounce, so the creator may no longer take claim keys, and creation
-    // stops until it is repaired. (The check runs at call time: on the real
-    // chain `upgrade` cannot see the new metadata; see go_vm_test.)
-    f.world
-        .tx()
-        .from(OWNER)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .upgrade()
-        .code(CODE)
-        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC)
-        .run();
-    f.create_fails(
-        BOB.to_managed_address(),
-        linear(T0, T0, 0, T0 + DAY),
-        false,
-        payments(&[(Some(FOX), 10)]),
-        ERR_PAYABLE_CONTRACT,
-    );
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, BOB)
-        .returns(ExpectError(4, ERR_NOT_ALLOWED))
-        .run();
-
-    // Repaired: the creator's rule applies again.
-    f.world
-        .tx()
-        .from(OWNER)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .upgrade()
-        .code(CODE)
-        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE)
-        .run();
-    f.world
-        .tx()
-        .from(CREATOR)
-        .to(SC)
-        .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, BOB)
-        .run();
-    f.check_holds_key(BOB, KeyKind::Claim, 1, 1, FOX.as_str());
-    f.create_fox(BOB, 10, linear(T0, T0, 0, T0 + DAY), false);
 }

@@ -17,7 +17,6 @@ mod common;
 
 use common::*;
 use multiversx_sc_scenario::imports::*;
-use mvxvest::errors::*;
 
 #[test]
 fn creator_cannot_seize_a_delivered_claim_key_after_a_bounced_multi_claim() {
@@ -79,7 +78,7 @@ fn creator_cannot_seize_a_delivered_claim_key_after_a_bounced_multi_claim() {
         .from(CREATOR)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_bounced_keys(2u64, CREATOR)
+        .recover_bounced_key(2u64, KeyKind::Claim, CREATOR)
         .returns(ReturnsHandledOrError::new())
         .run();
     if recovered.is_ok() {
@@ -94,7 +93,7 @@ fn creator_cannot_seize_a_delivered_claim_key_after_a_bounced_multi_claim() {
     }
     assert_eq!(
         recovered.unwrap_err().message,
-        ERR_NOT_ALLOWED,
-        "the refusal should be ERR_NOT_ALLOWED"
+        ERR_ONLY_OWNER,
+        "only the owner may move a key the contract holds"
     );
 }

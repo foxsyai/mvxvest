@@ -27,9 +27,6 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let mut progressed = false;
         for payment in payments.iter() {
             let id = self.vesting_of_key(KeyKind::Claim, &payment);
-            if !self.claim_key_used(id).get() {
-                self.claim_key_used(id).set(true);
-            }
             let vesting = self.vesting(id).get();
             let cancelled_at = self.cancelled_at(id).get();
             let vested = self.vested_with_cancel(&vesting, cancelled_at, now);
@@ -48,19 +45,21 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             } else {
                 outgoing.push(payment.clone());
             }
-            progressed |= amount > 0u32 || finished;
-            // One event per key sent, also when it paid nothing, so the logs
-            // show every key that reached a holder (`claimKeyUsed`).
-            self.vesting_claimed_event(
-                id,
-                &caller,
-                &vesting.token,
-                &ClaimedEvent {
-                    amount,
-                    claimed_total,
-                    finished,
-                },
-            );
+            // A key that paid nothing and is not finished changed nothing: it
+            // just goes back, with no event.
+            if amount > 0u32 || finished {
+                progressed = true;
+                self.vesting_claimed_event(
+                    id,
+                    &caller,
+                    &vesting.token,
+                    &ClaimedEvent {
+                        amount,
+                        claimed_total,
+                        finished,
+                    },
+                );
+            }
         }
         require!(progressed, ERR_NOTHING_TO_CLAIM);
         self.tx()
@@ -106,54 +105,30 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             .transfer_if_not_empty();
     }
 
-    /// Sends on the keys of vesting `id` that the contract holds, which only
-    /// happens when sending them bounced (a smart contract that cannot receive
-    /// them). Each caller gets what it may take:
-    ///
-    /// - the creator: the cancel key, and the claim key only if it never
-    ///   reached a holder (never sent to `claim` and nothing claimed: it
-    ///   bounced at creation);
-    /// - the owner: any held key.
-    ///
-    /// The creator's claim key rule relies on the contract being non-payable,
-    /// so that a key can only be held after a bounce. While the contract is
-    /// payable, only the owner may recover claim keys.
-    #[endpoint(recoverBouncedKeys)]
-    fn recover_bounced_keys(&self, id: u64, to: ManagedAddress) {
+    /// Owner only. Sends on the `kind` key of vesting `id`, which the contract
+    /// holds only after sending it bounced: to a beneficiary, creator or
+    /// holder that is a smart contract that cannot receive it (a wallet never
+    /// bounces). The events show whom it belongs to. Nobody else can move a
+    /// key the contract holds: earlier designs let the creator recover some
+    /// keys, and every review found a way to abuse that
+    /// (docs/reviews/2026-10-12-contract.md).
+    #[only_owner]
+    #[endpoint(recoverBouncedKey)]
+    fn recover_bounced_key(&self, id: u64, kind: KeyKind, to: ManagedAddress) {
         require!(!self.vesting(id).is_empty(), ERR_UNKNOWN_VESTING);
         self.require_valid_recipient(&to);
         let vesting = self.vesting(id).get();
+        let nonce = match kind {
+            KeyKind::Claim => vesting.claim_nonce,
+            KeyKind::Cancel => vesting.cancel_nonce,
+        };
+        require!(self.holds_key(kind, nonce), ERR_NO_HELD_KEY);
         let caller = self.blockchain().get_caller();
-        let is_owner = caller == self.blockchain().get_owner_address();
-        let is_creator = caller == vesting.creator;
-        let mut keys = ManagedVec::new();
-        let mut kinds = ManagedVec::<Self::Api, KeyKind>::new();
-        let mut held = false;
-        if self.holds_key(KeyKind::Claim, vesting.claim_nonce) {
-            held = true;
-            // Both checks: vestings created before `claimKeyUsed` existed have
-            // the flag unset even when they were claimed.
-            let never_delivered = !self.claim_key_used(id).get()
-                && self.claimed(id).get() == 0u32
-                && !self.is_payable();
-            if is_owner || (is_creator && never_delivered) {
-                keys.push(self.key_payment(KeyKind::Claim, vesting.claim_nonce));
-                kinds.push(KeyKind::Claim);
-            }
-        }
-        if self.holds_key(KeyKind::Cancel, vesting.cancel_nonce) {
-            held = true;
-            if is_owner || is_creator {
-                keys.push(self.key_payment(KeyKind::Cancel, vesting.cancel_nonce));
-                kinds.push(KeyKind::Cancel);
-            }
-        }
-        require!(held, ERR_NO_HELD_KEY);
-        require!(!keys.is_empty(), ERR_NOT_ALLOWED);
-        for kind in kinds.iter() {
-            self.key_recovered_event(id, *kind, &caller, &to);
-        }
-        self.tx().to(&to).payment(keys).transfer();
+        self.key_recovered_event(id, kind, &caller, &to);
+        self.tx()
+            .to(&to)
+            .payment(self.key_payment(kind, nonce))
+            .transfer();
     }
 
     /// Owner only. Sends what the contract holds of `token` beyond what it

@@ -72,10 +72,10 @@ for (const size of [1, 10, 25, 50]) {
   results[`createBatch ${size} cancelable`] = await batch(size, true);
 }
 const bytesBefore = await storageBytes();
-results["createBatch 100 cancelable"] = await batch(100, true);
+results["createBatch 75 cancelable"] = await batch(75, true);
 const bytesAfter = await storageBytes();
-results["storage bytes per vesting (batch of 100, cancelable)"] = Math.round((bytesAfter - bytesBefore) / 100);
-results["createBatch 100 non-cancelable"] = await batch(100, false);
+results["storage bytes per vesting (batch of 75, cancelable)"] = Math.round((bytesAfter - bytesBefore) / 75);
+results["createBatch 75 non-cancelable"] = await batch(75, false);
 
 // Claims: one key, then ten at once (the holder got every other vesting).
 const nfts = (await (

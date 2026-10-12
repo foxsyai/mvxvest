@@ -28,6 +28,9 @@ pub const PTS: TestTokenId = TestTokenId::new("PTS-a1b2c3");
 /// An NFT that is not a key.
 pub const OTHER_NFT: TestTokenId = TestTokenId::new("ART-a1b2c3");
 
+/// The framework's refusal of an `#[only_owner]` endpoint.
+pub const ERR_ONLY_OWNER: &str = "Endpoint can only be called by owner";
+
 pub const EGLD: u128 = 1_000_000_000_000_000_000;
 pub const ISSUE_COST: u128 = EGLD / 20;
 /// 2026-01-01T00:00:00Z

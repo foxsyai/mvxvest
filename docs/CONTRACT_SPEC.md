@@ -69,8 +69,7 @@ value or as `EGLD-000000` in a multi-transfer; both work). The total is an
 argument, not inferred from the payment, so a fee change between the preview
 and the signature makes the transaction fail instead of changing the vesting.
 
-Refused when: creation is paused; the contract is payable or payable by smart
-contracts (a deployment mistake: see section 5); the claim key collection (or the cancel key
+Refused when: creation is paused; the claim key collection (or the cancel key
 collection, for a cancelable vesting) is not issued; nothing is paid; a
 payment is not fungible; two different ESDTs are paid; the EGLD does not equal
 the fee exactly, or the payment is not exactly the total plus the fee; the
@@ -80,7 +79,7 @@ more than 30 years ahead.
 
 ### `createBatch(cancelable, label, entries) -> ids`
 
-Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 100 of
+Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 75 of
 them, all of the payment's token, all sharing `cancelable` and `label`. Pay the
 sum of the totals exactly, plus the fee times the number of entries. The same
 checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
@@ -90,9 +89,10 @@ to the creator in one transfer.
 
 Payable with one or more claim keys. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
-the key, or burns it when nothing more can ever be claimed. Every key sent
-emits `vestingClaimed`, also when it paid nothing (`claimed` equals
-the total, or what had vested at the cancel). Payouts of the same token are
+the key, or burns it when nothing more can ever be claimed (`claimed` equals
+the total, or what had vested at the cancel). Each key that paid or burned
+emits `vestingClaimed`; a key that paid nothing goes back unchanged, with no
+event. Payouts of the same token are
 merged into one transfer with the returned keys. Refused when a payment is not
 a claim key minted by this contract, or when no key paid anything or was
 burned (`nothing to claim yet`): so claiming twice in one block pays once.
@@ -115,31 +115,27 @@ cannot be stopped.
 | `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |
 | `claimFees()` | Send the accrued EGLD fees to the owner |
 | `recoverSurplus(token, to)` | Send what the contract holds of `token` beyond what it owes (see section 5) |
+| `recoverBouncedKey(id, kind, to)` | Send on a key the contract holds after a bounce (below) |
 | `upgrade` | The multisig can upgrade the contract; storage is kept |
 
-### `recoverBouncedKeys(id, to)`
+### `recoverBouncedKey(id, kind, to)` (owner only)
 
-Sends on the keys of vesting `id` that the contract itself holds. That only
-happens when a transfer to a smart contract that cannot receive them bounced
-back (a wallet never bounces), provided the contract is neither payable nor
-payable by smart contracts, as it is deployed. Each caller gets what it may
-take:
+Sends on the claim or cancel key (`kind`) of vesting `id` when the contract
+itself holds it. That only happens when sending the key bounced: to a
+beneficiary, creator or holder that is a smart contract that cannot receive
+tokens from contracts (a wallet never bounces). The events show whom it
+belongs to, and the owner returns it there. Nobody else can move a key the
+contract holds. One `keyRecovered` event per key. Fails with `the contract
+does not hold this key`, or when `to` is the zero address or the contract.
 
-- the creator: the cancel key, and the claim key only if that key never
-  reached a holder: never sent to `claim` (`claimKeyUsed`), nothing claimed,
-  and the contract not payable (so it bounced at creation);
-- the owner: any held key.
-
-It fails with `no key of this vesting is held by the contract` when there is
-none, and `not allowed` when the caller may take none of the held keys. `to`
-cannot be the zero address or the contract. One `keyRecovered` event per key.
+(Earlier versions let the creator recover some keys itself. All three reviews
+found ways to abuse that: see [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).)
 
 ## 4. Views
 
 `getVesting(id)` returns the vesting with its live state: `claimed`,
 `cancelled_at`, `vested`, `claimable`, `final_amount` (the most the claim key
-can ever collect), `refunded`, `claim_key_used` (the claim key has been sent to
-`claim` at least once) and the `timestamp` used. Also: `getVestings(ids)`
+can ever collect), `refunded` and the `timestamp` used. Also: `getVestings(ids)`
 (up to 100), `getClaimable(id)`, `getVestedAt(id, timestamp)`,
 `getNextRelease(id)` (the next moment the vested amount grows and by how much,
 exact for every curve; empty only when nothing more will vest: everything has
@@ -173,15 +169,17 @@ key with that nonce was minted; the answer stays after the key is burned),
   it, or that has a transfer role, can still be blocked by its issuer; the
   contract cannot detect this synchronously, so the dApp warns before
   creating such a vesting.
-- **Code metadata:** the contract must be deployed (and upgraded) neither
-  payable nor payable by smart contracts. It cannot check this in `init` or
-  `upgrade` (on the real chain those run before the new metadata is written),
-  so it checks at call time: while payable, `create` is refused and the
-  creator cannot recover claim keys.
-- **Undelivered claim keys:** a creator who names a beneficiary that cannot
-  receive the key (a smart contract in another shard, not payable by smart
-  contracts) gets the key back through `recoverBouncedKeys`. Such a vesting
-  never reached anyone; the dApp shows when the contract holds a key.
+- **Code metadata:** deploy and upgrade the contract neither payable nor
+  payable by smart contracts (`scripts/src/deploy.ts` does), so stray transfers
+  without a call bounce. The contract cannot check this in `init` or `upgrade`
+  (on the real chain those run before the new metadata is written), and no
+  money depends on it: a key or token that reaches the contract outside an
+  endpoint can only be returned by the owner.
+- **Undelivered claim keys:** if the beneficiary cannot receive its key (a
+  smart contract in another shard that is not payable by smart contracts), the
+  key bounces back and the owner returns it to whom the creator and
+  beneficiary agree. The dApp checks smart contract beneficiaries before
+  creating, so this should not happen through it.
 - **Smart contract holders:** a smart contract that holds a key must accept
   tokens from other contracts (`payableBySC`), or the payout bounces (see
   "No dead ends"). The dApp warns when a beneficiary is a smart contract.

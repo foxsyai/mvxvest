@@ -102,17 +102,6 @@ pub trait KeysModule: storage::StorageModule {
         Payment::new(self.key_collection(kind), nonce, NonZeroBigUint::one())
     }
 
-    /// Whether the contract accepts transfers that call nothing. It must not:
-    /// then a key can only be in its balance after a bounce, which
-    /// `recoverBouncedKeys` relies on. Read at call time, because `init` and
-    /// `upgrade` cannot see the new metadata on the real chain.
-    fn is_payable(&self) -> bool {
-        let metadata = self
-            .blockchain()
-            .get_code_metadata(&self.blockchain().get_sc_address());
-        metadata.is_payable() || metadata.is_payable_by_sc()
-    }
-
     /// Whether the contract itself holds this key (only after a transfer of it
     /// bounced back).
     fn holds_key(&self, kind: KeyKind, nonce: u64) -> bool {

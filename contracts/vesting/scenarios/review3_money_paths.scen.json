@@ -1,0 +1,1549 @@
+{
+  "name": "money paths on the Go VM: createBatch, EGLD-000000 fees and deposits, mixed-token claims and cancels, fees, surplus",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": {
+            "str:FOX-a1b2c3": "100,000",
+            "str:USDC-a1b2c3": "100,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "address:bob": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "address:carol": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "set-fee",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setFee",
+        "arguments": [
+          "10"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-batch-fox-fee-in-multi-transfer",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "address:bob",
+          "2000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "address:alice",
+          "500",
+          "u64:1767225700|u64:1767225700|biguint:0|u64:1767226200|u8:0"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "3500"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "30"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-batch-fee-short",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "address:bob",
+          "2000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "3000"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "10"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:EGLD sent must equal the fee"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-egld-two-entries",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:egld"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "600"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "410"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "4"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-usdc-fee-first",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "400",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:usdc"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "10"
+          },
+          {
+            "tokenIdentifier": "str:USDC-a1b2c3",
+            "value": "400"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "5"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-fox-future",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "100",
+          "u64:1767230600|u64:1767230600|biguint:0|u64:1767231600|u8:0",
+          "false",
+          "str:later"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "100"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "10"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "6"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-egld-plain-value",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:bob",
+          "500",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:egld2"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "egldValue": "510"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "7"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-two-tokens-refused",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "100",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:x"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "50"
+          },
+          {
+            "tokenIdentifier": "str:USDC-a1b2c3",
+            "value": "50"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "10"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:only one token per transaction"
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "3",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "4",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000"
+                },
+                {
+                  "nonce": "5",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                },
+                {
+                  "nonce": "6",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                }
+              ]
+            }
+          }
+        },
+        "address:bob": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "7",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                }
+              ]
+            }
+          }
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "8430",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "96,400",
+            "str:USDC-a1b2c3": "99,600",
+            "str:VESTCANCEL-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "3",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "4",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                },
+                {
+                  "nonce": "5",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                }
+              ]
+            }
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "1570",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            },
+            "str:FOX-a1b2c3": "3600",
+            "str:USDC-a1b2c3": "400"
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225850"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-mixed-tokens",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "3",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "4",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "5",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "6",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "1",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": [
+              "biguint:250|biguint:250|u8:0"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "3",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": [
+              "biguint:150|biguint:150|u8:0"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "4",
+              "address:alice",
+              "str:EGLD-000000"
+            ],
+            "data": [
+              "biguint:250|biguint:250|u8:0"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "5",
+              "address:alice",
+              "str:USDC-a1b2c3"
+            ],
+            "data": [
+              "biguint:100|biguint:100|u8:0"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "400",
+              "str:VESTKEY-123456",
+              "1",
+              "1",
+              "str:VESTKEY-123456",
+              "3",
+              "1",
+              "str:EGLD-000000",
+              "",
+              "250",
+              "str:VESTKEY-123456",
+              "4",
+              "1",
+              "str:USDC-a1b2c3",
+              "",
+              "100",
+              "str:VESTKEY-123456",
+              "5",
+              "1",
+              "str:VESTKEY-123456",
+              "6",
+              "1",
+              "address:alice"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-nothing-yet",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "6",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:nothing to claim yet"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-bob-fox-and-egld",
+      "tx": {
+        "from": "address:bob",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "7",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "250",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "400",
+            "str:USDC-a1b2c3": "100",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "3",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "4",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000"
+                },
+                {
+                  "nonce": "5",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                },
+                {
+                  "nonce": "6",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                }
+              ]
+            }
+          }
+        },
+        "address:bob": {
+          "nonce": "*",
+          "balance": "125",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "7",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                }
+              ]
+            }
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "1195",
+          "storage": {
+            "str:claimed|u64:6": "",
+            "+": ""
+          },
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            },
+            "str:FOX-a1b2c3": "2700",
+            "str:USDC-a1b2c3": "300"
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancel-fox-and-egld",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "5",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "750",
+              "str:EGLD-000000",
+              "",
+              "375",
+              "address:creator"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancel-fox-fox-usdc",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "2",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "3",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "4",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "*",
+            "endpoint": "*",
+            "topics": "*",
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "1850",
+              "str:USDC-a1b2c3",
+              "",
+              "300",
+              "address:creator"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:creator": {
+          "nonce": "*",
+          "balance": "8805",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "99,000",
+            "str:USDC-a1b2c3": "99,900"
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "820",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            },
+            "str:FOX-a1b2c3": "100"
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767227600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-bob-burns-spent-keys",
+      "tx": {
+        "from": "address:bob",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "7",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-alice-finishes",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "3",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "4",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "5",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "6",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-fees",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "claimFees",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-fees-again",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "claimFees",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:no fees to claim"
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "*",
+          "balance": "70",
+          "storage": "*",
+          "code": "*"
+        },
+        "address:alice": {
+          "nonce": "*",
+          "balance": "1000",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "400",
+            "str:USDC-a1b2c3": "100",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "6",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                }
+              ]
+            }
+          }
+        },
+        "address:bob": {
+          "nonce": "*",
+          "balance": "125",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500"
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            },
+            "str:FOX-a1b2c3": "100"
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "no-surplus-yet",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": [
+          "str:FOX-a1b2c3",
+          "address:carol"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:no surplus"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "upgrade-to-payable",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0502"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "transfer",
+      "id": "stray-egld",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "gasLimit": "5,000,000",
+        "gasPrice": "0",
+        "egldValue": "33"
+      },
+      "comment": "mx-scenario-go does not check payability for EGLD transfer steps (it does for ESDT); the contract is payable here anyway"
+    },
+    {
+      "step": "transfer",
+      "id": "stray-fox",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "gasLimit": "5,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "7"
+          }
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "repair",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0500"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "surplus-not-for-strangers",
+      "tx": {
+        "from": "address:carol",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": [
+          "str:EGLD-000000",
+          "address:carol"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:Endpoint can only be called by owner"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "recover-surplus-egld",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": [
+          "str:EGLD-000000",
+          "address:carol"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "recover-surplus-fox",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": [
+          "str:FOX-a1b2c3",
+          "address:carol"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "surplus-gone",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": [
+          "str:FOX-a1b2c3",
+          "address:carol"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:no surplus"
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:carol": {
+          "nonce": "*",
+          "balance": "33",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "7"
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            },
+            "str:FOX-a1b2c3": "100"
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767231600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-last",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "6",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "*",
+          "balance": "70",
+          "storage": "*",
+          "code": "*"
+        },
+        "address:alice": {
+          "nonce": "*",
+          "balance": "1000",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:USDC-a1b2c3": "100"
+          }
+        },
+        "address:bob": {
+          "nonce": "*",
+          "balance": "125",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500"
+          }
+        },
+        "address:carol": {
+          "nonce": "*",
+          "balance": "33",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "7"
+          }
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "8772",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "98,993",
+            "str:USDC-a1b2c3": "99,900"
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "7"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "5"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

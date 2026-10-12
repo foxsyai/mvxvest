@@ -483,7 +483,7 @@ fn batch_size_is_bounded() {
         .returns(ExpectError(4, ERR_BATCH_SIZE))
         .run();
     let mut entries = MultiValueEncoded::new();
-    for _ in 0..101 {
+    for _ in 0..76 {
         entries.push(
             (
                 ALICE.to_managed_address(),
@@ -499,7 +499,37 @@ fn batch_size_is_bounded() {
         .to(SC)
         .typed(MvxvestProxy)
         .create_batch(false, "x", entries)
-        .payment(payments(&[(Some(FOX), 101)]))
+        .payment(payments(&[(Some(FOX), 76)]))
         .returns(ExpectError(4, ERR_BATCH_SIZE))
         .run();
+}
+
+#[test]
+fn a_batch_of_the_maximum_size_works() {
+    let mut f = Fixture::new();
+    let mut entries = MultiValueEncoded::new();
+    for i in 0..75u64 {
+        let who = if i % 2 == 0 { ALICE } else { BOB };
+        entries.push(
+            (
+                who.to_managed_address(),
+                big(10),
+                linear(T0, T0, 0, T0 + DAY),
+            )
+                .into(),
+        );
+    }
+    let ids: MultiValueEncoded<StaticApi, u64> = f
+        .world
+        .tx()
+        .from(CREATOR)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .create_batch(true, "max", entries)
+        .payment(payments(&[(Some(FOX), 750)]))
+        .returns(ReturnsResult)
+        .run();
+    assert_eq!(ids.to_vec().len(), 75);
+    f.check_holds_key(CREATOR, KeyKind::Cancel, 75, 75, FOX.as_str());
+    f.check_invariant(Some(FOX));
 }

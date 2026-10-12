@@ -1,0 +1,272 @@
+{
+  "name": "FINDING (fails on 25a4062): a delivered claim key parked while the contract was payable becomes the creator's after the repair",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "100,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                }
+              ]
+            }
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "upgrade-payable-by-mistake",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0502"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "transfer",
+      "id": "alice-sends-key-without-claim",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "gasLimit": "5,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "creator-refused-while-payable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "recoverBouncedKey",
+        "arguments": [
+          "1",
+          "0",
+          "address:creator"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:Endpoint can only be called by owner"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "repair",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0500"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "creator-must-not-take-a-delivered-key",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "recoverBouncedKey",
+        "arguments": [
+          "1",
+          "0",
+          "address:creator"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:Endpoint can only be called by owner"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "owner-returns-it",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverBouncedKey",
+        "arguments": [
+          "1",
+          "0",
+          "address:alice"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                }
+              ]
+            }
+          }
+        },
+        "+": ""
+      }
+    }
+  ]
+}

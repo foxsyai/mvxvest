@@ -254,30 +254,28 @@ where
             .original_result()
     }
 
-    /// Sends on the keys of vesting `id` that the contract holds, which only 
-    /// happens when sending them bounced (a smart contract that cannot receive 
-    /// them). Each caller gets what it may take: 
-    ///  
-    /// - the creator: the cancel key, and the claim key only if it never 
-    ///   reached a holder (never sent to `claim` and nothing claimed: it 
-    ///   bounced at creation); 
-    /// - the owner: any held key. 
-    ///  
-    /// The creator's claim key rule relies on the contract being non-payable, 
-    /// so that a key can only be held after a bounce. While the contract is 
-    /// payable, only the owner may recover claim keys. 
-    pub fn recover_bounced_keys<
+    /// Owner only. Sends on the `kind` key of vesting `id`, which the contract 
+    /// holds only after sending it bounced: to a beneficiary, creator or 
+    /// holder that is a smart contract that cannot receive it (a wallet never 
+    /// bounces). The events show whom it belongs to. Nobody else can move a 
+    /// key the contract holds: earlier designs let the creator recover some 
+    /// keys, and every review found a way to abuse that 
+    /// (docs/reviews/2026-10-12-contract.md). 
+    pub fn recover_bounced_key<
         Arg0: ProxyArg<u64>,
-        Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg1: ProxyArg<KeyKind>,
+        Arg2: ProxyArg<ManagedAddress<Env::Api>>,
     >(
         self,
         id: Arg0,
-        to: Arg1,
+        kind: Arg1,
+        to: Arg2,
     ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
             .payment(NotPayable)
-            .raw_call("recoverBouncedKeys")
+            .raw_call("recoverBouncedKey")
             .argument(&id)
+            .argument(&kind)
             .argument(&to)
             .original_result()
     }
@@ -669,7 +667,6 @@ where
     pub claimable: BigUint<Api>,
     pub final_amount: BigUint<Api>,
     pub refunded: BigUint<Api>,
-    pub claim_key_used: bool,
     pub timestamp: u64,
 }
 

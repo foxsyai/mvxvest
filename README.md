@@ -31,7 +31,7 @@ it is audited. The brief is in [docs/BRIEF.md](docs/BRIEF.md).
 - **Keys:** one claim key per vesting, one cancel key per cancelable vesting.
   Both keep the same nonce for life; the contract finds the vesting from the
   nonce and never trusts NFT attributes.
-- **Endpoints:** `create`, `createBatch` (up to 100 per transaction), `claim`
+- **Endpoints:** `create`, `createBatch` (up to 75 per transaction), `claim`
   (one or many keys), `cancel` (one or many keys).
 - **Owner (a multisig):** issue the key collections, set how new keys look,
   set a flat EGLD fee per vesting (capped at 1 EGLD in code), pause creation

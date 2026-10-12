@@ -20,7 +20,6 @@ mod common;
 
 use common::*;
 use multiversx_sc_scenario::imports::*;
-use mvxvest::{errors::*, storage::StorageModule};
 
 #[test]
 fn after_an_upgrade_the_creator_cannot_take_a_key_its_holder_claimed_with() {
@@ -47,13 +46,9 @@ fn after_an_upgrade_the_creator_cannot_take_a_key_its_holder_claimed_with() {
         .payment(bounced)
         .whitebox(mvxvest::contract_obj, |_| {});
 
-    // All of the above happened under the pre-fix code, which never wrote
-    // `claimKeyUsed`: the storage the upgrade inherits has no such entry.
-    f.world
-        .tx()
-        .from(OWNER)
-        .to(SC)
-        .whitebox(mvxvest::contract_obj, |sc| sc.claim_key_used(1).clear());
+    // (Originally this cleared a `claimKeyUsed` mark to mimic storage from
+    // before the mark existed. The creator path and the mark are gone; the
+    // property still holds and is kept.)
     f.world
         .tx()
         .from(OWNER)
@@ -69,7 +64,7 @@ fn after_an_upgrade_the_creator_cannot_take_a_key_its_holder_claimed_with() {
         .from(CREATOR)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, CREATOR)
+        .recover_bounced_key(1u64, KeyKind::Claim, CREATOR)
         .returns(ReturnsHandledOrError::new())
         .run();
     if recovered.is_ok() {
@@ -82,5 +77,5 @@ fn after_an_upgrade_the_creator_cannot_take_a_key_its_holder_claimed_with() {
              (the pre-fix code refused this: claimed > 0)"
         );
     }
-    assert_eq!(recovered.unwrap_err().message, ERR_NOT_ALLOWED);
+    assert_eq!(recovered.unwrap_err().message, ERR_ONLY_OWNER);
 }

@@ -15,7 +15,7 @@ use common::*;
 use multiversx_sc_scenario::imports::*;
 
 #[test]
-fn creator_recovers_its_cancel_key_even_when_a_claimed_claim_key_is_also_held() {
+fn the_creators_cancel_key_goes_back_even_when_a_claimed_claim_key_is_also_held() {
     let mut f = Fixture::new();
     f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
     // The cancel key bounced at creation (the creator is a contract that
@@ -43,18 +43,20 @@ fn creator_recovers_its_cancel_key_even_when_a_claimed_claim_key_is_also_held() 
         .payment(bounced)
         .whitebox(mvxvest::contract_obj, |_| {});
 
+    // Since the redesign only the owner recovers keys, one at a time: the
+    // cancel key to the creator, whatever else the contract holds.
     let result = f
         .world
         .tx()
-        .from(CREATOR)
+        .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_bounced_keys(1u64, CREATOR)
+        .recover_bounced_key(1u64, KeyKind::Cancel, CREATOR)
         .returns(ReturnsHandledOrError::new())
         .run();
     assert!(
         result.is_ok(),
-        "the creator cannot recover its own cancel key: {:?}",
+        "the creator's cancel key cannot be returned: {:?}",
         result.err().map(|e| e.message)
     );
     f.check_holds_key(CREATOR, KeyKind::Cancel, 1, 1, FOX.as_str());

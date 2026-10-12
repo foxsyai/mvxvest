@@ -35,16 +35,11 @@ pub const ERR_UNKNOWN_KEY: &str = "unknown key";
 pub const ERR_NOTHING_TO_CLAIM: &str = "nothing to claim yet";
 pub const ERR_ALREADY_CANCELLED: &str = "already cancelled";
 
-// Deployment
-pub const ERR_PAYABLE_CONTRACT: &str =
-    "the contract must be neither payable nor payable by smart contracts";
-
 // Owner and recovery
 pub const ERR_FEE_ABOVE_CAP: &str = "fee above the cap";
 pub const ERR_NO_FEES: &str = "no fees to claim";
 pub const ERR_NO_SURPLUS: &str = "no surplus";
-pub const ERR_NO_HELD_KEY: &str = "no key of this vesting is held by the contract";
-pub const ERR_NOT_ALLOWED: &str = "not allowed";
+pub const ERR_NO_HELD_KEY: &str = "the contract does not hold this key";
 pub const ERR_BAD_RECIPIENT: &str = "recipient cannot be the zero address or this contract";
 
 // Views

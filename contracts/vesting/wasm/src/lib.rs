@@ -31,7 +31,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         createBatch => create_batch
         claim => claim
         cancel => cancel
-        recoverBouncedKeys => recover_bounced_keys
+        recoverBouncedKey => recover_bounced_key
         recoverSurplus => recover_surplus
         getVesting => get_vesting
         getVestings => get_vestings

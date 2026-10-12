@@ -87,11 +87,6 @@ pub trait StorageModule {
     #[storage_mapper("claimed")]
     fn claimed(&self, id: u64) -> SingleValueMapper<BigUint>;
 
-    /// True once the claim key has been sent to `claim`: it reached a holder,
-    /// so if the contract ever holds it again, it bounced on its way back.
-    #[storage_mapper("claimKeyUsed")]
-    fn claim_key_used(&self, id: u64) -> SingleValueMapper<bool>;
-
     /// 0 while the vesting runs; the second it was cancelled otherwise.
     #[storage_mapper("cancelledAt")]
     fn cancelled_at(&self, id: u64) -> SingleValueMapper<u64>;

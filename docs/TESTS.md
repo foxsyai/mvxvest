@@ -8,10 +8,12 @@ endpoint, mapped to the tests that check it. Run them with
 - `schedule_math.rs`: the maths alone. Unit tests plus property tests
   (2,000 random schedules per property) against an independent reference
   model.
-- `go_vm_test.rs`: runs `scenarios/*.scen.json` on the Go VM (the one
-  validators run): deploy, a payable contract refused and repaired, and a full
-  lifecycle. Needs `mx-scenario-go` (`sc-meta install mx-scenario-go`).
-- `review2_*.rs`: tests from the second review (of the fixes).
+- `go_vm_test.rs` and `review3_go_vm_test.rs`: run the scenarios in
+  [contracts/vesting/scenarios](../contracts/vesting/scenarios) on the Go VM
+  (the one validators run): deploy, a full lifecycle, every payment and payout
+  shape with pinned logs, bounce recovery and the largest batch. Needs
+  `mx-scenario-go` (`sc-meta install mx-scenario-go`) and a build.
+- `review3_*.rs`, `review2_*.rs`: tests from the third and second reviews.
 - `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
   failing on the code it reviewed, plus a long random walk checked against an
   independent model. See [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
@@ -36,7 +38,7 @@ endpoint, mapped to the tests that check it. Run them with
 | a token with a transfer role or freeze rights | Documented (spec section 5); the dApp warns. Not detectable by the contract. |
 | reentrancy and async ordering | By construction: all storage writes before transfers, transfers carry no call (spec section 5). Reviewed in milestone 3. |
 | the accounting invariant under any sequence | `review_safe_accounting_random_walk_test` (12 seeds × 150 random steps: creates, batches, claims of 1 to 4 keys, key transfers, cancels, fee changes, fee claims) |
-| a delivered claim key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `review2_upgrade_keeps_old_claims_unseen_test`, `review2_safe_claim_key_seen_test`, `admin_test::a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator` |
+| a delivered key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `review2_upgrade_keeps_old_claims_unseen_test`, `review3_creator_takes_key_parked_while_payable_test`, `review3_upgrade_legacy_key_that_paid_nothing_test`, `review3_go_vm_test::finding_parked_key_after_repair`, `finding_parked_cancel_key` |
 | nothing can lock funds forever | `admin_test::claim_key_that_bounced_at_creation_goes_where_the_creator_says`, `claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return`, `cancel_key_that_bounced_goes_back_to_the_creator`, `surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `cancel_test::cancel_before_the_start_refunds_everything` (a dead key still burns) |
 
 ## Endpoints
@@ -51,11 +53,12 @@ endpoint, mapped to the tests that check it. Run them with
 | `setFee`, `claimFees` | `admin_test::fee_is_capped_and_owner_only`, `owner_collects_fees_and_nothing_else`, `create_test::fee_is_paid_in_egld_on_top_and_accrues`, `wrong_fee_is_refused` |
 | `pauseCreation`, `unpauseCreation` | `admin_test::pause_stops_creation_only`, `cancel_test::pause_never_blocks_claims_or_cancels` |
 | `setKeyDisplay` | `admin_test::key_display_applies_to_new_keys` |
-| `recoverBouncedKeys`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls), `review_creator_seizes_delivered_key_test`, `review_recover_cancel_key_blocked_test` |
+| `recoverBouncedKey`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls), `review_recover_cancel_key_blocked_test`, `review3_go_vm_test::money_paths` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
 | `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
-| deploy and upgrade metadata | `go_vm_test::deploy`, `go_vm_test::payable_contract`, `admin_test::a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator` |
-| the real VM end to end | `go_vm_test::lifecycle` |
+| deploy on the real VM | `go_vm_test::deploy` |
+| the real VM end to end | `go_vm_test::lifecycle`, `review3_go_vm_test::money_paths` |
+| the largest batch fits in one transaction | `go_vm_test::batch_max`, `create_test::a_batch_of_the_maximum_size_works` |
 | `upgrade` | `admin_test::upgrade_keeps_every_vesting` |
 | views | `views_test::*`, `create_test::create_mints_both_keys_and_stores_the_vesting` |
 | schedule validation | `schedule_math::validate_*` |

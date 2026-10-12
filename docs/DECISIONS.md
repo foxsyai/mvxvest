@@ -33,25 +33,26 @@ made while building milestone 1.
   token (paged), totals per token, nonce to vesting.
 - **The vesting records its original beneficiary** for display; only the
   current holder of the claim key can claim.
-- **Bounce recovery.** A transfer to a smart contract that cannot receive
-  tokens bounces back. `recoverBouncedKeys` (creator or owner, narrowly
-  scoped) and `recoverSurplus` (owner, only above what is owed) make sure no
-  bounce locks anything forever. With an upgradeable contract the multisig is
-  trusted anyway, so these add no new trust.
-- **Limits:** 120 tranches, 100 vestings per batch (gas sets the practical
+- **Bounce recovery, owner only.** A transfer to a smart contract that cannot
+  receive tokens bounces back. `recoverBouncedKey` (one key per call) and
+  `recoverSurplus` (only what exceeds what is owed) let the owner multisig
+  return it, so no bounce locks anything forever. Only the owner: letting the
+  creator recover keys was the source of a finding in every review. With an
+  upgradeable contract the multisig is trusted anyway, so this adds no new
+  trust.
+- **Limits:** 120 tranches, 75 vestings per batch (gas sets the practical
   limit; see MEASUREMENTS.md), 64-byte labels, 30-year horizon, pages of 100.
 - **Payments:** EGLD is accepted both as plain value and as `EGLD-000000`
   inside a multi-transfer. `create` takes the total as an argument (like
   `createBatch`), so the payment must be exactly the total plus the fee.
-- **Non-payable, checked at call time:** deployed neither payable nor payable
-  by smart contracts, so a key can only sit in the contract after a bounce.
-  `init`/`upgrade` cannot check it on the real chain, so `create` and the
-  creator's key recovery check it when called.
+- **Deployed non-payable** (and not payable by smart contracts), so stray
+  transfers bounce. Nothing depends on it for safety.
 - **Two VMs in the tests:** the Rust test VM for the full suite, and the Go VM
-  (the one validators run) for deploy, upgrade and a full lifecycle, because
-  the two differ (second review).
+  (the one validators run) for deploy, the full lifecycle, every payment and
+  payout shape, recovery and the largest batch, because the two VMs differ
+  (second review).
 
 ## Reviews
 
-- 2026-10-12, internal adversarial review of the contract, and a second
-  review of its fixes: [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
+- 2026-10-12, internal adversarial review of the contract, then a second and
+  a third review of the fixes: [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).

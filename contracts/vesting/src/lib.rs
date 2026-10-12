@@ -35,9 +35,10 @@ pub trait Mvxvest:
     + views::ViewsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    // The code metadata cannot be checked here: on the real chain `init` and
-    // `upgrade` run before the new account and metadata are written. It is
-    // checked when it matters instead (`KeysModule::is_payable`).
+    // Deploy and upgrade it neither payable nor payable by smart contracts
+    // (scripts/src/deploy.ts does), so stray transfers bounce. This cannot be
+    // checked here: on the real chain `init` and `upgrade` run before the new
+    // metadata is written.
     #[init]
     fn init(&self) {}
 
