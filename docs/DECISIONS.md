@@ -41,4 +41,12 @@ made while building milestone 1.
 - **Limits:** 120 tranches, 100 vestings per batch (gas sets the practical
   limit; see MEASUREMENTS.md), 64-byte labels, 30-year horizon, pages of 100.
 - **Payments:** EGLD is accepted both as plain value and as `EGLD-000000`
-  inside a multi-transfer.
+  inside a multi-transfer. `create` takes the total as an argument (like
+  `createBatch`), so the payment must be exactly the total plus the fee.
+- **Non-payable by construction:** `init` and `upgrade` refuse payable code
+  metadata, so a key can only sit in the contract after a bounce.
+
+## Reviews
+
+- 2026-10-12, internal adversarial review of the contract:
+  [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).

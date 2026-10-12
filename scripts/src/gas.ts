@@ -49,7 +49,7 @@ for (const cancelable of [false, true]) {
   const tx = await controller.createTransactionForExecute(owner, owner.getNonceThenIncrement(), {
     contract,
     function: "create",
-    arguments: [holder.address, linear, cancelable, "gas run"],
+    arguments: [holder.address, amount(10n, 18), linear, cancelable, "gas run"],
     tokenTransfers: [fox(10n)],
     gasLimit: 30_000_000n,
   });
@@ -61,7 +61,7 @@ const tranches = Array.from({ length: 120 }, (_, i) => ({ time: now + BigInt(i +
 const tx120 = await controller.createTransactionForExecute(owner, owner.getNonceThenIncrement(), {
   contract,
   function: "create",
-  arguments: [holder.address, { start: now, cliff: now, cliff_amount: 0n, end: tranches[119].time, curve: { name: "Tranches", fields: { 0: tranches } } }, true, "120 tranches"],
+  arguments: [holder.address, amount(120n, 18), { start: now, cliff: now, cliff_amount: 0n, end: tranches[119].time, curve: { name: "Tranches", fields: { 0: tranches } } }, true, "120 tranches"],
   tokenTransfers: [fox(120n)],
   gasLimit: 100_000_000n,
 });

@@ -11,16 +11,15 @@ const FOX_UNIT: u128 = 1_000_000_000_000_000_000;
 #[test]
 fn issue_sets_both_collections() {
     let mut f = Fixture::new();
-    let claim: TokenId<StaticApi> = f
+    let claim: ManagedBuffer<StaticApi> = f
         .world
         .query()
         .to(SC)
         .typed(MvxvestProxy)
         .get_claim_key_collection()
         .returns(ReturnsResult)
-        .run()
-        .into();
-    assert_eq!(claim, token(CLAIM_KEY));
+        .run();
+    assert_eq!(claim, ManagedBuffer::from(CLAIM_KEY.as_str()));
     // A second issue of the same collection is refused.
     f.world
         .tx()
@@ -115,7 +114,13 @@ fn egld_vesting_as_plain_value() {
         .from(CREATOR)
         .to(SC)
         .typed(MvxvestProxy)
-        .create(ALICE, linear(T0, T0, 0, T0 + DAY), true, "egld")
+        .create(
+            ALICE,
+            big(5 * EGLD),
+            linear(T0, T0, 0, T0 + DAY),
+            true,
+            "egld",
+        )
         .egld(big(5 * EGLD))
         .returns(ReturnsResult)
         .run();
@@ -224,14 +229,16 @@ fn wrong_fee_is_refused() {
         payments(&[(Some(FOX), 1_000), (None, EGLD)]),
         ERR_WRONG_FEE,
     );
-    // An EGLD vesting must leave something after the fee.
-    f.create_fails(
-        alice,
-        schedule(),
-        false,
-        payments(&[(None, EGLD / 10)]),
-        ERR_WRONG_DEPOSIT,
-    );
+    // An EGLD vesting must pay its total plus the fee, exactly.
+    f.world
+        .tx()
+        .from(CREATOR)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .create(alice, big(EGLD), schedule(), false, "team")
+        .egld(big(EGLD))
+        .returns(ExpectError(4, ERR_WRONG_DEPOSIT))
+        .run();
 }
 
 #[test]
@@ -342,6 +349,7 @@ fn horizon_and_label_limits() {
         .typed(MvxvestProxy)
         .create(
             ALICE,
+            big(10),
             linear(T0, T0, 0, T0 + DAY),
             false,
             long_label.as_str(),

@@ -26,6 +26,9 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let mut progressed = false;
         for payment in payments.iter() {
             let id = self.vesting_of_key(KeyKind::Claim, &payment);
+            if !self.claim_key_seen(id).get() {
+                self.claim_key_seen(id).set(true);
+            }
             let vesting = self.vesting(id).get();
             let cancelled_at = self.cancelled_at(id).get();
             let vested = self.vested_with_cancel(&vesting, cancelled_at, now);
@@ -104,9 +107,14 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
 
     /// Sends on the keys of vesting `id` that the contract holds, which only
     /// happens when sending them bounced (a smart contract that cannot receive
-    /// them). The creator may recover the cancel key, and the claim key while
-    /// nothing has been claimed (it bounced at creation). The owner may
-    /// recover any held key.
+    /// them). Each caller gets what it may take:
+    ///
+    /// - the creator: the cancel key, and the claim key only if it never
+    ///   reached a holder (it bounced at creation, before any `claim`);
+    /// - the owner: any held key.
+    ///
+    /// The contract is deployed non-payable, so a key can only be held after
+    /// a bounce.
     #[endpoint(recoverBouncedKeys)]
     fn recover_bounced_keys(&self, id: u64, to: ManagedAddress) {
         require!(!self.vesting(id).is_empty(), ERR_UNKNOWN_VESTING);
@@ -116,17 +124,28 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let is_owner = caller == self.blockchain().get_owner_address();
         let is_creator = caller == vesting.creator;
         let mut keys = ManagedVec::new();
+        let mut kinds = ManagedVec::<Self::Api, KeyKind>::new();
+        let mut held = false;
         if self.holds_key(KeyKind::Claim, vesting.claim_nonce) {
-            let never_claimed = self.claimed(id).get() == 0u32;
-            require!(is_owner || (is_creator && never_claimed), ERR_NOT_ALLOWED);
-            keys.push(self.key_payment(KeyKind::Claim, vesting.claim_nonce));
+            held = true;
+            let never_delivered = !self.claim_key_seen(id).get();
+            if is_owner || (is_creator && never_delivered) {
+                keys.push(self.key_payment(KeyKind::Claim, vesting.claim_nonce));
+                kinds.push(KeyKind::Claim);
+            }
         }
         if self.holds_key(KeyKind::Cancel, vesting.cancel_nonce) {
-            require!(is_owner || is_creator, ERR_NOT_ALLOWED);
-            keys.push(self.key_payment(KeyKind::Cancel, vesting.cancel_nonce));
+            held = true;
+            if is_owner || is_creator {
+                keys.push(self.key_payment(KeyKind::Cancel, vesting.cancel_nonce));
+                kinds.push(KeyKind::Cancel);
+            }
         }
-        require!(!keys.is_empty(), ERR_NO_HELD_KEY);
-        self.keys_recovered_event(id, &caller, &to);
+        require!(held, ERR_NO_HELD_KEY);
+        require!(!keys.is_empty(), ERR_NOT_ALLOWED);
+        for kind in kinds.iter() {
+            self.key_recovered_event(id, *kind, &caller, &to);
+        }
         self.tx().to(&to).payment(keys).transfer();
     }
 

@@ -57,7 +57,9 @@ impl<M: ManagedTypeApi> TokenTotals<M> {
 
 /// The two kinds of key the contract mints.
 #[type_abi]
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, PartialEq, Eq)]
+#[derive(
+    TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq,
+)]
 pub enum KeyKind {
     Claim,
     Cancel,
@@ -84,6 +86,11 @@ pub trait StorageModule {
 
     #[storage_mapper("claimed")]
     fn claimed(&self, id: u64) -> SingleValueMapper<BigUint>;
+
+    /// True once the claim key has been sent to `claim`: it reached a holder,
+    /// so if the contract ever holds it again, it bounced on its way back.
+    #[storage_mapper("claimKeySeen")]
+    fn claim_key_seen(&self, id: u64) -> SingleValueMapper<bool>;
 
     /// 0 while the vesting runs; the second it was cancelled otherwise.
     #[storage_mapper("cancelledAt")]

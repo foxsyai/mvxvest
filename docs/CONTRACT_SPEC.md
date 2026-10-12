@@ -22,7 +22,7 @@ vested(t) = 0                                   if t < cliff
 | Curve | `released(t)` | Extra rules |
 |---|---|---|
 | Linear | `floor(rest * (t - start) / (end - start))` | none |
-| Stepped `{ interval }` | `floor(rest * k / n)` with `n = ceil((end - start) / interval)` and `k = floor((t - start) / interval)` | `0 < interval <= end - start` |
+| Stepped `{ interval }` | `floor(rest * k / n)` with `n = ceil((end - start) / interval)` and `k = floor((t - start) / interval)` | `0 < interval <= end - start` (so `end > start`) |
 | Tranches `[(time, amount)]` | sum of `amount` over tranches with `time <= t` | 1 to 120 tranches; every amount > 0; times strictly increasing, the first `>= start`, the last `== end`; amounts sum to `rest` |
 
 Consequences, all tested:
@@ -61,17 +61,19 @@ burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
 
 ## 3. Endpoints
 
-### `create(beneficiary, schedule, cancelable, label) -> id`
+### `create(beneficiary, total, schedule, cancelable, label) -> id`
 
-Payable. Pay the token, plus the fee in EGLD when the fee is not zero. For an
-EGLD vesting, pay the total plus the fee in EGLD (as plain value or as
-`EGLD-000000` in a multi-transfer; both work). The total is the token amount
-paid (or the EGLD paid minus the fee).
+Payable. Pay exactly `total` of the token, plus the fee in EGLD when the fee
+is not zero. For an EGLD vesting, pay `total` plus the fee in EGLD (as plain
+value or as `EGLD-000000` in a multi-transfer; both work). The total is an
+argument, not inferred from the payment, so a fee change between the preview
+and the signature makes the transaction fail instead of changing the vesting.
 
 Refused when: creation is paused; the claim key collection (or the cancel key
 collection, for a cancelable vesting) is not issued; nothing is paid; a
 payment is not fungible; two different ESDTs are paid; the EGLD does not equal
-the fee exactly; the beneficiary is the zero address or the contract; the label
+the fee exactly, or the payment is not exactly the total plus the fee; the
+beneficiary is the zero address or the contract; the label
 is longer than 64 bytes; the schedule is invalid (section 1); the schedule ends
 more than 30 years ahead.
 
@@ -117,9 +119,17 @@ cannot be stopped.
 
 Sends on the keys of vesting `id` that the contract itself holds. That only
 happens when a transfer to a smart contract that cannot receive them bounced
-back (a wallet never bounces). The creator may recover the cancel key, and the
-claim key while nothing has been claimed (it bounced at creation). The owner
-may recover any held key. `to` cannot be the zero address or the contract.
+back (a wallet never bounces): the contract refuses to be deployed or upgraded
+payable or payable by smart contracts, so nothing else can put a key in its
+balance. Each caller gets what it may take:
+
+- the creator: the cancel key, and the claim key only if that key never
+  reached a holder (it was never sent to `claim`, so it bounced at creation);
+- the owner: any held key.
+
+It fails with `no key of this vesting is held by the contract` when there is
+none, and `not allowed` when the caller may take none of the held keys. `to`
+cannot be the zero address or the contract. One `keyRecovered` event per key.
 
 ## 4. Views
 
@@ -127,15 +137,17 @@ may recover any held key. `to` cannot be the zero address or the contract.
 `cancelled_at`, `vested`, `claimable`, `final_amount` (the most the claim key
 can ever collect), `refunded` and the `timestamp` used. Also: `getVestings(ids)`
 (up to 100), `getClaimable(id)`, `getVestedAt(id, timestamp)`,
-`getNextRelease(id)` (the next moment the vested amount grows and by how much;
-empty after a cancel, at the end, or while a linear curve vests every second),
-`getVestingByClaimNonce(nonce)`, `getVestingByCancelNonce(nonce)`,
+`getNextRelease(id)` (the next moment the vested amount grows and by how much,
+exact for every curve; empty only when nothing more will vest: everything has
+vested, or the vesting was cancelled),
+`getVestingByClaimNonce(nonce)`, `getVestingByCancelNonce(nonce)` (0 if no
+key with that nonce was minted; the answer stays after the key is burned),
 `getVestingsByCreator(address, from, count)`, `getVestingCountByCreator`,
 `getVestingsByToken(token, from, count)`, `getVestingCountByToken`,
 `getTokenTotals(token)` (deposited, claimed, refunded), `getVestingCount`,
 `getFee`, `getMaxFee`, `getFeesAccrued`, `isCreationPaused`,
-`getClaimKeyCollection`, `getCancelKeyCollection`, `getSurplus(token)` and
-`getLimits`. Pages hold at most 100 ids.
+`getClaimKeyCollection`, `getCancelKeyCollection` (empty until issued),
+`getSurplus(token)` and `getLimits`. Pages hold at most 100 ids.
 
 ## 5. Accounting and safety
 
@@ -157,6 +169,10 @@ empty after a cancel, at the end, or while a linear curve vests every second),
   it, or that has a transfer role, can still be blocked by its issuer; the
   contract cannot detect this synchronously, so the dApp warns before
   creating such a vesting.
+- **Undelivered claim keys:** a creator who names a beneficiary that cannot
+  receive the key (a smart contract in another shard, not payable by smart
+  contracts) gets the key back through `recoverBouncedKeys`. Such a vesting
+  never reached anyone; the dApp shows when the contract holds a key.
 - **Smart contract holders:** a smart contract that holds a key must accept
   tokens from other contracts (`payableBySC`), or the payout bounces (see
   "No dead ends"). The dApp warns when a beneficiary is a smart contract.
@@ -166,6 +182,6 @@ empty after a cancel, at the end, or while a linear curve vests every second),
 `vestingCreated(id, creator, beneficiary, token; total, schedule, cancelable,
 claim_nonce, cancel_nonce, label)`, `vestingClaimed(id, caller, token; amount,
 claimed_total, finished)`, `vestingCancelled(id, caller, token; refund,
-vested)`, `feeSet`, `creationPaused`, `feesClaimed`, `keysRecovered`,
-`surplusRecovered`. Indexed topics come before the semicolon. Together they
+vested)`, `feeSet`, `creationPaused`, `feesClaimed`, `keyRecovered(id, kind,
+caller, to)`, `surplusRecovered`. Indexed topics come before the semicolon. Together they
 are enough to rebuild the full history without reading storage.

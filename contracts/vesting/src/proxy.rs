@@ -180,26 +180,30 @@ where
             .original_result()
     }
 
-    /// Creates one vesting of the whole payment (minus the fee) for 
-    /// `beneficiary`, and returns its id. 
+    /// Creates one vesting of `total` for `beneficiary`, and returns its id. 
     ///  
-    /// Pay the vested token, plus the fee in EGLD when there is one. For an 
-    /// EGLD vesting, pay the total plus the fee in EGLD. 
+    /// Pay exactly `total` of the vested token, plus the fee in EGLD when 
+    /// there is one. For an EGLD vesting, pay `total` plus the fee in EGLD. 
+    /// The total is explicit so that a fee change between preview and signing 
+    /// makes the transaction fail instead of changing the vesting. 
     pub fn create<
         Arg0: ProxyArg<ManagedAddress<Env::Api>>,
-        Arg1: ProxyArg<Schedule<Env::Api>>,
-        Arg2: ProxyArg<bool>,
-        Arg3: ProxyArg<ManagedBuffer<Env::Api>>,
+        Arg1: ProxyArg<BigUint<Env::Api>>,
+        Arg2: ProxyArg<Schedule<Env::Api>>,
+        Arg3: ProxyArg<bool>,
+        Arg4: ProxyArg<ManagedBuffer<Env::Api>>,
     >(
         self,
         beneficiary: Arg0,
-        schedule: Arg1,
-        cancelable: Arg2,
-        label: Arg3,
+        total: Arg1,
+        schedule: Arg2,
+        cancelable: Arg3,
+        label: Arg4,
     ) -> TxTypedCall<Env, From, To, (), Gas, u64> {
         self.wrapped_tx
             .raw_call("create")
             .argument(&beneficiary)
+            .argument(&total)
             .argument(&schedule)
             .argument(&cancelable)
             .argument(&label)
@@ -251,9 +255,14 @@ where
 
     /// Sends on the keys of vesting `id` that the contract holds, which only 
     /// happens when sending them bounced (a smart contract that cannot receive 
-    /// them). The creator may recover the cancel key, and the claim key while 
-    /// nothing has been claimed (it bounced at creation). The owner may 
-    /// recover any held key. 
+    /// them). Each caller gets what it may take: 
+    ///  
+    /// - the creator: the cancel key, and the claim key only if it never 
+    ///   reached a holder (it bounced at creation, before any `claim`); 
+    /// - the owner: any held key. 
+    ///  
+    /// The contract is deployed non-payable, so a key can only be held after 
+    /// a bounce. 
     pub fn recover_bounced_keys<
         Arg0: ProxyArg<u64>,
         Arg1: ProxyArg<ManagedAddress<Env::Api>>,
@@ -348,8 +357,7 @@ where
     }
 
     /// The next moment the vested amount grows, and by how much. Empty when 
-    /// nothing more will vest, after a cancel, or while a linear schedule 
-    /// vests every second. 
+    /// nothing more will vest: everything has vested, or it was cancelled. 
     pub fn get_next_release<
         Arg0: ProxyArg<u64>,
     >(
@@ -363,7 +371,8 @@ where
             .original_result()
     }
 
-    /// The vesting a claim key opens, 0 if none. 
+    /// The vesting a claim key opens; 0 if no key with this nonce was ever 
+    /// minted. The answer stays after the key is burned, for history. 
     pub fn get_vesting_by_claim_nonce<
         Arg0: ProxyArg<u64>,
     >(
@@ -377,7 +386,8 @@ where
             .original_result()
     }
 
-    /// The vesting a cancel key stops, 0 if none. 
+    /// The vesting a cancel key stops; 0 if no key with this nonce was ever 
+    /// minted. The answer stays after the key is burned. 
     pub fn get_vesting_by_cancel_nonce<
         Arg0: ProxyArg<u64>,
     >(
@@ -519,18 +529,20 @@ where
             .original_result()
     }
 
+    /// The claim key collection, empty until issued. 
     pub fn get_claim_key_collection(
         self,
-    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, EsdtTokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedBuffer<Env::Api>> {
         self.wrapped_tx
             .payment(NotPayable)
             .raw_call("getClaimKeyCollection")
             .original_result()
     }
 
+    /// The cancel key collection, empty until issued. 
     pub fn get_cancel_key_collection(
         self,
-    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, EsdtTokenIdentifier<Env::Api>> {
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ManagedBuffer<Env::Api>> {
         self.wrapped_tx
             .payment(NotPayable)
             .raw_call("getCancelKeyCollection")
@@ -634,7 +646,7 @@ where
 }
 
 #[type_abi]
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, PartialEq, Eq)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq)]
 pub enum KeyKind {
     Claim,
     Cancel,

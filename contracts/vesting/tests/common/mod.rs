@@ -163,6 +163,7 @@ impl Fixture {
             .typed(MvxvestProxy)
             .init()
             .code(CODE)
+            .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE)
             .new_address(SC)
             .run();
         Self { world }
@@ -215,6 +216,40 @@ impl Fixture {
         )
     }
 
+    /// The total a dApp would sign for this payment: the ESDT paid, or the
+    /// EGLD paid minus the current fee. Tests of fee changes pass an explicit
+    /// total to the contract instead.
+    pub fn total_for(
+        &mut self,
+        payment: &ManagedVec<StaticApi, Payment<StaticApi>>,
+    ) -> BigUint<StaticApi> {
+        let mut esdt = BigUint::zero();
+        let mut egld = BigUint::zero();
+        for p in payment.iter() {
+            if p.token_identifier.is_native() {
+                egld += p.amount.as_big_uint();
+            } else {
+                esdt += p.amount.as_big_uint();
+            }
+        }
+        if esdt > 0u32 {
+            return esdt;
+        }
+        let fee: BigUint<StaticApi> = self
+            .world
+            .query()
+            .to(SC)
+            .typed(MvxvestProxy)
+            .get_fee()
+            .returns(ReturnsResult)
+            .run();
+        if egld > fee {
+            egld - fee
+        } else {
+            BigUint::zero()
+        }
+    }
+
     pub fn create(
         &mut self,
         from: TestAddress,
@@ -223,12 +258,13 @@ impl Fixture {
         cancelable: bool,
         payment: ManagedVec<StaticApi, Payment<StaticApi>>,
     ) -> u64 {
+        let total = self.total_for(&payment);
         self.world
             .tx()
             .from(from)
             .to(SC)
             .typed(MvxvestProxy)
-            .create(beneficiary, schedule, cancelable, "team")
+            .create(beneficiary, total, schedule, cancelable, "team")
             .payment(payment)
             .returns(ReturnsResult)
             .run()
@@ -242,12 +278,13 @@ impl Fixture {
         payment: ManagedVec<StaticApi, Payment<StaticApi>>,
         error: &str,
     ) {
+        let total = self.total_for(&payment);
         self.world
             .tx()
             .from(CREATOR)
             .to(SC)
             .typed(MvxvestProxy)
-            .create(beneficiary, schedule, cancelable, "team")
+            .create(beneficiary, total, schedule, cancelable, "team")
             .payment(payment)
             .returns(ExpectError(4, error))
             .run();

@@ -3,7 +3,7 @@
 
 use multiversx_sc::{derive_imports::*, imports::*};
 
-use crate::schedule::Schedule;
+use crate::{schedule::Schedule, storage::KeyKind};
 
 #[type_abi]
 #[derive(TopEncode, TopDecode)]
@@ -75,10 +75,11 @@ pub trait EventsModule {
     #[event("feesClaimed")]
     fn fees_claimed_event(&self, #[indexed] to: &ManagedAddress, amount: &BigUint);
 
-    #[event("keysRecovered")]
-    fn keys_recovered_event(
+    #[event("keyRecovered")]
+    fn key_recovered_event(
         &self,
         #[indexed] id: u64,
+        #[indexed] kind: KeyKind,
         #[indexed] caller: &ManagedAddress,
         #[indexed] to: &ManagedAddress,
     );

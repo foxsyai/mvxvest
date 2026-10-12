@@ -78,7 +78,9 @@ impl<M: ManagedTypeApi> Schedule<M> {
                 if *interval == 0 {
                     return Err(ERR_ZERO_INTERVAL);
                 }
-                if self.end > self.start && *interval > self.end - self.start {
+                // validate checked start <= end above; a stepped curve needs
+                // end > start, as no interval fits in an empty duration.
+                if *interval > self.end - self.start {
                     return Err(ERR_INTERVAL_TOO_LONG);
                 }
                 Ok(())
@@ -156,8 +158,8 @@ impl<M: ManagedTypeApi> Schedule<M> {
     }
 
     /// The next moment after `now` at which the vested amount grows, and by
-    /// how much. `None` when everything has vested, or when the rest vests
-    /// continuously (a linear curve past its cliff).
+    /// how much. `None` only when everything has vested. (A fast linear curve
+    /// grows every second: then this is `now + 1`.)
     pub fn next_release(&self, total: &BigUint<M>, now: u64) -> Option<(u64, BigUint<M>)> {
         if now >= self.end {
             return None;
@@ -179,7 +181,21 @@ impl<M: ManagedTypeApi> Schedule<M> {
             return None;
         }
         let at = match &self.curve {
-            Curve::Linear => return None,
+            Curve::Linear => {
+                let rest = total - &self.cliff_amount;
+                if rest == 0u32 {
+                    return None;
+                }
+                let duration = self.end - self.start;
+                let elapsed = t - self.start;
+                // The released rest is floor(rest * e / duration). It next
+                // grows at the smallest e with rest * e >= (released + 1) *
+                // duration.
+                let released = rest.clone() * elapsed / duration;
+                let next = ((released + 1u32) * duration + &rest - 1u32) / &rest;
+                let next = next.to_u64().unwrap_or(duration);
+                self.start.saturating_add(next).min(self.end)
+            }
             Curve::Stepped { interval } => {
                 let rest = total - &self.cliff_amount;
                 if rest == 0u32 {

@@ -60,17 +60,30 @@ function check(label: string, ok: boolean, detail = ""): void {
   if (!ok) throw new Error(`Check failed: ${label} ${detail}`);
 }
 
+/**
+ * `create(beneficiary, total, schedule, cancelable, label)`, where `args` is
+ * everything but the total: the total is the payment, and the current fee is
+ * added on top (in EGLD).
+ */
 async function create(
   step: string,
   from: typeof owner,
-  args: unknown[],
+  args: [unknown, ...unknown[]],
   payment: TokenTransfer,
 ): Promise<bigint> {
+  const [fee] = await controller.query({ contract, function: "getFee", arguments: [] });
+  const feeAmount = big(fee);
+  const isEgld = payment.token.identifier === "EGLD-000000";
+  const transfers = isEgld
+    ? [TokenTransfer.newFromNativeAmount(payment.amount + feeAmount)]
+    : feeAmount > 0n
+      ? [payment, TokenTransfer.newFromNativeAmount(feeAmount)]
+      : [payment];
   const tx = await controller.createTransactionForExecute(from, from.getNonceThenIncrement(), {
     contract,
     function: "create",
-    arguments: args,
-    tokenTransfers: [payment],
+    arguments: [args[0], payment.amount, ...args.slice(1)],
+    tokenTransfers: transfers,
     gasLimit: 30_000_000n,
   });
   const result = await send(step, tx);

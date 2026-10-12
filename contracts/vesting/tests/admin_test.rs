@@ -357,3 +357,32 @@ fn upgrade_keeps_every_vesting() {
     f.check_fox(ALICE, 500);
     f.check_invariant(Some(FOX));
 }
+
+#[test]
+fn a_payable_deploy_or_upgrade_is_refused() {
+    let mut f = Fixture::new();
+    // A payable contract could receive a key outside `claim`, which the
+    // bounce recovery rules rely on never happening.
+    for flag in [CodeMetadata::PAYABLE, CodeMetadata::PAYABLE_BY_SC] {
+        f.world
+            .tx()
+            .from(OWNER)
+            .typed(MvxvestProxy)
+            .init()
+            .code(CODE)
+            .code_metadata(CodeMetadata::UPGRADEABLE | flag)
+            .new_address(TestSCAddress::new("payable"))
+            .returns(ExpectError(4, ERR_PAYABLE_DEPLOY))
+            .run();
+    }
+    f.world
+        .tx()
+        .from(OWNER)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .upgrade()
+        .code(CODE)
+        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE)
+        .returns(ExpectError(4, ERR_PAYABLE_DEPLOY))
+        .run();
+}

@@ -10,7 +10,7 @@ use crate::{
     errors::*,
     events, keys,
     schedule::MAX_TRANCHES,
-    storage::{self, TokenTotals, Vesting},
+    storage::{self, KeyKind, TokenTotals, Vesting},
 };
 
 /// Most ids or vestings one paged view returns.
@@ -85,8 +85,7 @@ pub trait ViewsModule:
     }
 
     /// The next moment the vested amount grows, and by how much. Empty when
-    /// nothing more will vest, after a cancel, or while a linear schedule
-    /// vests every second.
+    /// nothing more will vest: everything has vested, or it was cancelled.
     #[view(getNextRelease)]
     fn get_next_release(&self, id: u64) -> OptionalValue<MultiValue2<u64, BigUint>> {
         let vesting = self.existing_vesting(id);
@@ -99,13 +98,15 @@ pub trait ViewsModule:
         }
     }
 
-    /// The vesting a claim key opens, 0 if none.
+    /// The vesting a claim key opens; 0 if no key with this nonce was ever
+    /// minted. The answer stays after the key is burned, for history.
     #[view(getVestingByClaimNonce)]
     fn get_vesting_by_claim_nonce(&self, nonce: u64) -> u64 {
         self.claim_key_vesting(nonce).get()
     }
 
-    /// The vesting a cancel key stops, 0 if none.
+    /// The vesting a cancel key stops; 0 if no key with this nonce was ever
+    /// minted. The answer stays after the key is burned.
     #[view(getVestingByCancelNonce)]
     fn get_vesting_by_cancel_nonce(&self, nonce: u64) -> u64 {
         self.cancel_key_vesting(nonce).get()
@@ -177,14 +178,25 @@ pub trait ViewsModule:
         self.creation_paused().get()
     }
 
+    /// The claim key collection, empty until issued.
     #[view(getClaimKeyCollection)]
-    fn get_claim_key_collection(&self) -> NonFungibleTokenMapper {
-        self.claim_key()
+    fn get_claim_key_collection(&self) -> ManagedBuffer {
+        self.collection_or_empty(KeyKind::Claim)
     }
 
+    /// The cancel key collection, empty until issued.
     #[view(getCancelKeyCollection)]
-    fn get_cancel_key_collection(&self) -> NonFungibleTokenMapper {
-        self.cancel_key()
+    fn get_cancel_key_collection(&self) -> ManagedBuffer {
+        self.collection_or_empty(KeyKind::Cancel)
+    }
+
+    fn collection_or_empty(&self, kind: KeyKind) -> ManagedBuffer {
+        let mapper = self.key_mapper(kind);
+        if mapper.get_token_state().is_set() {
+            mapper.get_token_id().into_managed_buffer()
+        } else {
+            ManagedBuffer::new()
+        }
     }
 
     /// What the contract holds of `token` beyond what it owes; 0 normally.

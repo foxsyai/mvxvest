@@ -34,28 +34,23 @@ pub struct KeyDelivery<M: ManagedTypeApi> {
 
 #[multiversx_sc::module]
 pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::KeysModule {
-    /// Creates one vesting of the whole payment (minus the fee) for
-    /// `beneficiary`, and returns its id.
+    /// Creates one vesting of `total` for `beneficiary`, and returns its id.
     ///
-    /// Pay the vested token, plus the fee in EGLD when there is one. For an
-    /// EGLD vesting, pay the total plus the fee in EGLD.
+    /// Pay exactly `total` of the vested token, plus the fee in EGLD when
+    /// there is one. For an EGLD vesting, pay `total` plus the fee in EGLD.
+    /// The total is explicit so that a fee change between preview and signing
+    /// makes the transaction fail instead of changing the vesting.
     #[payable]
     #[endpoint(create)]
     fn create(
         &self,
         beneficiary: ManagedAddress,
+        total: BigUint,
         schedule: Schedule<Self::Api>,
         cancelable: bool,
         label: ManagedBuffer,
     ) -> u64 {
         let (token, token_amount, egld_amount) = self.received_payments();
-        let fee = self.fee_per_vesting().get();
-        let total = if token.is_native() {
-            require!(egld_amount > fee, ERR_WRONG_DEPOSIT);
-            &egld_amount - &fee
-        } else {
-            token_amount.clone()
-        };
         let mut claim_keys = ManagedVec::new();
         let mut cancel_keys = ManagedVec::new();
         let id = self.create_one(

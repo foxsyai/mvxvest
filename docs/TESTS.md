@@ -8,6 +8,9 @@ endpoint, mapped to the tests that check it. Run them with
 - `schedule_math.rs`: the maths alone. Unit tests plus property tests
   (2,000 random schedules per property) against an independent reference
   model.
+- `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
+  failing on the code it reviewed, plus a long random walk checked against an
+  independent model. See [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
 - `create_test.rs`, `claim_test.rs`, `cancel_test.rs`, `admin_test.rs`,
   `views_test.rs`: blackbox tests of the contract in the MultiversX test VM,
   with the key collections issued through the contract's own endpoints. Most
@@ -28,6 +31,8 @@ endpoint, mapped to the tests that check it. Run them with
 | explicit tranches out of order are refused | `schedule_math::validate_rejects_bad_tranches`, `create_test::schedule_errors_reach_the_caller` |
 | a token with a transfer role or freeze rights | Documented (spec section 5); the dApp warns. Not detectable by the contract. |
 | reentrancy and async ordering | By construction: all storage writes before transfers, transfers carry no call (spec section 5). Reviewed in milestone 3. |
+| the accounting invariant under any sequence | `review_safe_accounting_random_walk_test` (12 seeds × 150 random steps: creates, batches, claims of 1 to 4 keys, key transfers, cancels, fee changes, fee claims) |
+| a delivered claim key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `admin_test::a_payable_deploy_or_upgrade_is_refused` |
 | nothing can lock funds forever | `admin_test::claim_key_that_bounced_at_creation_goes_where_the_creator_says`, `claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return`, `cancel_key_that_bounced_goes_back_to_the_creator`, `surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `cancel_test::cancel_before_the_start_refunds_everything` (a dead key still burns) |
 
 ## Endpoints
@@ -42,7 +47,10 @@ endpoint, mapped to the tests that check it. Run them with
 | `setFee`, `claimFees` | `admin_test::fee_is_capped_and_owner_only`, `owner_collects_fees_and_nothing_else`, `create_test::fee_is_paid_in_egld_on_top_and_accrues`, `wrong_fee_is_refused` |
 | `pauseCreation`, `unpauseCreation` | `admin_test::pause_stops_creation_only`, `cancel_test::pause_never_blocks_claims_or_cancels` |
 | `setKeyDisplay` | `admin_test::key_display_applies_to_new_keys` |
-| `recoverBouncedKeys`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls) |
+| `recoverBouncedKeys`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls), `review_creator_seizes_delivered_key_test`, `review_recover_cancel_key_blocked_test` |
+| `create` with a fee change in flight | `review_fee_change_egld_create_test` |
+| `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
+| deploy and upgrade metadata | `admin_test::a_payable_deploy_or_upgrade_is_refused` |
 | `upgrade` | `admin_test::upgrade_keeps_every_vesting` |
 | views | `views_test::*`, `create_test::create_mints_both_keys_and_stores_the_vesting` |
 | schedule validation | `schedule_math::validate_*` |

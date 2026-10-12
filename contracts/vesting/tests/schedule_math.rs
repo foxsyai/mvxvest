@@ -302,7 +302,21 @@ fn amounts_beyond_u128_are_exact() {
 fn next_release_reports_the_next_jump() {
     let s = linear(0, 100, 50, 1_000);
     assert_eq!(next(&s, 1_000, 0), Some((100, vested(&s, 1_000, 100))));
-    assert_eq!(next(&s, 1_000, 100), None); // continuous past the cliff
+    // Past the cliff a linear curve still has an exact next release: 950 over
+    // 1000 seconds grows by one unit at 102 (floor(950 * 102 / 1000) = 96).
+    assert_eq!(next(&s, 1_000, 100), Some((102, 1)));
+    // Fast linear: every second.
+    let fast = linear(0, 0, 0, 10);
+    assert_eq!(next(&fast, 1_000, 3), Some((4, 100)));
+    // Slow linear: one unit over a year vests only at the end.
+    let slow = linear(0, 0, 0, 365 * 86_400);
+    assert_eq!(next(&slow, 1, 10), Some((365 * 86_400, 1)));
+    // Not started yet, nothing at the cliff: the first unit.
+    let later = linear(1_000, 1_000, 0, 2_000);
+    assert_eq!(next(&later, 100, 0), Some((1_010, 1)));
+    // Cliff equal to the total: nothing after the cliff.
+    let all_at_cliff = linear(0, 100, 1_000, 1_000);
+    assert_eq!(next(&all_at_cliff, 1_000, 100), None);
     let s = stepped(0, 0, 0, 100, 30);
     assert_eq!(next(&s, 1_000, 0), Some((30, 250)));
     assert_eq!(next(&s, 1_000, 30), Some((60, 250)));
@@ -583,9 +597,8 @@ proptest! {
                 prop_assert!(schedule.vested_at(&total, at - 1) == before);
             },
             None => {
-                // Nothing more ever vests, or a linear rest vests every second.
-                let linear = matches!(case.kind, Kind::Linear);
-                prop_assert!(linear || schedule.vested_at(&total, now) == total);
+                // Only when nothing more will ever vest.
+                prop_assert!(schedule.vested_at(&total, now) == total);
             },
         }
     }
