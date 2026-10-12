@@ -23,17 +23,43 @@ export const DEFAULT_LIMITS: Limits = {
   maxPage: 100
 };
 
+/** Gas one transaction should stay under (the network allows 600M). */
+export const GAS_BUDGET = 500_000_000;
+
 /**
- * Splits `items` into batches of at most the contract's limit, as even as
- * possible: 120 cancelable vestings become 4 transactions of 30, not 33, 33,
- * 33 and 21, so no transaction is the odd one out.
+ * About the gas one vesting costs in a batch, measured on devnet: 8.5M
+ * cancelable or 5.7M not (linear, 279M for 33 and 284M for 50), plus about
+ * 0.42M per explicit tranche (30 monthly vestings of 12 tranches: 407M).
+ */
+export const gasPerVesting = (cancelable: boolean, tranches: number) =>
+  (cancelable ? 8_500_000 : 5_700_000) + 420_000 * tranches;
+
+/** Most vestings of this shape one transaction can carry. */
+export const maxPerBatch = (
+  cancelable: boolean,
+  tranches: number,
+  limits = DEFAULT_LIMITS
+) =>
+  Math.max(
+    1,
+    Math.min(
+      cancelable ? limits.maxBatchCancelable : limits.maxBatch,
+      Math.floor(GAS_BUDGET / gasPerVesting(cancelable, tranches))
+    )
+  );
+
+/**
+ * Splits `items` into batches of at most the contract's limit, and fewer when
+ * each vesting carries many tranches (`tranches`), as even as possible: 120
+ * cancelable vestings become 4 transactions of 30, not 33, 33, 33 and 21.
  */
 export const splitIntoBatches = <T>(
   items: T[],
   cancelable: boolean,
-  limits = DEFAULT_LIMITS
+  limits = DEFAULT_LIMITS,
+  tranches = 0
 ): T[][] => {
-  const max = cancelable ? limits.maxBatchCancelable : limits.maxBatch;
+  const max = maxPerBatch(cancelable, tranches, limits);
   if (items.length === 0) return [];
   const count = Math.ceil(items.length / max);
   const size = Math.ceil(items.length / count);

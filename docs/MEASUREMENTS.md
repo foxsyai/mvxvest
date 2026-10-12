@@ -77,6 +77,14 @@ Script: `scripts/src/gas.ts`; every hash is in `scripts/state/devnet.json`.
   images from hosts that are not whitelisted, so mainnet key images go on IPFS.
   Checking xPortal and the DeFi Wallet extension is part of milestone 2.
 
+- **A CSV of 120 beneficiaries** (milestone 2, `scripts/src/csv120.ts`): the
+  dApp's own code (CSV parser, plan builder, batch splitter, transaction
+  builder) made 4 `createBatch` transactions of 30 cancelable vestings, each
+  with a 10% cliff and 12 monthly tranches. About 407M gas and 0.033 xEGLD per
+  transaction. All 120 vestings (#206 to #325) match what the dApp computed.
+  Tranches cost about 0.42M gas each per vesting, so the dApp sizes batches by
+  gas as well as by the call limit (at most 8 vestings of 120 tranches).
+
 The first devnet deployment (`58fcdb51…`) was upgraded to `fd32f4e1…`
 (batch limits, `disableKeyBurnByHolders`); storage and all 46 existing
 vestings were kept.

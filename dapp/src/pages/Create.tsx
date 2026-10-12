@@ -236,7 +236,22 @@ export const Create = () => {
   const sum = beneficiaries.list.reduce((total, b) => total + b.amount, 0n);
   const fee = settings.data?.fee ?? 0n;
   const feeTotal = fee * BigInt(beneficiaries.list.length);
-  const batches = splitIntoBatches(entries, cancelable === true, limits);
+  const tranchesEach = entries.reduce(
+    (most, entry) =>
+      Math.max(
+        most,
+        entry.schedule.curve.kind === 'tranches'
+          ? entry.schedule.curve.tranches.length
+          : 0
+      ),
+    0
+  );
+  const batches = splitIntoBatches(
+    entries,
+    cancelable === true,
+    limits,
+    tranchesEach
+  );
   const egld =
     balances.data?.find((balance) => balance.identifier === EGLD)?.balance ??
     0n;
@@ -755,10 +770,9 @@ export const Create = () => {
                 {batches.length > 1 && (
                   <span className='text-muted'>
                     {' '}
-                    (at most{' '}
-                    {cancelable
-                      ? limits.maxBatchCancelable
-                      : limits.maxBatch}{' '}
+                    (at most {Math.max(
+                      ...batches.map((batch) => batch.length)
+                    )}{' '}
                     vestings each; one wallet prompt for all)
                   </span>
                 )}

@@ -1,4 +1,4 @@
-import { splitIntoBatches, splitKeys } from '../batches';
+import { maxPerBatch, splitIntoBatches, splitKeys } from '../batches';
 
 describe('batches', () => {
   it('splits 120 cancelable vestings into even transactions within the limit', () => {
@@ -22,5 +22,25 @@ describe('batches', () => {
     expect(splitKeys(Array.from({ length: 120 })).map((b) => b.length)).toEqual(
       [50, 50, 20]
     );
+  });
+});
+
+describe('batches of vestings with many tranches', () => {
+  it('carries fewer per transaction as tranches grow', () => {
+    expect(maxPerBatch(true, 0)).toBe(33);
+    expect(maxPerBatch(true, 12)).toBe(33);
+    expect(maxPerBatch(true, 120)).toBe(8);
+    expect(maxPerBatch(false, 120)).toBe(8);
+    expect(maxPerBatch(false, 0)).toBe(50);
+  });
+  it('splits 120 vestings of 120 tranches into transactions of at most 8', () => {
+    const batches = splitIntoBatches(
+      Array.from({ length: 120 }),
+      true,
+      undefined,
+      120
+    );
+    expect(batches.length).toBe(15);
+    expect(Math.max(...batches.map((b) => b.length))).toBe(8);
   });
 });
