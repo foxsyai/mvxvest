@@ -63,6 +63,15 @@ cargo clippy -p mvxvest --all-targets -- -D warnings
 [docs/TESTS.md](docs/TESTS.md) maps every rule of the brief to the tests that
 check it.
 
+What gets deployed is the reproducible build, made in the pinned Docker image
+so anyone can rebuild it and compare the code hash with the one on chain:
+
+```sh
+sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+  --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
+cat output-docker/mvxvest/mvxvest.codehash.txt
+```
+
 ## Keys and secrets
 
 Never commit keys, PEM files, mnemonics or `.env` files. Devnet keys live in

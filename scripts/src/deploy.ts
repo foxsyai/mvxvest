@@ -6,14 +6,22 @@
 //
 // Code metadata: upgradeable and readable, not payable and not payable by
 // smart contracts, so stray transfers without a call are refused.
+//
+// It deploys the reproducible build (output-docker/, from
+// `sc-meta reproducible-build build`), whose code hash anyone can verify.
+// Set MVXVEST_LOCAL_WASM=1 to deploy a local build instead (devnet only).
 
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONTRACT_OUTPUT, abi, contractAddress, entrypoint, loadState, saveState, send, signer } from "./lib.js";
+import { CONTRACT_OUTPUT, ROOT, abi, contractAddress, entrypoint, loadState, saveState, send, signer } from "./lib.js";
 
-const bytecode = readFileSync(join(CONTRACT_OUTPUT, "mvxvest.wasm"));
-const codeHash = createHash("sha256").update(bytecode).digest("hex");
+const REPRODUCIBLE = join(ROOT, "output-docker/mvxvest");
+const local = process.env.MVXVEST_LOCAL_WASM === "1";
+if (!local && !existsSync(join(REPRODUCIBLE, "mvxvest.wasm"))) {
+  throw new Error("No reproducible build in output-docker/. Run `sc-meta reproducible-build build` (see README).");
+}
+const bytecode = readFileSync(join(local ? CONTRACT_OUTPUT : REPRODUCIBLE, "mvxvest.wasm"));
+const codeHash = local ? "local build, not reproducible" : readFileSync(join(REPRODUCIBLE, "mvxvest.codehash.txt"), "utf8").trim();
 const owner = await signer("owner");
 const controller = entrypoint().createSmartContractController(abi());
 const metadata = {
@@ -23,7 +31,7 @@ const metadata = {
   isPayableBySmartContract: false,
 };
 
-console.log(`wasm ${bytecode.length} bytes, sha256 ${codeHash}`);
+console.log(`wasm ${bytecode.length} bytes, code hash ${codeHash}`);
 
 if (process.argv[2] === "upgrade") {
   const tx = await controller.createTransactionForUpgrade(owner, owner.getNonceThenIncrement(), {
@@ -33,7 +41,7 @@ if (process.argv[2] === "upgrade") {
     arguments: [],
     ...metadata,
   });
-  await send("upgrade", tx, { note: `code sha256 ${codeHash}` });
+  await send("upgrade", tx, { note: `code hash ${codeHash}` });
 } else {
   const state = loadState();
   if (state.contract) {
@@ -45,7 +53,7 @@ if (process.argv[2] === "upgrade") {
     arguments: [],
     ...metadata,
   });
-  const result = await send("deploy", tx, { note: `code sha256 ${codeHash}` });
+  const result = await send("deploy", tx, { note: `code hash ${codeHash}` });
   const outcome = await controller.awaitCompletedDeploy(result.hash);
   const address = outcome.contracts[0].address.toBech32();
   saveState({ ...loadState(), contract: address });
