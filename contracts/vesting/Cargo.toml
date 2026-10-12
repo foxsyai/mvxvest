@@ -1,0 +1,24 @@
+[package]
+name = "mvxvest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+authors = ["FOXSY"]
+license = "GPL-3.0-only"
+description = "Token vesting on MultiversX: an NFT is the key to claim, a second NFT the key to cancel"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.66.2"
+
+[dependencies.multiversx-sc-modules]
+version = "=0.66.2"
+
+[dev-dependencies]
+num-bigint = "0.4"
+proptest = "1"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.66.2"

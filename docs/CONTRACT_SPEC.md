@@ -1,0 +1,171 @@
+# Contract specification
+
+The rules the vesting contract implements. The code is in
+[contracts/vesting/src](../contracts/vesting/src); each rule is checked by the
+tests listed in [TESTS.md](TESTS.md). Timestamps are block timestamps in
+seconds. Amounts are integers in the token's smallest unit.
+
+## 1. Vesting maths
+
+A schedule has `start`, `cliff`, `cliff_amount`, `end` and a curve. It must
+satisfy `start <= cliff <= end` and `cliff_amount <= total`. Let
+`rest = total - cliff_amount`.
+
+```
+vested(t) = 0                                   if t < cliff
+          = total                               if t >= end
+          = cliff_amount + released(t)          otherwise
+```
+
+`released(t)`, for `cliff <= t < end` (so `end > start`):
+
+| Curve | `released(t)` | Extra rules |
+|---|---|---|
+| Linear | `floor(rest * (t - start) / (end - start))` | none |
+| Stepped `{ interval }` | `floor(rest * k / n)` with `n = ceil((end - start) / interval)` and `k = floor((t - start) / interval)` | `0 < interval <= end - start` |
+| Tranches `[(time, amount)]` | sum of `amount` over tranches with `time <= t` | 1 to 120 tranches; every amount > 0; times strictly increasing, the first `>= start`, the last `== end`; amounts sum to `rest` |
+
+Consequences, all tested:
+
+- vested(t) never decreases, never exceeds the total, and equals the total
+  exactly from `end` on (rounding remainders land at the end, or are spread by
+  at most one unit per step);
+- the cliff gates everything: what the curve released before it unlocks at
+  once at the cliff (the "startup" style, with `cliff_amount = 0`);
+- "X at the cliff, then the rest linearly until the end" is `start = cliff`
+  with `cliff_amount = X`;
+- `cliff_amount = total` releases everything at the cliff; `start = cliff =
+  end` is a plain time lock;
+- a schedule may start in the past: what has vested is claimable at once;
+- calendar schedules ("the first of every month") use explicit tranches; the
+  dApp computes the dates.
+
+A schedule must end within 30 years of its creation (`MAX_HORIZON`), so a typo
+cannot lock funds for centuries.
+
+## 2. Keys
+
+Two NFT collections, issued once by the owner through the contract
+(`issueClaimKey`, `issueCancelKey`), with the contract holding the create and
+burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
+`MvxVestCancelKey` / `VESTCANCEL`.
+
+- Each vesting gets one claim key (sent to the beneficiary) and, if
+  cancelable, one cancel key (sent to the creator). Amount 1, no royalties.
+- A key keeps its nonce for life. The contract maps nonce to vesting id in its
+  own storage and never reads the NFT's attributes.
+- Name: `Vesting #<id> claim key` / `Vesting #<id> cancel key`. Attributes:
+  `tags:mvxvest,vesting;vesting:<id>;token:<token>`, plus `;metadata:<value>`
+  when the owner has set one. URIs: as set by the owner with `setKeyDisplay`
+  for keys minted from then on.
+
+## 3. Endpoints
+
+### `create(beneficiary, schedule, cancelable, label) -> id`
+
+Payable. Pay the token, plus the fee in EGLD when the fee is not zero. For an
+EGLD vesting, pay the total plus the fee in EGLD (as plain value or as
+`EGLD-000000` in a multi-transfer; both work). The total is the token amount
+paid (or the EGLD paid minus the fee).
+
+Refused when: creation is paused; the claim key collection (or the cancel key
+collection, for a cancelable vesting) is not issued; nothing is paid; a
+payment is not fungible; two different ESDTs are paid; the EGLD does not equal
+the fee exactly; the beneficiary is the zero address or the contract; the label
+is longer than 64 bytes; the schedule is invalid (section 1); the schedule ends
+more than 30 years ahead.
+
+### `createBatch(cancelable, label, entries) -> ids`
+
+Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 100 of
+them, all of the payment's token, all sharing `cancelable` and `label`. Pay the
+sum of the totals exactly, plus the fee times the number of entries. The same
+checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
+to the creator in one transfer.
+
+### `claim()`
+
+Payable with one or more claim keys. For each key: pays `vested(now) -
+claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
+the key, or burns it when nothing more can ever be claimed (`claimed` equals
+the total, or what had vested at the cancel). Payouts of the same token are
+merged into one transfer with the returned keys. Refused when a payment is not
+a claim key minted by this contract, or when no key paid anything or was
+burned (`nothing to claim yet`): so claiming twice in one block pays once.
+
+### `cancel()`
+
+Payable with one or more cancel keys. For each: sets `cancelled_at = now`,
+pays `total - vested(now)` to the caller (whoever holds the key), and burns the
+key. What had vested stays claimable with the claim key. Allowed at any time,
+also after the end (refund 0). A non-cancelable vesting has no cancel key and
+cannot be stopped.
+
+### Owner endpoints
+
+| Endpoint | Effect |
+|---|---|
+| `issueClaimKey(name, ticker)`, `issueCancelKey(name, ticker)` | Issue a collection once; pay the issue cost in EGLD |
+| `setKeyDisplay(kind, metadata, uris...)` | How keys minted from now on look |
+| `setFee(fee)` | Flat EGLD fee per vesting, at most 1 EGLD (`MAX_FEE_PER_VESTING`) |
+| `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |
+| `claimFees()` | Send the accrued EGLD fees to the owner |
+| `recoverSurplus(token, to)` | Send what the contract holds of `token` beyond what it owes (see section 5) |
+| `upgrade` | The multisig can upgrade the contract; storage is kept |
+
+### `recoverBouncedKeys(id, to)`
+
+Sends on the keys of vesting `id` that the contract itself holds. That only
+happens when a transfer to a smart contract that cannot receive them bounced
+back (a wallet never bounces). The creator may recover the cancel key, and the
+claim key while nothing has been claimed (it bounced at creation). The owner
+may recover any held key. `to` cannot be the zero address or the contract.
+
+## 4. Views
+
+`getVesting(id)` returns the vesting with its live state: `claimed`,
+`cancelled_at`, `vested`, `claimable`, `final_amount` (the most the claim key
+can ever collect), `refunded` and the `timestamp` used. Also: `getVestings(ids)`
+(up to 100), `getClaimable(id)`, `getVestedAt(id, timestamp)`,
+`getNextRelease(id)` (the next moment the vested amount grows and by how much;
+empty after a cancel, at the end, or while a linear curve vests every second),
+`getVestingByClaimNonce(nonce)`, `getVestingByCancelNonce(nonce)`,
+`getVestingsByCreator(address, from, count)`, `getVestingCountByCreator`,
+`getVestingsByToken(token, from, count)`, `getVestingCountByToken`,
+`getTokenTotals(token)` (deposited, claimed, refunded), `getVestingCount`,
+`getFee`, `getMaxFee`, `getFeesAccrued`, `isCreationPaused`,
+`getClaimKeyCollection`, `getCancelKeyCollection`, `getSurplus(token)` and
+`getLimits`. Pages hold at most 100 ids.
+
+## 5. Accounting and safety
+
+- **Invariant:** for every token, the contract's balance equals `deposited -
+  claimed - refunded` (plus the accrued fees, for EGLD). The tests check it
+  after every step. `getSurplus` shows any difference.
+- **Ordering:** every storage write happens before any transfer. Transfers
+  carry no function call, so no code runs on the receiving side and nothing can
+  re-enter.
+- **Owner limits:** the owner cannot pause claims or cancels and has no
+  endpoint that moves locked funds. `recoverSurplus` moves only the balance
+  above what is owed. (As the contract is upgradeable, the multisig is trusted
+  in any case; see [DECISIONS.md](DECISIONS.md).)
+- **No dead ends:** every path ends claimable or refunded. A key that bounced
+  can be recovered; a payout that bounced shows up as surplus and the owner
+  can return it to whom the events show it belongs.
+- **Tokens with special roles:** ESDT has no transfer fees, so the amount
+  received is the amount sent. A token whose issuer can freeze, wipe or pause
+  it, or that has a transfer role, can still be blocked by its issuer; the
+  contract cannot detect this synchronously, so the dApp warns before
+  creating such a vesting.
+- **Smart contract holders:** a smart contract that holds a key must accept
+  tokens from other contracts (`payableBySC`), or the payout bounces (see
+  "No dead ends"). The dApp warns when a beneficiary is a smart contract.
+
+## 6. Events
+
+`vestingCreated(id, creator, beneficiary, token; total, schedule, cancelable,
+claim_nonce, cancel_nonce, label)`, `vestingClaimed(id, caller, token; amount,
+claimed_total, finished)`, `vestingCancelled(id, caller, token; refund,
+vested)`, `feeSet`, `creationPaused`, `feesClaimed`, `keysRecovered`,
+`surplusRecovered`. Indexed topics come before the semicolon. Together they
+are enough to rebuild the full history without reading storage.

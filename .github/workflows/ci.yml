@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # rustup reads rust-toolchain.toml (toolchain, wasm target, clippy).
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-bin: true
+      - name: Install sc-meta
+        run: command -v sc-meta >/dev/null || cargo install multiversx-sc-meta --version 0.66.2 --locked
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Build wasm
+        working-directory: contracts/vesting
+        run: sc-meta all build
+      - name: Proxy is up to date
+        working-directory: contracts/vesting
+        run: sc-meta all proxy && git diff --exit-code -- src/proxy.rs
+      - name: Clippy
+        run: cargo clippy -p mvxvest --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test -p mvxvest
+      - name: Contract size and hash
+        run: |
+          ls -l contracts/vesting/output/mvxvest.wasm
+          sha256sum contracts/vesting/output/mvxvest.wasm
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --verbose

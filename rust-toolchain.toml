@@ -1,0 +1,5 @@
+# Same toolchain as multiversx-sc 0.66.2 itself. Change both together.
+[toolchain]
+channel = "1.96"
+targets = ["wasm32v1-none"]
+components = ["clippy", "rustfmt"]

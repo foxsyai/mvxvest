@@ -1,0 +1,31 @@
+# Secrets: never commit. Keys live outside the repo (~/.config/mvxvest/).
+*.pem
+*.key
+*.keystore
+*keystore*.json
+*wallet*.json
+*mnemonic*
+*secret*
+.env
+.env.*
+!.env.example
+
+# Rust and contract build output
+target/
+contracts/*/output/
+
+# Node
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs and local state
+*.log
+scripts/state/
