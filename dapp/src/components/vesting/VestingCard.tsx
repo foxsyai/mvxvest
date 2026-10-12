@@ -77,6 +77,13 @@ export const VestingCard = ({
           <dt className='text-xs text-muted'>Claimable now</dt>
           <dd className='font-semibold'>
             <Amount units={vesting.claimable} decimals={token.decimals} />
+            {vesting.schedule.curve.kind === 'linear' &&
+              vesting.cancelledAt === 0 &&
+              now < vesting.schedule.end && (
+                <span className='block text-xs font-normal text-muted'>
+                  grows every second
+                </span>
+              )}
           </dd>
         </div>
         <div>

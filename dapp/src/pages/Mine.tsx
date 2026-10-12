@@ -9,10 +9,7 @@ import { useAsync } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { splitKeys } from 'vesting/batches';
 import type { Vesting } from 'vesting/client';
-
-/** A key worth sending: it pays something, or it is spent and only burns. */
-const worthClaiming = (v: Vesting) =>
-  v.claimable > 0n || (v.cancelledAt !== 0 && v.claimed === v.finalAmount);
+import { spent, worthClaiming } from 'vesting/describe';
 
 export const Mine = () => {
   const isLoggedIn = useGetIsLoggedIn();
@@ -126,8 +123,13 @@ export const Mine = () => {
                 vesting={v}
                 now={now}
                 actions={
-                  worthClaiming(v) && !claiming ? (
-                    <Button onClick={() => setClaiming([v])}>
+                  (v.claimable > 0n || spent(v)) && !claiming ? (
+                    // Any amount can be claimed from its own card; a small
+                    // one is offered quietly.
+                    <Button
+                      variant={worthClaiming(v) ? 'primary' : 'secondary'}
+                      onClick={() => setClaiming([v])}
+                    >
                       {v.claimable > 0n
                         ? 'Claim'
                         : 'Close (burns the spent key)'}

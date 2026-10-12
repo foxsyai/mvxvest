@@ -41,3 +41,21 @@ export const describeCurve = (schedule: Schedule): string => {
       return `${curve.tranches.length} release${curve.tranches.length === 1 ? '' : 's'} on set dates`;
   }
 };
+
+/** The key is spent: claiming only burns it. */
+export const spent = (v: Vesting) =>
+  v.cancelledAt !== 0 && v.claimed === v.finalAmount;
+
+/**
+ * Worth a claim in "Claim all": a release on a date, the last of a vesting,
+ * a spent key, or, for a curve that grows every second, at least 1% of the
+ * vesting (each claim costs a network fee; right after a claim a few seconds'
+ * worth is claimable again, which is not worth one).
+ */
+export const worthClaiming = (v: Vesting) => {
+  if (spent(v)) return true;
+  if (v.claimable === 0n) return false;
+  if (v.schedule.curve.kind !== 'linear') return true;
+  if (v.claimed + v.claimable >= v.finalAmount) return true;
+  return v.claimable * 100n >= v.finalAmount;
+};
