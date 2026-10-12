@@ -7,7 +7,7 @@ import {
   ReactNode,
   useState
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { explorerUrl } from 'chain/network';
 import {
   formatAmount,
@@ -47,14 +47,40 @@ export const Card = ({
   </div>
 );
 
+/**
+ * Back to the page the reader came from inside the app (My vestings, a
+ * token...), or to the start when the page was opened from outside.
+ */
+export const BackLink = () => {
+  const navigate = useNavigate();
+  // React Router numbers the entries it pushed: 0 is where the visit began.
+  const inApp =
+    ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0;
+  const className =
+    'mb-2 flex w-fit items-center gap-1 text-sm text-muted hover:text-accent';
+  return inApp ? (
+    <button type='button' className={className} onClick={() => navigate(-1)}>
+      ← Back
+    </button>
+  ) : (
+    <Link to='/' className={className}>
+      ← Home
+    </Link>
+  );
+};
+
 export const PageTitle = ({
   title,
-  lead
+  lead,
+  back = false
 }: {
   title: string;
   lead?: ReactNode;
+  /** A detail page: "← Back" above the title. */
+  back?: boolean;
 }) => (
   <div className='mb-6'>
+    {back && <BackLink />}
     <h1 className='text-2xl font-bold tracking-tight sm:text-3xl'>{title}</h1>
     {lead && <p className='mt-2 max-w-2xl text-muted'>{lead}</p>}
   </div>

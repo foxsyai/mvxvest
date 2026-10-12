@@ -42,7 +42,7 @@ export const Token = () => {
     const failed = (data.error && !data.data) || token.failed;
     return (
       <div className='space-y-4'>
-        <PageTitle title={identifier} />
+        <PageTitle back title={identifier} />
         {failed ? (
           <>
             <Notice tone='warn'>
@@ -90,6 +90,7 @@ export const Token = () => {
   return (
     <div className='space-y-6'>
       <PageTitle
+        back
         title={token.ticker || identifier}
         lead={`${identifier}: every vesting of this token, read from the contract. ${count.toLocaleString('en-US')} vestings.`}
       />

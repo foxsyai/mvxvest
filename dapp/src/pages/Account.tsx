@@ -28,6 +28,7 @@ export const Account = () => {
   return (
     <div className='space-y-6'>
       <PageTitle
+        back
         title='Address'
         lead={
           <span className='flex flex-wrap items-center gap-2'>

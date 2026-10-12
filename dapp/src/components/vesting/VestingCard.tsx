@@ -32,12 +32,14 @@ export const VestingCard = ({
   return (
     // As tall as its row (cards side by side match), actions at the bottom so
     // the buttons of neighbouring cards line up.
-    <Card className='flex h-full flex-col gap-3'>
+    <Card className='relative flex h-full flex-col gap-3 transition hover:border-accent'>
       <div className='flex flex-wrap items-start justify-between gap-2'>
         <div className='min-w-0'>
+          {/* The whole card opens the vesting: the link's overlay covers it,
+              and the actions sit above the overlay. */}
           <Link
             to={`/v/${vesting.id}`}
-            className='font-semibold hover:text-accent'
+            className="font-semibold after:absolute after:inset-0 after:rounded-2xl after:content-[''] hover:text-accent"
           >
             #{vesting.id}
             {vesting.label && (
@@ -118,7 +120,9 @@ export const VestingCard = ({
         </div>
       </dl>
       {actions && (
-        <div className='mt-auto flex flex-wrap gap-2 pt-1'>{actions}</div>
+        <div className='relative z-10 mt-auto flex flex-wrap gap-2 pt-1'>
+          {actions}
+        </div>
       )}
     </Card>
   );

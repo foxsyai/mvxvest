@@ -80,7 +80,7 @@ export const VestingPage = () => {
     );
     return (
       <div className='space-y-4'>
-        <PageTitle title={`Vesting #${params.id}`} />
+        <PageTitle back title={`Vesting #${params.id}`} />
         {unknown ? (
           <Notice tone='warn'>
             No vesting with this number on this network.
@@ -117,6 +117,7 @@ export const VestingPage = () => {
     <div className='space-y-6'>
       <div className='flex flex-wrap items-start justify-between gap-4'>
         <PageTitle
+          back
           title={`Vesting #${v.id}`}
           lead={
             <>
@@ -186,23 +187,26 @@ export const VestingPage = () => {
             </span>
           </Fact>
           <Fact label='Next release'>
-            {next ? (
+            {next &&
+            v.schedule.curve.kind === 'linear' &&
+            now >= v.schedule.cliff ? (
+              // Past the cliff a linear curve releases continuously.
+              <>
+                every second
+                <span className='block text-xs text-muted'>
+                  until <When seconds={v.schedule.end} />
+                </span>
+              </>
+            ) : next ? (
               <>
                 <When seconds={next[0]} />
                 <span className='block text-xs text-muted'>
-                  {v.schedule.curve.kind === 'linear' &&
-                  now >= v.schedule.cliff ? (
-                    'vests every second'
-                  ) : (
-                    <>
-                      +{' '}
-                      <Amount
-                        units={next[1]}
-                        decimals={token.decimals}
-                        ticker={ticker}
-                      />
-                    </>
-                  )}
+                  +{' '}
+                  <Amount
+                    units={next[1]}
+                    decimals={token.decimals}
+                    ticker={ticker}
+                  />
                 </span>
               </>
             ) : (
