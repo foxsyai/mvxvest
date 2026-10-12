@@ -70,7 +70,7 @@ export const Home = () => {
               setQuery(event.target.value);
               setProblem('');
             }}
-            placeholder='Address (erd1...), token (FOXSY-123abc) or vesting number'
+            placeholder='Address, token or vesting number'
             aria-label='Look up an address, a token or a vesting'
           />
           <button
