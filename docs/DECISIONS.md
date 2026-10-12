@@ -43,10 +43,15 @@ made while building milestone 1.
 - **Payments:** EGLD is accepted both as plain value and as `EGLD-000000`
   inside a multi-transfer. `create` takes the total as an argument (like
   `createBatch`), so the payment must be exactly the total plus the fee.
-- **Non-payable by construction:** `init` and `upgrade` refuse payable code
-  metadata, so a key can only sit in the contract after a bounce.
+- **Non-payable, checked at call time:** deployed neither payable nor payable
+  by smart contracts, so a key can only sit in the contract after a bounce.
+  `init`/`upgrade` cannot check it on the real chain, so `create` and the
+  creator's key recovery check it when called.
+- **Two VMs in the tests:** the Rust test VM for the full suite, and the Go VM
+  (the one validators run) for deploy, upgrade and a full lifecycle, because
+  the two differ (second review).
 
 ## Reviews
 
-- 2026-10-12, internal adversarial review of the contract:
-  [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
+- 2026-10-12, internal adversarial review of the contract, and a second
+  review of its fixes: [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).

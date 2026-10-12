@@ -11,7 +11,13 @@
 - `getNextRelease` is exact for linear curves and empty only when nothing more
   will vest.
 - Stepped schedules need `end > start`.
-- `init` and `upgrade` refuse payable code metadata.
+- The code metadata is checked at call time (not in `init`/`upgrade`, which
+  cannot see it on the real chain): while payable, `create` is refused and the
+  creator cannot recover claim keys.
+- `vestingClaimed` is emitted for every key sent to `claim`; `getVesting`
+  shows `claim_key_used`.
+- Go VM scenarios (deploy, payable contract, full lifecycle) run in the tests
+  and in CI.
 - The collection views return empty until the collections are issued.
 
 ### Added

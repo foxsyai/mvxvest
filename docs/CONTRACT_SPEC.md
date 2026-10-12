@@ -69,7 +69,8 @@ value or as `EGLD-000000` in a multi-transfer; both work). The total is an
 argument, not inferred from the payment, so a fee change between the preview
 and the signature makes the transaction fail instead of changing the vesting.
 
-Refused when: creation is paused; the claim key collection (or the cancel key
+Refused when: creation is paused; the contract is payable or payable by smart
+contracts (a deployment mistake: see section 5); the claim key collection (or the cancel key
 collection, for a cancelable vesting) is not issued; nothing is paid; a
 payment is not fungible; two different ESDTs are paid; the EGLD does not equal
 the fee exactly, or the payment is not exactly the total plus the fee; the
@@ -89,7 +90,8 @@ to the creator in one transfer.
 
 Payable with one or more claim keys. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
-the key, or burns it when nothing more can ever be claimed (`claimed` equals
+the key, or burns it when nothing more can ever be claimed. Every key sent
+emits `vestingClaimed`, also when it paid nothing (`claimed` equals
 the total, or what had vested at the cancel). Payouts of the same token are
 merged into one transfer with the returned keys. Refused when a payment is not
 a claim key minted by this contract, or when no key paid anything or was
@@ -119,12 +121,13 @@ cannot be stopped.
 
 Sends on the keys of vesting `id` that the contract itself holds. That only
 happens when a transfer to a smart contract that cannot receive them bounced
-back (a wallet never bounces): the contract refuses to be deployed or upgraded
-payable or payable by smart contracts, so nothing else can put a key in its
-balance. Each caller gets what it may take:
+back (a wallet never bounces), provided the contract is neither payable nor
+payable by smart contracts, as it is deployed. Each caller gets what it may
+take:
 
 - the creator: the cancel key, and the claim key only if that key never
-  reached a holder (it was never sent to `claim`, so it bounced at creation);
+  reached a holder: never sent to `claim` (`claimKeyUsed`), nothing claimed,
+  and the contract not payable (so it bounced at creation);
 - the owner: any held key.
 
 It fails with `no key of this vesting is held by the contract` when there is
@@ -135,7 +138,8 @@ cannot be the zero address or the contract. One `keyRecovered` event per key.
 
 `getVesting(id)` returns the vesting with its live state: `claimed`,
 `cancelled_at`, `vested`, `claimable`, `final_amount` (the most the claim key
-can ever collect), `refunded` and the `timestamp` used. Also: `getVestings(ids)`
+can ever collect), `refunded`, `claim_key_used` (the claim key has been sent to
+`claim` at least once) and the `timestamp` used. Also: `getVestings(ids)`
 (up to 100), `getClaimable(id)`, `getVestedAt(id, timestamp)`,
 `getNextRelease(id)` (the next moment the vested amount grows and by how much,
 exact for every curve; empty only when nothing more will vest: everything has
@@ -169,6 +173,11 @@ key with that nonce was minted; the answer stays after the key is burned),
   it, or that has a transfer role, can still be blocked by its issuer; the
   contract cannot detect this synchronously, so the dApp warns before
   creating such a vesting.
+- **Code metadata:** the contract must be deployed (and upgraded) neither
+  payable nor payable by smart contracts. It cannot check this in `init` or
+  `upgrade` (on the real chain those run before the new metadata is written),
+  so it checks at call time: while payable, `create` is refused and the
+  creator cannot recover claim keys.
 - **Undelivered claim keys:** a creator who names a beneficiary that cannot
   receive the key (a smart contract in another shard, not payable by smart
   contracts) gets the key back through `recoverBouncedKeys`. Such a vesting

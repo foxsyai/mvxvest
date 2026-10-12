@@ -109,6 +109,7 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
     /// was sent) and the EGLD that came with it.
     fn received_payments(&self) -> (TokenId, BigUint, BigUint) {
         require!(!self.creation_paused().get(), ERR_CREATION_PAUSED);
+        require!(!self.is_payable(), ERR_PAYABLE_CONTRACT);
         self.require_key_issued(KeyKind::Claim);
         let payments = self.call_value().all();
         require!(!payments.is_empty(), ERR_NO_PAYMENT);

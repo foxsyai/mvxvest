@@ -1,0 +1,53 @@
+{
+  "name": "deploys non-payable, as scripts/src/deploy.ts does",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        }
+      },
+      "newAddresses": [
+        {
+          "creatorAddress": "address:owner",
+          "creatorNonce": "1",
+          "newAddress": "sc:mvxvest"
+        }
+      ]
+    },
+    {
+      "step": "scDeploy",
+      "id": "deploy",
+      "tx": {
+        "from": "address:owner",
+        "contractCode": "mxsc:../output/mvxvest.mxsc.json",
+        "codeMetadata": "0x0500",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": [],
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "codeMetadata": "0x0500"
+        },
+        "+": ""
+      }
+    }
+  ]
+}

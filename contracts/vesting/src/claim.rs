@@ -14,7 +14,8 @@ use crate::{
 pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::KeysModule {
     /// Send one or more claim keys. Pays everything vested and not yet claimed
     /// on each, in one transfer back with the keys. A key whose vesting can
-    /// pay nothing more is burned instead of returned.
+    /// pay nothing more is burned instead of returned. Fails when no key paid
+    /// anything or was burned.
     #[payable]
     #[endpoint(claim)]
     fn claim(&self) {
@@ -26,8 +27,8 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let mut progressed = false;
         for payment in payments.iter() {
             let id = self.vesting_of_key(KeyKind::Claim, &payment);
-            if !self.claim_key_seen(id).get() {
-                self.claim_key_seen(id).set(true);
+            if !self.claim_key_used(id).get() {
+                self.claim_key_used(id).set(true);
             }
             let vesting = self.vesting(id).get();
             let cancelled_at = self.cancelled_at(id).get();
@@ -47,19 +48,19 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             } else {
                 outgoing.push(payment.clone());
             }
-            if amount > 0u32 || finished {
-                progressed = true;
-                self.vesting_claimed_event(
-                    id,
-                    &caller,
-                    &vesting.token,
-                    &ClaimedEvent {
-                        amount,
-                        claimed_total,
-                        finished,
-                    },
-                );
-            }
+            progressed |= amount > 0u32 || finished;
+            // One event per key sent, also when it paid nothing, so the logs
+            // show every key that reached a holder (`claimKeyUsed`).
+            self.vesting_claimed_event(
+                id,
+                &caller,
+                &vesting.token,
+                &ClaimedEvent {
+                    amount,
+                    claimed_total,
+                    finished,
+                },
+            );
         }
         require!(progressed, ERR_NOTHING_TO_CLAIM);
         self.tx()
@@ -110,11 +111,13 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
     /// them). Each caller gets what it may take:
     ///
     /// - the creator: the cancel key, and the claim key only if it never
-    ///   reached a holder (it bounced at creation, before any `claim`);
+    ///   reached a holder (never sent to `claim` and nothing claimed: it
+    ///   bounced at creation);
     /// - the owner: any held key.
     ///
-    /// The contract is deployed non-payable, so a key can only be held after
-    /// a bounce.
+    /// The creator's claim key rule relies on the contract being non-payable,
+    /// so that a key can only be held after a bounce. While the contract is
+    /// payable, only the owner may recover claim keys.
     #[endpoint(recoverBouncedKeys)]
     fn recover_bounced_keys(&self, id: u64, to: ManagedAddress) {
         require!(!self.vesting(id).is_empty(), ERR_UNKNOWN_VESTING);
@@ -128,7 +131,11 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let mut held = false;
         if self.holds_key(KeyKind::Claim, vesting.claim_nonce) {
             held = true;
-            let never_delivered = !self.claim_key_seen(id).get();
+            // Both checks: vestings created before `claimKeyUsed` existed have
+            // the flag unset even when they were claimed.
+            let never_delivered = !self.claim_key_used(id).get()
+                && self.claimed(id).get() == 0u32
+                && !self.is_payable();
             if is_owner || (is_creator && never_delivered) {
                 keys.push(self.key_payment(KeyKind::Claim, vesting.claim_nonce));
                 kinds.push(KeyKind::Claim);

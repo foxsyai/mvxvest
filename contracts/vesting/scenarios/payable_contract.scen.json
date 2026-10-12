@@ -1,0 +1,145 @@
+{
+  "name": "a payable contract refuses to create vestings until upgraded back to non-payable",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": {
+            "str:FOX-a1b2c3": "1,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "address:bob": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0502",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-while-payable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "100",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "100"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "message": "str:the contract must be neither payable nor payable by smart contracts"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "repair",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0500"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": [],
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-after-repair",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "100",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "100"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    }
+  ]
+}

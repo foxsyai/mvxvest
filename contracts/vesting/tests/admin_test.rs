@@ -359,22 +359,21 @@ fn upgrade_keeps_every_vesting() {
 }
 
 #[test]
-fn a_payable_deploy_or_upgrade_is_refused() {
+fn a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator() {
     let mut f = Fixture::new();
-    // A payable contract could receive a key outside `claim`, which the
-    // bounce recovery rules rely on never happening.
-    for flag in [CodeMetadata::PAYABLE, CodeMetadata::PAYABLE_BY_SC] {
-        f.world
-            .tx()
-            .from(OWNER)
-            .typed(MvxvestProxy)
-            .init()
-            .code(CODE)
-            .code_metadata(CodeMetadata::UPGRADEABLE | flag)
-            .new_address(TestSCAddress::new("payable"))
-            .returns(ExpectError(4, ERR_PAYABLE_DEPLOY))
-            .run();
-    }
+    f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);
+    // The claim key bounced at creation: normally the creator's to redirect.
+    f.world
+        .tx()
+        .from(ALICE)
+        .to(SC)
+        .payment(key(KeyKind::Claim, 1))
+        .whitebox(mvxvest::contract_obj, |_| {});
+
+    // Upgraded to payable by mistake: a key could now arrive without a
+    // bounce, so the creator may no longer take claim keys, and creation
+    // stops until it is repaired. (The check runs at call time: on the real
+    // chain `upgrade` cannot see the new metadata; see go_vm_test.)
     f.world
         .tx()
         .from(OWNER)
@@ -382,7 +381,41 @@ fn a_payable_deploy_or_upgrade_is_refused() {
         .typed(MvxvestProxy)
         .upgrade()
         .code(CODE)
-        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE)
-        .returns(ExpectError(4, ERR_PAYABLE_DEPLOY))
+        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC)
         .run();
+    f.create_fails(
+        BOB.to_managed_address(),
+        linear(T0, T0, 0, T0 + DAY),
+        false,
+        payments(&[(Some(FOX), 10)]),
+        ERR_PAYABLE_CONTRACT,
+    );
+    f.world
+        .tx()
+        .from(CREATOR)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .recover_bounced_keys(1u64, BOB)
+        .returns(ExpectError(4, ERR_NOT_ALLOWED))
+        .run();
+
+    // Repaired: the creator's rule applies again.
+    f.world
+        .tx()
+        .from(OWNER)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .upgrade()
+        .code(CODE)
+        .code_metadata(CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE)
+        .run();
+    f.world
+        .tx()
+        .from(CREATOR)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .recover_bounced_keys(1u64, BOB)
+        .run();
+    f.check_holds_key(BOB, KeyKind::Claim, 1, 1, FOX.as_str());
+    f.create_fox(BOB, 10, linear(T0, T0, 0, T0 + DAY), false);
 }

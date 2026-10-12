@@ -8,6 +8,10 @@ endpoint, mapped to the tests that check it. Run them with
 - `schedule_math.rs`: the maths alone. Unit tests plus property tests
   (2,000 random schedules per property) against an independent reference
   model.
+- `go_vm_test.rs`: runs `scenarios/*.scen.json` on the Go VM (the one
+  validators run): deploy, a payable contract refused and repaired, and a full
+  lifecycle. Needs `mx-scenario-go` (`sc-meta install mx-scenario-go`).
+- `review2_*.rs`: tests from the second review (of the fixes).
 - `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
   failing on the code it reviewed, plus a long random walk checked against an
   independent model. See [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
@@ -32,7 +36,7 @@ endpoint, mapped to the tests that check it. Run them with
 | a token with a transfer role or freeze rights | Documented (spec section 5); the dApp warns. Not detectable by the contract. |
 | reentrancy and async ordering | By construction: all storage writes before transfers, transfers carry no call (spec section 5). Reviewed in milestone 3. |
 | the accounting invariant under any sequence | `review_safe_accounting_random_walk_test` (12 seeds × 150 random steps: creates, batches, claims of 1 to 4 keys, key transfers, cancels, fee changes, fee claims) |
-| a delivered claim key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `admin_test::a_payable_deploy_or_upgrade_is_refused` |
+| a delivered claim key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `review2_upgrade_keeps_old_claims_unseen_test`, `review2_safe_claim_key_seen_test`, `admin_test::a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator` |
 | nothing can lock funds forever | `admin_test::claim_key_that_bounced_at_creation_goes_where_the_creator_says`, `claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return`, `cancel_key_that_bounced_goes_back_to_the_creator`, `surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `cancel_test::cancel_before_the_start_refunds_everything` (a dead key still burns) |
 
 ## Endpoints
@@ -50,7 +54,8 @@ endpoint, mapped to the tests that check it. Run them with
 | `recoverBouncedKeys`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls), `review_creator_seizes_delivered_key_test`, `review_recover_cancel_key_blocked_test` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
 | `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
-| deploy and upgrade metadata | `admin_test::a_payable_deploy_or_upgrade_is_refused` |
+| deploy and upgrade metadata | `go_vm_test::deploy`, `go_vm_test::payable_contract`, `admin_test::a_payable_contract_refuses_to_create_and_keeps_claim_keys_from_the_creator` |
+| the real VM end to end | `go_vm_test::lifecycle` |
 | `upgrade` | `admin_test::upgrade_keeps_every_vesting` |
 | views | `views_test::*`, `create_test::create_mints_both_keys_and_stores_the_vesting` |
 | schedule validation | `schedule_math::validate_*` |

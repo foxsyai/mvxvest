@@ -12,8 +12,6 @@
 
 use multiversx_sc::imports::*;
 
-use errors::ERR_PAYABLE_DEPLOY;
-
 pub mod admin;
 pub mod claim;
 pub mod create;
@@ -36,26 +34,12 @@ pub trait Mvxvest:
     + views::ViewsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    // The code metadata cannot be checked here: on the real chain `init` and
+    // `upgrade` run before the new account and metadata are written. It is
+    // checked when it matters instead (`KeysModule::is_payable`).
     #[init]
-    fn init(&self) {
-        self.require_not_payable();
-    }
+    fn init(&self) {}
 
     #[upgrade]
-    fn upgrade(&self) {
-        self.require_not_payable();
-    }
-
-    /// The contract must refuse transfers that call nothing: then a key can
-    /// only be in its balance after a bounce, which `recoverBouncedKeys`
-    /// relies on.
-    fn require_not_payable(&self) {
-        let metadata = self
-            .blockchain()
-            .get_code_metadata(&self.blockchain().get_sc_address());
-        require!(
-            !metadata.is_payable() && !metadata.is_payable_by_sc(),
-            ERR_PAYABLE_DEPLOY
-        );
-    }
+    fn upgrade(&self) {}
 }

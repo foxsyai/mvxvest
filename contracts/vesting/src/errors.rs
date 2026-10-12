@@ -35,9 +35,9 @@ pub const ERR_UNKNOWN_KEY: &str = "unknown key";
 pub const ERR_NOTHING_TO_CLAIM: &str = "nothing to claim yet";
 pub const ERR_ALREADY_CANCELLED: &str = "already cancelled";
 
-// Deploying
-pub const ERR_PAYABLE_DEPLOY: &str =
-    "deploy the contract neither payable nor payable by smart contracts";
+// Deployment
+pub const ERR_PAYABLE_CONTRACT: &str =
+    "the contract must be neither payable nor payable by smart contracts";
 
 // Owner and recovery
 pub const ERR_FEE_ABOVE_CAP: &str = "fee above the cap";

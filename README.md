@@ -56,7 +56,8 @@ cd contracts/vesting
 sc-meta all build            # output/mvxvest.wasm, .abi.json, .mxsc.json
 sc-meta all proxy            # regenerates src/proxy.rs after an interface change
 cd ../..
-cargo test -p mvxvest        # unit, property and blackbox tests
+sc-meta install mx-scenario-go   # once: the Go VM runner some tests use
+cargo test -p mvxvest        # unit, property, blackbox and Go VM tests
 cargo clippy -p mvxvest --all-targets -- -D warnings
 ```
 

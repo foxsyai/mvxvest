@@ -34,6 +34,9 @@ pub struct VestingView<M: ManagedTypeApi> {
     pub final_amount: BigUint<M>,
     /// Paid back to whoever cancelled (0 unless cancelled).
     pub refunded: BigUint<M>,
+    /// The claim key has been sent to `claim` at least once: it reached a
+    /// holder.
+    pub claim_key_used: bool,
     /// The block timestamp these figures are computed at.
     pub timestamp: u64,
 }
@@ -240,6 +243,7 @@ pub trait ViewsModule:
             claimable,
             final_amount,
             refunded,
+            claim_key_used: self.claim_key_used(id).get(),
             timestamp: now,
         }
     }

@@ -19,6 +19,8 @@ jobs:
           cache-bin: true
       - name: Install sc-meta
         run: command -v sc-meta >/dev/null || cargo install multiversx-sc-meta --version 0.66.2 --locked
+      - name: Install the Go VM scenario runner
+        run: sc-meta install mx-scenario-go
       - name: Format
         run: cargo fmt --all --check
       - name: Build wasm
@@ -29,7 +31,7 @@ jobs:
         run: sc-meta all proxy && git diff --exit-code -- src/proxy.rs
       - name: Clippy
         run: cargo clippy -p mvxvest --all-targets -- -D warnings
-      - name: Tests
+      - name: Tests (Rust VM, and the Go VM scenarios)
         run: cargo test -p mvxvest
       - name: Contract size and hash
         run: |

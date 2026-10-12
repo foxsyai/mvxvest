@@ -233,7 +233,8 @@ where
 
     /// Send one or more claim keys. Pays everything vested and not yet claimed 
     /// on each, in one transfer back with the keys. A key whose vesting can 
-    /// pay nothing more is burned instead of returned. 
+    /// pay nothing more is burned instead of returned. Fails when no key paid 
+    /// anything or was burned. 
     pub fn claim(
         self,
     ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
@@ -258,11 +259,13 @@ where
     /// them). Each caller gets what it may take: 
     ///  
     /// - the creator: the cancel key, and the claim key only if it never 
-    ///   reached a holder (it bounced at creation, before any `claim`); 
+    ///   reached a holder (never sent to `claim` and nothing claimed: it 
+    ///   bounced at creation); 
     /// - the owner: any held key. 
     ///  
-    /// The contract is deployed non-payable, so a key can only be held after 
-    /// a bounce. 
+    /// The creator's claim key rule relies on the contract being non-payable, 
+    /// so that a key can only be held after a bounce. While the contract is 
+    /// payable, only the owner may recover claim keys. 
     pub fn recover_bounced_keys<
         Arg0: ProxyArg<u64>,
         Arg1: ProxyArg<ManagedAddress<Env::Api>>,
@@ -646,7 +649,9 @@ where
 }
 
 #[type_abi]
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq)]
+#[derive(
+    TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq,
+)]
 pub enum KeyKind {
     Claim,
     Cancel,
@@ -666,6 +671,7 @@ where
     pub claimable: BigUint<Api>,
     pub final_amount: BigUint<Api>,
     pub refunded: BigUint<Api>,
+    pub claim_key_used: bool,
     pub timestamp: u64,
 }
 
