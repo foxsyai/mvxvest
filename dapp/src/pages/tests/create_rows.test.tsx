@@ -124,4 +124,23 @@ describe('beneficiaries typed one by one', () => {
       screen.getAllByPlaceholderText('erd1... beneficiary address')
     ).toHaveLength(1);
   });
+
+  it('"Choose a CSV file" opens the file picker', async () => {
+    render(
+      <MemoryRouter>
+        <Create />
+      </MemoryRouter>
+    );
+    await flush();
+    fireEvent.click(screen.getByText('From a CSV'));
+    const opened = jest
+      .spyOn(HTMLInputElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    fireEvent.click(screen.getByText('Choose a CSV file'));
+    expect(opened).toHaveBeenCalledTimes(1);
+    const input = opened.mock.contexts[0] as HTMLInputElement;
+    expect(input.type).toBe('file');
+    expect(input.accept).toContain('text/comma-separated-values');
+    opened.mockRestore();
+  });
 });

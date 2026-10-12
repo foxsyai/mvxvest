@@ -178,6 +178,7 @@ export const Create = () => {
   const [mode, setMode] = useState<'rows' | 'csv'>('rows');
   const [rows, setRows] = useState<Row[]>([{ address: '', amount: '' }]);
   const [csv, setCsv] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
   // The name of the file the lines came from, while they are unedited.
   const [csvFile, setCsvFile] = useState<string | null>(null);
   const loadCsv = (file: File) =>
@@ -657,6 +658,14 @@ export const Create = () => {
       )}
 
       {/* Locked while a review is open: what is signed is what was checked. */}
+      {review && (
+        <Notice>
+          The form is locked while this creation is open (see step 5).{' '}
+          {review.hashes.some(Boolean)
+            ? 'Press "Start a new creation" there to make another one.'
+            : 'Close its panel there ("Not now") to edit it.'}
+        </Notice>
+      )}
       <fieldset
         disabled={!!review}
         className='min-w-0 space-y-6 disabled:opacity-60'
@@ -791,22 +800,27 @@ export const Create = () => {
           ) : (
             <div className='space-y-3'>
               <div className='flex flex-wrap items-center gap-3'>
-                {/* A real button: the browser's own file control was easy to
-                    miss (Sebastian, devnet test). */}
-                <label className='inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent hover:opacity-90'>
+                {/* A real button that opens the hidden file input: the
+                    browser's own control was easy to miss, and a <label>
+                    around it did nothing on some phones (Sebastian, devnet
+                    test). Every common CSV type is accepted: phones name
+                    them text/csv, text/comma-separated-values or even
+                    application/vnd.ms-excel, and grey out the others. */}
+                <Button onClick={() => fileInput.current?.click()}>
                   Choose a CSV file
-                  <input
-                    type='file'
-                    accept='.csv,text/csv,text/plain'
-                    className='sr-only'
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      // The same file can be chosen again after an edit.
-                      event.target.value = '';
-                      if (file) loadCsv(file);
-                    }}
-                  />
-                </label>
+                </Button>
+                <input
+                  ref={fileInput}
+                  type='file'
+                  accept='.csv,.txt,text/csv,text/plain,text/comma-separated-values,application/csv,application/vnd.ms-excel'
+                  className='hidden'
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    // The same file can be chosen again after an edit.
+                    event.target.value = '';
+                    if (file) loadCsv(file);
+                  }}
+                />
                 <span className='text-sm text-muted'>
                   {csvFile ? (
                     <>
