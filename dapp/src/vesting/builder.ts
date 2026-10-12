@@ -268,15 +268,32 @@ export interface Release {
 }
 
 /**
+ * Round steps for the checkpoints of a linear curve, smallest first: the
+ * first that gives at most `MAX_CHECKPOINTS` rows is used (a week by day, a
+ * year by month, four years by quarter).
+ */
+const CHECKPOINT_STEPS: { seconds?: number; months?: number }[] = [
+  { seconds: 3_600 },
+  { seconds: 6 * 3_600 },
+  { seconds: DAY },
+  { seconds: 7 * DAY },
+  { months: 1 },
+  { months: 3 },
+  { months: 6 },
+  { months: 12 }
+];
+const MAX_CHECKPOINTS = 24;
+
+/**
  * Every release of a schedule, for the table and the chart. A linear curve
- * releases every second, so it is shown as the cliff plus checkpoints (about
- * `checkpoints` of them); stepped and explicit schedules list every release,
- * up to `limit`.
+ * releases every second, so it is shown as the cliff plus checkpoints at a
+ * round step from the cliff (each hour, day, week, month...), at most 24, and
+ * the end; stepped and explicit schedules list every release, up to `limit`.
  */
 export const releases = (
   schedule: Schedule,
   total: bigint,
-  { limit = 2000, checkpoints = 24 } = {}
+  { limit = 2000 } = {}
 ): { rows: Release[]; truncated: boolean } => {
   const rows: Release[] = [];
   // A plan with a cleared date: nothing to show (planProblem says why).
@@ -291,14 +308,18 @@ export const releases = (
       rows.push({ time: schedule.cliff, amount: atCliff, vested: atCliff });
     const from = schedule.cliff;
     const span = schedule.end - from;
+    if (span <= 0) return { rows, truncated: false };
+    const at = (step: (typeof CHECKPOINT_STEPS)[number], k: number) =>
+      step.months ? addMonths(from, step.months * k) : from + step.seconds! * k;
+    const step =
+      CHECKPOINT_STEPS.find(
+        (candidate) => at(candidate, MAX_CHECKPOINTS) >= schedule.end
+      ) ?? CHECKPOINT_STEPS[CHECKPOINT_STEPS.length - 1];
     let previous = atCliff;
-    for (let i = 1; i <= checkpoints && span > 0; i++) {
-      const time =
-        i === checkpoints
-          ? schedule.end
-          : from + Math.round((span * i) / checkpoints);
+    for (let k = 1; ; k++) {
+      const time = Math.min(at(step, k), schedule.end);
       const vested = vestedAt(schedule, total, time);
-      if (vested > previous || i === checkpoints) {
+      if (vested > previous || time === schedule.end) {
         rows.push({
           time,
           amount: vested - previous,
@@ -307,6 +328,7 @@ export const releases = (
         });
         previous = vested;
       }
+      if (time === schedule.end || rows.length > MAX_CHECKPOINTS + 2) break;
     }
     return { rows, truncated: false };
   }
