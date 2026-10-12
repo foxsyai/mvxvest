@@ -18,6 +18,7 @@ pub mod create;
 pub mod errors;
 pub mod events;
 pub mod keys;
+#[rustfmt::skip]
 pub mod proxy;
 pub mod schedule;
 pub mod storage;

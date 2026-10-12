@@ -649,9 +649,7 @@ where
 }
 
 #[type_abi]
-#[derive(
-    TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq,
-)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Copy, PartialEq, Eq)]
 pub enum KeyKind {
     Claim,
     Cancel,
