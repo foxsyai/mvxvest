@@ -1,7 +1,7 @@
 //! Review 3: more of the money paths on the Go VM, where the Rust test VM
 //! could differ: EGLD-000000 in multi-transfers (in and out), `createBatch`,
-//! merged multi-token payouts and refunds, fees, surplus, and the code
-//! metadata read at call time.
+//! merged multi-token payouts and refunds, fees, surplus, and the owner-only
+//! recovery of keys parked in the contract.
 //!
 //! Like go_vm_test, needs `mx-scenario-go` and a build (`sc-meta all build`).
 
@@ -35,8 +35,8 @@ fn run_on_go_vm(scenario: &str) {
 /// createBatch with the fee as EGLD-000000 in the multi-transfer; an EGLD
 /// vesting paid as two EGLD-000000 entries; an ESDT create with the fee
 /// first; a five-key claim of three tokens (payouts merged per token, EGLD as
-/// EGLD-000000 next to the keys, one `vestingClaimed` per key, also for the
-/// key that paid nothing); cancels refunding FOX + EGLD and FOX + USDC;
+/// EGLD-000000 next to the keys, one `vestingClaimed` per key that paid or
+/// burned, none for the key that paid nothing); cancels refunding FOX + EGLD and FOX + USDC;
 /// claimFees; recoverSurplus of EGLD and FOX. Every balance and key checked.
 #[test]
 fn money_paths() {

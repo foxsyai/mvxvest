@@ -13,7 +13,8 @@ endpoint, mapped to the tests that check it. Run them with
   (the one validators run): deploy, a full lifecycle, every payment and payout
   shape with pinned logs, bounce recovery and the largest batch. Needs
   `mx-scenario-go` (`sc-meta install mx-scenario-go`) and a build.
-- `review3_*.rs`, `review2_*.rs`: tests from the third and second reviews.
+- `review4_*.rs`, `review3_*.rs`, `review2_*.rs`: tests from the fourth,
+  third and second reviews.
 - `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
   failing on the code it reviewed, plus a long random walk checked against an
   independent model. See [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
@@ -39,7 +40,7 @@ endpoint, mapped to the tests that check it. Run them with
 | reentrancy and async ordering | By construction: all storage writes before transfers, transfers carry no call (spec section 5). Reviewed in milestone 3. |
 | the accounting invariant under any sequence | `review_safe_accounting_random_walk_test` (12 seeds × 150 random steps: creates, batches, claims of 1 to 4 keys, key transfers, cancels, fee changes, fee claims) |
 | a delivered key can never be taken by the creator | `review_creator_seizes_delivered_key_test`, `review2_upgrade_keeps_old_claims_unseen_test`, `review3_creator_takes_key_parked_while_payable_test`, `review3_upgrade_legacy_key_that_paid_nothing_test`, `review3_go_vm_test::finding_parked_key_after_repair`, `finding_parked_cancel_key` |
-| nothing can lock funds forever | `admin_test::claim_key_that_bounced_at_creation_goes_where_the_creator_says`, `claim_key_that_bounced_after_a_claim_is_for_the_owner_to_return`, `cancel_key_that_bounced_goes_back_to_the_creator`, `surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `cancel_test::cancel_before_the_start_refunds_everything` (a dead key still burns) |
+| nothing can lock funds forever | `admin_test::only_the_owner_moves_a_key_that_bounced_at_creation`, `a_key_that_bounced_after_a_claim_goes_back_through_the_owner`, `each_bounced_key_goes_back_to_its_own_holder`, `surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `cancel_test::cancel_before_the_start_refunds_everything` (a dead key still burns) |
 
 ## Endpoints
 
@@ -53,7 +54,10 @@ endpoint, mapped to the tests that check it. Run them with
 | `setFee`, `claimFees` | `admin_test::fee_is_capped_and_owner_only`, `owner_collects_fees_and_nothing_else`, `create_test::fee_is_paid_in_egld_on_top_and_accrues`, `wrong_fee_is_refused` |
 | `pauseCreation`, `unpauseCreation` | `admin_test::pause_stops_creation_only`, `cancel_test::pause_never_blocks_claims_or_cancels` |
 | `setKeyDisplay` | `admin_test::key_display_applies_to_new_keys` |
-| `recoverBouncedKey`, `recoverSurplus` | `admin_test::*` (bounces simulated with whitebox calls), `review_recover_cancel_key_blocked_test`, `review3_go_vm_test::money_paths` |
+| `recoverBouncedKey` | `admin_test::*` (bounces simulated with whitebox calls), `review_recover_cancel_key_blocked_test`, `review3_go_vm_test::finding_parked_key_after_repair`, `finding_parked_cancel_key` |
+| `recoverSurplus` | `admin_test::surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `review3_go_vm_test::money_paths`, `review4_stray_nft_cannot_be_returned_test` |
+| claim mixing paying, non-paying and finishing keys | `review4_safe_claim_mix_test` |
+| every cancel key of the largest batch reaches the creator | `review4_go_vm_test` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
 | `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
 | deploy on the real VM | `go_vm_test::deploy` |

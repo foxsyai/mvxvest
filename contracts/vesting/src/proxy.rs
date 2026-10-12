@@ -257,7 +257,8 @@ where
     /// Owner only. Sends on the `kind` key of vesting `id`, which the contract 
     /// holds only after sending it bounced: to a beneficiary, creator or 
     /// holder that is a smart contract that cannot receive it (a wallet never 
-    /// bounces). The events show whom it belongs to. Nobody else can move a 
+    /// bounces). The transaction that sent it shows whom it belongs to. Nobody 
+    /// else can move a 
     /// key the contract holds: earlier designs let the creator recover some 
     /// keys, and every review found a way to abuse that 
     /// (docs/reviews/2026-10-12-contract.md). 

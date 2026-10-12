@@ -123,10 +123,12 @@ cannot be stopped.
 Sends on the claim or cancel key (`kind`) of vesting `id` when the contract
 itself holds it. That only happens when sending the key bounced: to a
 beneficiary, creator or holder that is a smart contract that cannot receive
-tokens from contracts (a wallet never bounces). The events show whom it
-belongs to, and the owner returns it there. Nobody else can move a key the
-contract holds. One `keyRecovered` event per key. Fails with `the contract
-does not hold this key`, or when `to` is the zero address or the contract.
+tokens from contracts (a wallet never bounces). The transaction that sent it
+shows whom it belongs to (its transfer log, or the contract's
+`vestingCreated`/`vestingClaimed` events), and the owner returns it there.
+Nobody else can move a key the contract holds. One `keyRecovered` event per
+key. Fails when the caller is not the owner, the vesting is unknown, the
+contract does not hold that key, or `to` is the zero address or the contract.
 
 (Earlier versions let the creator recover some keys itself. All three reviews
 found ways to abuse that: see [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).)
@@ -172,9 +174,11 @@ key with that nonce was minted; the answer stays after the key is burned),
 - **Code metadata:** deploy and upgrade the contract neither payable nor
   payable by smart contracts (`scripts/src/deploy.ts` does), so stray transfers
   without a call bounce. The contract cannot check this in `init` or `upgrade`
-  (on the real chain those run before the new metadata is written), and no
-  money depends on it: a key or token that reaches the contract outside an
-  endpoint can only be returned by the owner.
+  (on the real chain those run before the new metadata is written). No money
+  depends on it: a key, or EGLD or a fungible token, that reaches the contract
+  outside an endpoint can be returned by the owner (`recoverBouncedKey`,
+  `recoverSurplus`). Any other NFT, SFT or Meta ESDT could not be returned by
+  anyone, which is one more reason to deploy non-payable.
 - **Undelivered claim keys:** if the beneficiary cannot receive its key (a
   smart contract in another shard that is not payable by smart contracts), the
   key bounces back and the owner returns it to whom the creator and
