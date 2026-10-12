@@ -2,8 +2,8 @@
 // sending transactions and recording what happened.
 //
 // Keys never live in the repo. Devnet and testnet keys are read from
-// ~/.config/mvxvest/<network>/<name>.pem (or MVXVEST_PEM). Mainnet actions go
-// through the multisig, so this file refuses to load a mainnet key.
+// ~/.config/mvxvest/<network>/<name>.pem (or MVXVEST_PEM). On mainnet only the
+// deployer key loads, for the one-time deploy and setup (see signer()).
 
 import {
   Abi,
@@ -80,11 +80,18 @@ export function abi(): Abi {
   return Abi.create(json);
 }
 
-/** Loads a signing key for devnet or testnet. Never for mainnet. */
+/**
+ * Loads a signing key. On mainnet only the single-purpose "deployer" wallet,
+ * and only with MVXVEST_MAINNET_GO=yes for that run: it deploys and sets up
+ * the contract, then hands ownership to the multisig (src/mainnet.ts). Every
+ * later owner action is a multisig proposal.
+ */
 export async function signer(name: string): Promise<Account> {
   const net = network();
-  if (net === "mainnet") {
-    throw new Error("Mainnet actions go through the mvxsafe multisig, not a local key.");
+  if (net === "mainnet" && (name !== "deployer" || process.env.MVXVEST_MAINNET_GO !== "yes")) {
+    throw new Error(
+      "On mainnet only the deployer key signs, and only with MVXVEST_MAINNET_GO=yes (src/mainnet.ts); owner actions go through the multisig.",
+    );
   }
   const path = process.env.MVXVEST_PEM ?? join(homedir(), ".config/mvxvest", net, `${name}.pem`);
   const account = await Account.newFromPem(path);

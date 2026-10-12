@@ -1,9 +1,27 @@
 # Deploying
 
 How the contract goes on a network, in order. On devnet and testnet the
-scripts in [scripts/](../scripts/) do it with a local key. On mainnet every
-owner action is a proposal in the mvxsafe multisig, and nothing is done
-before Sebastian says so.
+scripts in [scripts/](../scripts/) do it with a local key.
+
+**On mainnet** a single-purpose deployer wallet does the one-time deploy and
+setup with [scripts/src/mainnet.ts](../scripts/src/mainnet.ts). The script runs
+one step per invocation and checks each on chain. It then hands ownership to
+the mvxsafe multisig and keeps no power; every later owner action is a
+multisig proposal. Nothing on mainnet runs before Sebastian says so, and each
+step is shown to him first. Without `MVXVEST_MAINNET_GO=yes` a step only says
+what it would do.
+
+```sh
+export MVXVEST_NETWORK=mainnet
+pnpm tsx src/mainnet.ts status                                  # read only
+MVXVEST_MAINNET_GO=yes pnpm tsx src/mainnet.ts deploy           # then pause, collections, noburn,
+                                                                # display, unpause
+MVXVEST_MAINNET_GO=yes MVXVEST_MULTISIG=erd1... MVXVEST_MULTISIG_CONFIRM=<last 6> \
+  pnpm tsx src/mainnet.ts handover                              # then sweep
+```
+
+The key is in `~/.config/mvxvest/mainnet/deployer.pem` (mode 600, never in the
+repo). Its only job ends with the sweep.
 
 ## 1. Build
 

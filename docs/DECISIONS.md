@@ -10,11 +10,12 @@ made while building milestone 1.
 | 1 | Licence | Written from scratch; Pulsar studied for ideas only. GPL-3.0-only for the repo: the MultiversX framework (`multiversx-sc`) is GPL-3.0-only and is compiled into the contract anyway. |
 | 2 | Fee | Flat EGLD fee per vesting, paid by the creator on top of the deposit, never by beneficiaries. Capped at 1 EGLD in code; 0 on devnet and during the private beta. Collected by the owner multisig with `claimFees`. A creation must pay exactly the current fee. |
 | 3 | Upgrades | Upgradeable by the mvxsafe multisig, also on mainnet, so a serious bug can be fixed. The site says so and names the signers and quorum; each version's code hash comes from the reproducible build. Freezing can be revisited once the contract has run cleanly for a while. |
-| 4 | NFTs | `MvxVestClaimKey` / `VESTKEY` and `MvxVestCancelKey` / `VESTCANCEL`. Placeholder SVG images on devnet; final art before mainnet, pinned on IPFS. |
+| 4 | NFTs | `MvxVestClaimKey` / `VESTKEY` and `MvxVestCancelKey` / `VESTCANCEL`. Art: the fox head with the key on a dark card. The claim key is **green** and the cancel key **red**, so the two are told apart at a glance (decided on 12 Oct 2026). Images are served from mvxvest.io/nft/ (`claim-key-2.*`, `cancel-key.*`). |
 | 5 | Splitting | Later (a v2 feature). |
 | 6 | Hosting | Static build on the mvxsafe droplet behind nginx, Let's Encrypt. Domain `mvxvest.io` (bought by Sebastian); `devnet.mvxvest.io` for the devnet build. |
-| 7 | Audit | Ask Arda and Runtime Verification for quotes once the contract is feature-frozen. |
-| 8 | GitHub | `foxsyai/mvxvest`, private until audited. |
+| 7 | Audit | No external audit firm for now (Sebastian, 12 Oct 2026). Order: mainnet first, for in-house use; then one or more large adversarial audits by Claude Fable 5.1 at max effort, covering contract, dApp, deployment and funds, and trying every malicious action. The repo goes public only after two or three clean rounds. |
+| 8 | GitHub | `foxsyai/mvxvest`, private until those audit rounds pass. |
+| 9 | Mainnet owner | The mvxsafe multisig, contract upgradeable. A single-purpose deployer wallet deploys and sets up the contract, then hands ownership to the multisig with `ChangeOwnerAddress` and sends its leftover EGLD there. The multisig was chosen over self-ownership, which would freeze the contract: no bug fix, no pause, no return of bounced keys. Sebastian chose this on 12 Oct 2026. |
 
 ## Design choices (milestone 1)
 
