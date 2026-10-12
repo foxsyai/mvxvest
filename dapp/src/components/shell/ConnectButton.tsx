@@ -58,9 +58,14 @@ export const AddressChip = () => {
       onClick={copy}
       title={copied ? 'Copied' : `${address} (click to copy)`}
       aria-label={copied ? 'Address copied' : 'Copy your address'}
-      className='flex min-w-0 items-center gap-2 rounded-lg border border-line px-3 py-2 font-mono text-xs hover:border-accent'
+      className='flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2 py-2 font-mono text-xs hover:border-accent sm:gap-2 sm:px-3'
     >
-      <span className='truncate'>{shortAddress(address, 4)}</span>
+      {/* Narrow phones: only the end of the address (every one starts with
+          erd1), so it fits in the bar's single row. */}
+      <span className='min-[420px]:hidden'>…{address.slice(-5)}</span>
+      <span className='hidden min-[420px]:inline'>
+        {shortAddress(address, 4)}
+      </span>
       <svg
         width='14'
         height='14'

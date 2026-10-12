@@ -55,10 +55,9 @@ export const Layout = ({ children }: PropsWithChildren) => {
         </div>
       )}
       <header className='border-b border-line bg-surface'>
-        {/* Left: the logo, then the pages (desktop). Right: the theme, the
-            address (desktop), the menu (phone) and, at the far right,
-            disconnect or connect. On a phone the address gets a row of its
-            own below. */}
+        {/* One row everywhere. Left: the logo, then the pages (desktop).
+            Right: the address (a click copies it), the theme, the menu
+            (phone) and, at the far right, disconnect or connect. */}
         <div className='mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3'>
           <Link to='/' className='shrink-0'>
             <Logo />
@@ -66,13 +65,9 @@ export const Layout = ({ children }: PropsWithChildren) => {
           <nav className='hidden items-center gap-5 md:flex'>
             <Nav />
           </nav>
-          <div className='flex min-w-0 items-center gap-2'>
+          <div className='flex min-w-0 items-center gap-1.5 sm:gap-2'>
+            {connected && <AddressChip />}
             <ThemeSwitch />
-            {connected && (
-              <span className='hidden md:flex'>
-                <AddressChip />
-              </span>
-            )}
             <button
               type='button'
               className='shrink-0 rounded-lg border border-line p-2 text-muted hover:border-accent hover:text-ink md:hidden'
@@ -93,11 +88,6 @@ export const Layout = ({ children }: PropsWithChildren) => {
             {connected ? <DisconnectButton /> : <ConnectButton />}
           </div>
         </div>
-        {connected && (
-          <div className='flex justify-end border-t border-line px-4 py-2 md:hidden'>
-            <AddressChip />
-          </div>
-        )}
         {menu && (
           <nav className='flex flex-col gap-3 border-t border-line px-4 py-3 md:hidden'>
             <Nav onPick={() => setMenu(false)} />
