@@ -1,0 +1,99 @@
+import { PropsWithChildren, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { networkName } from 'chain/network';
+import { useGetIsLoggedIn } from 'lib';
+import { ConnectButton } from './ConnectButton';
+import { Logo } from './Logo';
+import { ThemeSwitch } from './ThemeSwitch';
+
+// Set by vite.config.ts at build time; absent under jest.
+declare const __MVXVEST_COMMIT__: string | undefined;
+const COMMIT = typeof __MVXVEST_COMMIT__ === 'string' ? __MVXVEST_COMMIT__ : '';
+
+const links = [
+  { to: '/create', label: 'Create' },
+  { to: '/mine', label: 'My vestings', needsWallet: true },
+  { to: '/created', label: 'Created by me', needsWallet: true },
+  { to: '/guide', label: 'How it works' }
+];
+
+const Nav = ({ onPick }: { onPick?: () => void }) => {
+  const isLoggedIn = useGetIsLoggedIn();
+  return (
+    <>
+      {links
+        .filter((link) => !link.needsWallet || isLoggedIn)
+        .map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            onClick={onPick}
+            className={({ isActive }) =>
+              `whitespace-nowrap text-sm font-semibold ${isActive ? 'text-accent' : 'text-muted hover:text-ink'}`
+            }
+          >
+            {link.label}
+          </NavLink>
+        ))}
+    </>
+  );
+};
+
+export const Layout = ({ children }: PropsWithChildren) => {
+  const [menu, setMenu] = useState(false);
+  return (
+    <div className='flex min-h-screen flex-col'>
+      {networkName !== 'mainnet' && (
+        <div className='bg-warn-soft px-4 py-1 text-center text-[11px] font-semibold tracking-widest text-warn uppercase'>
+          {networkName}: test network, no real money
+        </div>
+      )}
+      <header className='border-b border-line bg-surface'>
+        <div className='mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3'>
+          <Link to='/' className='shrink-0'>
+            <Logo />
+          </Link>
+          <nav className='hidden items-center gap-5 md:flex'>
+            <Nav />
+          </nav>
+          <div className='flex min-w-0 items-center gap-2'>
+            <ThemeSwitch />
+            <ConnectButton />
+            <button
+              type='button'
+              className='rounded-lg border border-line px-2.5 py-2 text-xs font-semibold md:hidden'
+              onClick={() => setMenu((open) => !open)}
+              aria-expanded={menu}
+            >
+              Menu
+            </button>
+          </div>
+        </div>
+        {menu && (
+          <nav className='flex flex-col gap-3 border-t border-line px-4 py-3 md:hidden'>
+            <Nav onPick={() => setMenu(false)} />
+          </nav>
+        )}
+      </header>
+      <main className='mx-auto w-full max-w-6xl flex-grow px-4 py-8'>
+        {children}
+      </main>
+      <footer className='border-t border-line bg-surface'>
+        <div className='mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-xs text-muted'>
+          <span>
+            mvxvest, token vesting on MultiversX. Your keys never leave your
+            wallet.
+          </span>
+          {/^[0-9a-f]{40}$/.test(COMMIT) && (
+            <span
+              className='font-mono'
+              title='The commit this page was built from'
+            >
+              {COMMIT.slice(0, 7)}
+            </span>
+          )}
+        </div>
+      </footer>
+    </div>
+  );
+};

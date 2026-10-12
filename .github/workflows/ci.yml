@@ -33,10 +33,46 @@ jobs:
         run: cargo clippy -p mvxvest --all-targets -- -D warnings
       - name: Tests (Rust VM, and the Go VM scenarios)
         run: cargo test -p mvxvest
+      - name: dApp ABI and maths vectors match the contract
+        run: |
+          python3 - <<'PY'
+          import json
+          built = json.load(open('contracts/vesting/output/mvxvest.abi.json'))
+          used = json.load(open('dapp/src/vesting/mvxvest.abi.json'))
+          built.pop('buildInfo', None); used.pop('buildInfo', None)
+          assert built == used, 'dapp/src/vesting/mvxvest.abi.json is stale: run pnpm sync-abi in dapp/'
+          PY
+          cargo test -p mvxvest --test export_vectors -- --ignored
+          git diff --exit-code -- dapp/src/vesting/tests/vectors.json
       - name: Contract size and hash
         run: |
           ls -l contracts/vesting/output/mvxvest.wasm
           sha256sum contracts/vesting/output/mvxvest.wasm
+
+  dapp:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: dapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: dapp/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Types
+        run: pnpm typecheck
+      - name: Tests
+        run: pnpm test
+      - name: Build (devnet)
+        run: pnpm build-devnet
 
   secrets:
     runs-on: ubuntu-24.04

@@ -1,0 +1,1225 @@
+{
+    "buildInfo": {
+        "rustc": {
+            "version": "1.96.0",
+            "commitHash": "ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96",
+            "commitDate": "2026-05-25",
+            "channel": "Stable",
+            "host": "x86_64-unknown-linux-gnu",
+            "short": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+            "llvmVersion": "22.1"
+        },
+        "contractCrate": {
+            "name": "mvxvest",
+            "version": "0.1.0"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.66.2"
+        }
+    },
+    "name": "Mvxvest",
+    "constructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Issues the claim key collection, with this contract holding its roles.",
+                "Pay the issue cost in EGLD (0.05 EGLD on mainnet)."
+            ],
+            "name": "issueClaimKey",
+            "rustMethodName": "issue_claim_key",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "payableInTokens": [
+                "EGLD"
+            ],
+            "inputs": [
+                {
+                    "name": "display_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "ticker",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Issues the cancel key collection, like `issueClaimKey`."
+            ],
+            "name": "issueCancelKey",
+            "rustMethodName": "issue_cancel_key",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "payableInTokens": [
+                "EGLD"
+            ],
+            "inputs": [
+                {
+                    "name": "display_name",
+                    "type": "bytes"
+                },
+                {
+                    "name": "ticker",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Stops holders from burning keys of `kind` themselves. The protocol lets",
+                "every holder burn tokens of a new collection by default",
+                "(`ESDTRoleBurnForAll`), and a burned claim key would lock its vesting",
+                "forever. Call once per collection after issuing it, with about 100M gas",
+                "(the ESDT system contract charges 50M, then notifies every shard); the",
+                "contract keeps its own burn role."
+            ],
+            "name": "disableKeyBurnByHolders",
+            "rustMethodName": "disable_key_burn_by_holders",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "kind",
+                    "type": "KeyKind"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Sets the media URIs and metadata of keys minted from now on. Keys",
+                "already minted keep theirs."
+            ],
+            "name": "setKeyDisplay",
+            "rustMethodName": "set_key_display",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "kind",
+                    "type": "KeyKind"
+                },
+                {
+                    "name": "metadata",
+                    "type": "bytes"
+                },
+                {
+                    "name": "uris",
+                    "type": "variadic<bytes>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Sets the EGLD fee charged per vesting created, at most",
+                "`MAX_FEE_PER_VESTING`. A creation must pay exactly the current fee, so",
+                "a change between preview and signing makes it fail, never overcharge."
+            ],
+            "name": "setFee",
+            "rustMethodName": "set_fee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "fee_per_vesting",
+                    "type": "BigUint"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Stops new vestings. Claims and cancels keep working."
+            ],
+            "name": "pauseCreation",
+            "rustMethodName": "pause_creation",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "name": "unpauseCreation",
+            "rustMethodName": "unpause_creation",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Sends the accrued EGLD fees to the owner."
+            ],
+            "name": "claimFees",
+            "rustMethodName": "claim_fees",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Creates one vesting of `total` for `beneficiary`, and returns its id.",
+                "",
+                "Pay exactly `total` of the vested token, plus the fee in EGLD when",
+                "there is one. For an EGLD vesting, pay `total` plus the fee in EGLD.",
+                "The total is explicit so that a fee change between preview and signing",
+                "makes the transaction fail instead of changing the vesting."
+            ],
+            "name": "create",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "beneficiary",
+                    "type": "Address"
+                },
+                {
+                    "name": "total",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "schedule",
+                    "type": "Schedule"
+                },
+                {
+                    "name": "cancelable",
+                    "type": "bool"
+                },
+                {
+                    "name": "label",
+                    "type": "bytes"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Creates one vesting per entry, all of the same token, the same",
+                "cancelability and the same label. Pay the sum of the totals, plus the",
+                "fee for each vesting. Returns the ids, in the order of the entries."
+            ],
+            "name": "createBatch",
+            "rustMethodName": "create_batch",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [
+                {
+                    "name": "cancelable",
+                    "type": "bool"
+                },
+                {
+                    "name": "label",
+                    "type": "bytes"
+                },
+                {
+                    "name": "entries",
+                    "type": "variadic<multi<Address,BigUint,Schedule>>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Send one or more claim keys. Pays everything vested and not yet claimed",
+                "on each, in one transfer back with the keys. A key whose vesting can",
+                "pay nothing more is burned instead of returned. Fails when no key paid",
+                "anything or was burned."
+            ],
+            "name": "claim",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Send one or more cancel keys. Each vesting stops now: what has vested",
+                "stays claimable with its claim key, the rest is paid to the caller. The",
+                "cancel keys are burned."
+            ],
+            "name": "cancel",
+            "mutability": "mutable",
+            "payableInTokens": [
+                "*"
+            ],
+            "inputs": [],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Owner only. Sends on the `kind` key of vesting `id`, which the contract",
+                "holds only after sending it bounced: to a beneficiary, creator or",
+                "holder that is a smart contract that cannot receive it (a wallet never",
+                "bounces). The transaction that sent it shows whom it belongs to. Nobody",
+                "else can move a",
+                "key the contract holds: earlier designs let the creator recover some",
+                "keys, and every review found a way to abuse that",
+                "(docs/reviews/2026-10-12-contract.md)."
+            ],
+            "name": "recoverBouncedKey",
+            "rustMethodName": "recover_bounced_key",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                },
+                {
+                    "name": "kind",
+                    "type": "KeyKind"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Owner only. Sends what the contract holds of `token` beyond what it",
+                "owes (locked, claimable and fees). Such a surplus only appears when a",
+                "payout bounced back; the events show whom it belongs to. Locked funds",
+                "can never be moved this way."
+            ],
+            "name": "recoverSurplus",
+            "rustMethodName": "recover_surplus",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId"
+                },
+                {
+                    "name": "to",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "getVesting",
+            "rustMethodName": "get_vesting",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "VestingView"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Several vestings in one call, in the order asked."
+            ],
+            "name": "getVestings",
+            "rustMethodName": "get_vestings",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "ids",
+                    "type": "variadic<u64>",
+                    "multi_arg": true
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<VestingView>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getClaimable",
+            "rustMethodName": "get_claimable",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Vested at any second, past or future, taking a cancel into account."
+            ],
+            "name": "getVestedAt",
+            "rustMethodName": "get_vested_at",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The next moment the vested amount grows, and by how much. Empty when",
+                "nothing more will vest: everything has vested, or it was cancelled."
+            ],
+            "name": "getNextRelease",
+            "rustMethodName": "get_next_release",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<multi<u64,BigUint>>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The vesting a claim key opens; 0 if no key with this nonce was ever",
+                "minted. The answer stays after the key is burned, for history."
+            ],
+            "name": "getVestingByClaimNonce",
+            "rustMethodName": "get_vesting_by_claim_nonce",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The vesting a cancel key stops; 0 if no key with this nonce was ever",
+                "minted. The answer stays after the key is burned."
+            ],
+            "name": "getVestingByCancelNonce",
+            "rustMethodName": "get_vesting_by_cancel_nonce",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "nonce",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getVestingCountByCreator",
+            "rustMethodName": "get_vesting_count_by_creator",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Ids of the vestings `creator` created, oldest first, `count` of them",
+                "from position `from` (0-based)."
+            ],
+            "name": "getVestingsByCreator",
+            "rustMethodName": "get_vestings_by_creator",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "Address"
+                },
+                {
+                    "name": "from",
+                    "type": "u64"
+                },
+                {
+                    "name": "count",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getVestingCountByToken",
+            "rustMethodName": "get_vesting_count_by_token",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Ids of the vestings of `token`, oldest first, paged like",
+                "`getVestingsByCreator`."
+            ],
+            "name": "getVestingsByToken",
+            "rustMethodName": "get_vestings_by_token",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId"
+                },
+                {
+                    "name": "from",
+                    "type": "u64"
+                },
+                {
+                    "name": "count",
+                    "type": "u64"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "variadic<u64>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "Deposited, claimed and refunded so far for `token`."
+            ],
+            "name": "getTokenTotals",
+            "rustMethodName": "get_token_totals",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "TokenTotals"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "How many vestings exist; ids run from 1 to this number."
+            ],
+            "name": "getVestingCount",
+            "rustMethodName": "get_vesting_count",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "getFee",
+            "rustMethodName": "get_fee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getMaxFee",
+            "rustMethodName": "get_max_fee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getFeesAccrued",
+            "rustMethodName": "get_fees_accrued",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "isCreationPaused",
+            "rustMethodName": "is_creation_paused",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The claim key collection, empty until issued."
+            ],
+            "name": "getClaimKeyCollection",
+            "rustMethodName": "get_claim_key_collection",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The cancel key collection, empty until issued."
+            ],
+            "name": "getCancelKeyCollection",
+            "rustMethodName": "get_cancel_key_collection",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "docs": [
+                "What the contract holds of `token` beyond what it owes; 0 normally."
+            ],
+            "name": "getSurplus",
+            "rustMethodName": "get_surplus",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "name": "getLimits",
+            "rustMethodName": "get_limits",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Limits"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "vestingCreated",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "creator",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "beneficiary",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "token",
+                    "type": "TokenId",
+                    "indexed": true
+                },
+                {
+                    "name": "data",
+                    "type": "CreatedEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "vestingClaimed",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "token",
+                    "type": "TokenId",
+                    "indexed": true
+                },
+                {
+                    "name": "data",
+                    "type": "ClaimedEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "vestingCancelled",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "token",
+                    "type": "TokenId",
+                    "indexed": true
+                },
+                {
+                    "name": "data",
+                    "type": "CancelledEvent"
+                }
+            ]
+        },
+        {
+            "identifier": "feeSet",
+            "inputs": [
+                {
+                    "name": "fee_per_vesting",
+                    "type": "BigUint",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "creationPaused",
+            "inputs": [
+                {
+                    "name": "paused",
+                    "type": "bool",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "feesClaimed",
+            "inputs": [
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        {
+            "identifier": "keyRecovered",
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "u64",
+                    "indexed": true
+                },
+                {
+                    "name": "kind",
+                    "type": "KeyKind",
+                    "indexed": true
+                },
+                {
+                    "name": "caller",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "surplusRecovered",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": true,
+    "types": {
+        "CancelledEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "docs": [
+                        "Paid back to the caller: the part not vested at the cancel."
+                    ],
+                    "name": "refund",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "Vested at the cancel; stays claimable with the claim key."
+                    ],
+                    "name": "vested",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "ClaimedEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "docs": [
+                        "Paid by this claim."
+                    ],
+                    "name": "amount",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "Paid by every claim so far, this one included."
+                    ],
+                    "name": "claimed_total",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "The claim key was burned: nothing more can ever be claimed."
+                    ],
+                    "name": "finished",
+                    "type": "bool"
+                }
+            ]
+        },
+        "CreatedEvent": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "total",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "schedule",
+                    "type": "Schedule"
+                },
+                {
+                    "name": "cancelable",
+                    "type": "bool"
+                },
+                {
+                    "name": "claim_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "cancel_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "label",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "Curve": {
+            "type": "enum",
+            "docs": [
+                "How the rest (the total minus the cliff amount) is released."
+            ],
+            "variants": [
+                {
+                    "docs": [
+                        "Every second, in proportion to the time elapsed since `start`."
+                    ],
+                    "name": "Linear",
+                    "discriminant": 0
+                },
+                {
+                    "docs": [
+                        "In equal steps every `interval` seconds from `start`; the last step",
+                        "falls on `end`, even when the interval does not divide the duration."
+                    ],
+                    "name": "Stepped",
+                    "discriminant": 1,
+                    "fields": [
+                        {
+                            "name": "interval",
+                            "type": "u64"
+                        }
+                    ]
+                },
+                {
+                    "docs": [
+                        "An explicit list of releases, in strictly increasing time, the last one",
+                        "at `end`. Their amounts add up to the rest."
+                    ],
+                    "name": "Tranches",
+                    "discriminant": 2,
+                    "fields": [
+                        {
+                            "name": "0",
+                            "type": "List<Tranche>"
+                        }
+                    ]
+                }
+            ]
+        },
+        "KeyKind": {
+            "type": "enum",
+            "docs": [
+                "The two kinds of key the contract mints."
+            ],
+            "variants": [
+                {
+                    "name": "Claim",
+                    "discriminant": 0
+                },
+                {
+                    "name": "Cancel",
+                    "discriminant": 1
+                }
+            ]
+        },
+        "Limits": {
+            "type": "struct",
+            "docs": [
+                "The contract's fixed limits, so the dApp never hard-codes them."
+            ],
+            "fields": [
+                {
+                    "name": "max_tranches",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_batch",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_batch_cancelable",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_label_len",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_horizon",
+                    "type": "u64"
+                },
+                {
+                    "name": "max_page",
+                    "type": "u64"
+                }
+            ]
+        },
+        "Schedule": {
+            "type": "struct",
+            "docs": [
+                "When and how a vesting releases its total. Timestamps are in seconds."
+            ],
+            "fields": [
+                {
+                    "docs": [
+                        "The origin of the curve. May be in the past."
+                    ],
+                    "name": "start",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Nothing can be claimed before this moment. `start <= cliff <= end`."
+                    ],
+                    "name": "cliff",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Unlocks at the cliff, on top of what the curve has released by then."
+                    ],
+                    "name": "cliff_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "From this moment the whole total has vested."
+                    ],
+                    "name": "end",
+                    "type": "u64"
+                },
+                {
+                    "name": "curve",
+                    "type": "Curve"
+                }
+            ]
+        },
+        "TokenTotals": {
+            "type": "struct",
+            "docs": [
+                "Running totals per token, so the contract can always show what it owes."
+            ],
+            "fields": [
+                {
+                    "name": "deposited",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "claimed",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "refunded",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "Tranche": {
+            "type": "struct",
+            "docs": [
+                "One release of an explicit schedule: `amount` unlocks at `time`."
+            ],
+            "fields": [
+                {
+                    "name": "time",
+                    "type": "u64"
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
+                }
+            ]
+        },
+        "Vesting": {
+            "type": "struct",
+            "docs": [
+                "What never changes about a vesting."
+            ],
+            "fields": [
+                {
+                    "docs": [
+                        "Who created it (the caller of `create` or `createBatch`). Gets the",
+                        "cancel key, and the refund if it cancels."
+                    ],
+                    "name": "creator",
+                    "type": "Address"
+                },
+                {
+                    "docs": [
+                        "The beneficiary at creation. The claim key may have moved since: only",
+                        "its holder can claim."
+                    ],
+                    "name": "beneficiary",
+                    "type": "Address"
+                },
+                {
+                    "docs": [
+                        "The vested token: `EGLD-000000` or a fungible ESDT."
+                    ],
+                    "name": "token",
+                    "type": "TokenId"
+                },
+                {
+                    "name": "total",
+                    "type": "BigUint"
+                },
+                {
+                    "name": "schedule",
+                    "type": "Schedule"
+                },
+                {
+                    "name": "cancelable",
+                    "type": "bool"
+                },
+                {
+                    "name": "created_at",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Nonce of the claim key in the claim key collection."
+                    ],
+                    "name": "claim_nonce",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Nonce of the cancel key, 0 when the vesting cannot be cancelled."
+                    ],
+                    "name": "cancel_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "label",
+                    "type": "bytes"
+                }
+            ]
+        },
+        "VestingView": {
+            "type": "struct",
+            "docs": [
+                "A vesting with its live state, as of `timestamp`."
+            ],
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "u64"
+                },
+                {
+                    "name": "vesting",
+                    "type": "Vesting"
+                },
+                {
+                    "name": "claimed",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "0 unless cancelled."
+                    ],
+                    "name": "cancelled_at",
+                    "type": "u64"
+                },
+                {
+                    "docs": [
+                        "Vested at `timestamp` (frozen at the cancel, if any)."
+                    ],
+                    "name": "vested",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "Claimable now: vested minus claimed."
+                    ],
+                    "name": "claimable",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "The most the claim key can ever collect: the total, or what had vested",
+                        "at the cancel."
+                    ],
+                    "name": "final_amount",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "Paid back to whoever cancelled (0 unless cancelled)."
+                    ],
+                    "name": "refunded",
+                    "type": "BigUint"
+                },
+                {
+                    "docs": [
+                        "The block timestamp these figures are computed at."
+                    ],
+                    "name": "timestamp",
+                    "type": "u64"
+                }
+            ]
+        }
+    }
+}

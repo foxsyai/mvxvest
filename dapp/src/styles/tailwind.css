@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+/* Light and dark follow the reader's system setting unless they pick one
+   (data-theme on <html>, set by hooks/useTheme.ts). Every color in the app is
+   one of these tokens, so both themes stay complete. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --font-sans: 'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --breakpoint-xs: 30rem;
+
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-line: var(--c-line);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+  --color-accent: var(--c-accent);
+  --color-accent-ink: var(--c-accent-ink);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-cancel: var(--c-cancel);
+  --color-cancel-soft: var(--c-cancel-soft);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-ok: var(--c-ok);
+  --color-ok-soft: var(--c-ok-soft);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+}
+
+:root {
+  color-scheme: light;
+  --c-canvas: #f5f6f5;
+  --c-surface: #ffffff;
+  --c-raised: #f0f2f1;
+  --c-line: #dfe3e1;
+  --c-ink: #141819;
+  --c-muted: #56606a;
+  --c-faint: #8a949c;
+  --c-accent: #0f766e;
+  --c-accent-ink: #ffffff;
+  --c-accent-soft: #e2f3f0;
+  --c-cancel: #9f1239;
+  --c-cancel-soft: #fbe8ee;
+  --c-warn: #a15c07;
+  --c-warn-soft: #fdf3e2;
+  --c-ok: #15803d;
+  --c-ok-soft: #e7f6ec;
+  --c-danger: #b91c1c;
+  --c-danger-soft: #fdeaea;
+}
+
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --c-canvas: #0b0e0f;
+  --c-surface: #121719;
+  --c-raised: #192023;
+  --c-line: #263034;
+  --c-ink: #e7eced;
+  --c-muted: #9aa7ac;
+  --c-faint: #6b787d;
+  --c-accent: #2dd4bf;
+  --c-accent-ink: #062521;
+  --c-accent-soft: #0f2c29;
+  --c-cancel: #fb7185;
+  --c-cancel-soft: #3a1520;
+  --c-warn: #fbbf24;
+  --c-warn-soft: #33260a;
+  --c-ok: #4ade80;
+  --c-ok-soft: #0f2a1a;
+  --c-danger: #f87171;
+  --c-danger-soft: #3a1414;
+}
+
+html,
+body {
+  background: var(--c-canvas);
+  color: var(--c-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
