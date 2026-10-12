@@ -16,6 +16,7 @@ import {
   TransactionComputer
 } from '@multiversx/sdk-core';
 import { setAccountNonce } from '@multiversx/sdk-dapp/out/store/actions/account/accountActions';
+import { getStore } from '@multiversx/sdk-dapp/out/store/store';
 import { getAccountProvider, TransactionManager } from 'lib';
 import { api, forget, networkProvider } from './network';
 
@@ -133,29 +134,48 @@ const reasonOf = (failure: unknown) =>
       'unknown error'
   ).slice(0, 200);
 
+/**
+ * Server errors as they arrive here: sdk-dapp's TransactionManager.send()
+ * throws a plain string (the API's message, or axios' "Request failed with
+ * status code 504"), so they are recognised by their words.
+ */
+const SERVER_ERROR =
+  /status code 5\d\d|\b50[0-4]\b|internal server error|bad gateway|service unavailable|gateway time-?out/i;
+const NO_ANSWER = /timeout|timed out|aborted|network|failed to fetch/i;
+
 const retryable = (failure: unknown) =>
-  /\b(429|500|502|503|504)\b|too many|timeout|timed out|network|failed to fetch/i.test(
-    `${(failure as any)?.response?.status ?? ''} ${reasonOf(failure)}`
-  );
+  /\b429\b|too many/i.test(reasonOf(failure)) ||
+  SERVER_ERROR.test(reasonOf(failure)) ||
+  NO_ANSWER.test(reasonOf(failure)) ||
+  [429, 500, 502, 503, 504].includes((failure as any)?.response?.status);
 
 /**
  * A failure after which the transaction may still have reached the network:
- * no answer at all (a timeout, a dropped connection) or a server error. A rate
- * limit (429) or any answer from the node about the transaction itself means
- * it was not taken.
+ * no answer at all (a timeout, a dropped connection) or a server error (the
+ * request got past the proxy, which may have passed it on). A rate limit
+ * (429) or any answer from the node about the transaction itself means it
+ * was not taken.
  */
 const mayHaveArrived = (failure: unknown) => {
   const status = (failure as any)?.response?.status;
-  return status === undefined
-    ? /timeout|timed out|aborted|network|failed to fetch/i.test(
-        reasonOf(failure)
-      )
-    : status >= 500;
+  if (typeof status === 'number') return status >= 500;
+  const reason = reasonOf(failure);
+  return SERVER_ERROR.test(reason) || NO_ANSWER.test(reason);
 };
 
 /** The node refuses a nonce it has already used (executed). */
 const nonceUsed = (failure: unknown) =>
   /lowerNonceInTx: true|nonce too low|lower nonce/i.test(reasonOf(failure));
+
+/** The network's hash of a signed transaction (sdk-core 15: hex already). */
+const hashOf = (transaction: Transaction): string => {
+  const hash: unknown = new TransactionComputer().computeTransactionHash(
+    transaction
+  );
+  return typeof hash === 'string'
+    ? hash
+    : Buffer.from(hash as Uint8Array).toString('hex');
+};
 
 /**
  * Sends one signed transaction, asking again on a refusal that may pass later
@@ -171,10 +191,11 @@ const sendOne = async (
   manager: any,
   transaction: Transaction
 ): Promise<{ entry: any; unconfirmed?: boolean }> => {
-  const hash = Buffer.from(
-    new TransactionComputer().computeTransactionHash(transaction)
-  ).toString('hex');
-  const local = { ...transaction.toPlainObject(), hash, status: 'pending' };
+  const local = {
+    ...transaction.toPlainObject(),
+    hash: hashOf(transaction),
+    status: 'pending'
+  };
   let maybeArrived = false;
   for (let attempt = 0; ; attempt++) {
     try {
@@ -196,6 +217,51 @@ const sendOne = async (
 };
 
 /**
+ * Sends of ours the network never confirmed, by hash: their nonce may still
+ * be free. sdk-dapp signs at no less than its highest tracked nonce plus one,
+ * so one of them left in its store would push every later transaction behind
+ * a gap that never fills.
+ */
+const unconfirmedSends = new Map<string, { sender: string; nonce: bigint }>();
+
+/**
+ * Before signing at a nonce one of our unconfirmed sends holds (prepare() read
+ * it from the network, so nothing executed with it yet): that send is dropped
+ * from sdk-dapp's store, so the new transaction keeps the nonce. Both can
+ * never execute: the node takes one transaction per nonce. Returns the hash
+ * each released nonce belonged to.
+ */
+const releaseNonces = (transactions: Transaction[]) => {
+  const released = new Map<bigint, string>();
+  if (transactions.length === 0) return released;
+  const sender = transactions[0].sender.toBech32();
+  const first = transactions[0].nonce;
+  for (const [hash, held] of unconfirmedSends) {
+    if (held.sender === sender && held.nonce >= first) {
+      released.set(held.nonce, hash);
+      unconfirmedSends.delete(hash);
+    }
+  }
+  if (released.size === 0) return released;
+  const lost = new Set(released.values());
+  getStore().setState(
+    (state: any) => {
+      for (const [id, session] of Object.entries<any>(state.transactions)) {
+        const kept = (session.transactions ?? []).filter(
+          (tx: any) => !lost.has(tx.hash)
+        );
+        if (kept.length === 0) delete state.transactions[id];
+        else session.transactions = kept;
+      }
+    },
+    false,
+    { type: 'mvxvest/releaseNonces' }
+  );
+  setAccountNonce(Number(first));
+  return released;
+};
+
+/**
  * One wallet prompt for every transaction, then sent one at a time in nonce
  * order and tracked. Rejects when the wallet refuses or when not even the first
  * transaction reached the network; when some did, it resolves with their
@@ -208,15 +274,36 @@ export const send = async (
 ): Promise<Sent> => {
   const provider = getAccountProvider();
   const manager = TransactionManager.getInstance();
+  const released = releaseNonces(transactions);
   const signed = await provider.signTransactions(transactions);
   const sent: any[] = [];
   const unconfirmed: string[] = [];
   let stopped: Sent['stopped'];
   for (const [index, transaction] of signed.entries()) {
     try {
-      const one = await sendOne(manager, transaction);
+      let one: Awaited<ReturnType<typeof sendOne>>;
+      try {
+        one = await sendOne(manager, transaction);
+      } catch (failure) {
+        // A copy of a send that was never confirmed, refused because its
+        // nonce is used: the earlier one went through after all. That one is
+        // what to follow (never sign it again).
+        const earlier = released.get(transaction.nonce);
+        if (!earlier || !nonceUsed(failure)) throw failure;
+        one = {
+          entry: {
+            ...transaction.toPlainObject(),
+            hash: earlier,
+            status: 'pending'
+          }
+        };
+      }
       sent.push(one.entry);
       if (one.unconfirmed) {
+        unconfirmedSends.set(one.entry.hash, {
+          sender: transaction.sender.toBech32(),
+          nonce: transaction.nonce
+        });
         unconfirmed.push(one.entry.hash);
         // Its nonce may or may not be used: sending the next ones could leave
         // them waiting behind a gap. Stop, and let the reader look first.

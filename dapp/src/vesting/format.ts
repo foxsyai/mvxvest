@@ -36,20 +36,20 @@ export const formatAmountExact = (units: bigint, decimals: number) =>
  * "1,234.5" and "1,234,567" are fine, "1,5", "1,500" and "1.500,75" are refused
  * (in much of Europe they mean 1.5, 1.5 and 1500.75), never guessed.
  *
- * `pointMayGroup`: the text comes from a semicolon-separated file, where the
- * comma is the decimal mark and a point groups thousands ("10.000" is ten
- * thousand). There a point followed by exactly three digits is refused too:
- * write 10000, or 10.0 for ten.
+ * The point the other way round: where the comma is the decimal mark, a point
+ * groups thousands ("10.000" is ten thousand in a German or Romanian sheet,
+ * and a paste from one carries it). So a point followed by exactly three
+ * digits, after 1 to 3 digits that do not start with 0, is refused too: write
+ * 10000, or 10.0 for ten. ("0.125" and "2.5" are fine.)
  */
 export const amountProblem = (
   text: string,
-  decimals: number,
-  { pointMayGroup = false }: { pointMayGroup?: boolean } = {}
+  decimals: number
 ): string | null => {
   const clean = text.trim().replace(/[_\s]/g, '');
   if (!clean) return 'empty';
-  if (pointMayGroup && /^[1-9]\d{0,2}(?:\.\d{3})+$/.test(clean))
-    return `in a file separated by semicolons ${clean} may mean thousands: write it without separators, like ${clean.replace(/\./g, '')}, or with another decimal, like ${clean}0`;
+  if (/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(clean))
+    return `${clean} could mean ${clean.replace(/\./g, '')}: write ${clean.replace(/\./g, '')} for that, or ${clean}0 if you mean ${clean}`;
   let plain = clean;
   if (clean.includes(',')) {
     const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(clean);
@@ -72,12 +72,8 @@ export const amountProblem = (
  * comma (see amountProblem), or when it has more decimals than the token
  * allows: an amount must never be rounded or guessed silently.
  */
-export const parseAmount = (
-  text: string,
-  decimals: number,
-  options: { pointMayGroup?: boolean } = {}
-): bigint | null => {
-  if (amountProblem(text, decimals, options) !== null) return null;
+export const parseAmount = (text: string, decimals: number): bigint | null => {
+  if (amountProblem(text, decimals) !== null) return null;
   const clean = text.trim().replace(/[,_\s]/g, '');
   const [whole, fraction = ''] = clean.split('.');
   const digits = (fraction + '0'.repeat(decimals)).slice(0, decimals);

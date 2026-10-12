@@ -81,6 +81,8 @@ interface Attempt {
   firstNonce?: bigint;
   /** Something of it reached the network: it stays on the page. */
   sent?: boolean;
+  /** What send() returned: the panel is rebuilt from it if mounted again. */
+  result?: Sent;
 }
 
 /**
@@ -109,7 +111,13 @@ interface Review {
   attempts: Attempt[];
   /** The wallet is asked, or the transactions are being sent. */
   busy: boolean;
+  /** The attempt whose wallet prompt is open. */
+  busyAttempt?: number;
   nextNonce?: bigint;
+  /** Unique per review: late answers for an earlier one are dropped. */
+  id: number;
+  /** The next attempt's number: never reused. */
+  nextAttempt: number;
 }
 
 interface Row {
@@ -347,7 +355,7 @@ export const Create = () => {
   // A build per attempt, made once: TxPanel checks again only for a new one.
   const builds = useRef(new Map<string, () => Promise<any[]>>());
   const buildFor = (r: Review, attempt: Attempt) => {
-    const id = `${r.key}:${r.account}:${attempt.n}`;
+    const id = `${r.id}:${attempt.n}`;
     let build = builds.current.get(id);
     if (!build) {
       build = () =>
@@ -378,8 +386,12 @@ export const Create = () => {
     return build;
   };
 
+  // The review answers belong to: anything for another one is dropped.
+  const reviewId = useRef(0);
+
   const openReview = () => {
     builds.current.clear();
+    reviewId.current += 1;
     setClosed(null);
     setCreated([]);
     setReview({
@@ -396,7 +408,9 @@ export const Create = () => {
       results: {},
       unconfirmed: [],
       attempts: [{ n: 0, indexes: batches.map((_, index) => index) }],
-      busy: false
+      busy: false,
+      id: reviewId.current,
+      nextAttempt: 1
     });
   };
 
@@ -440,95 +454,114 @@ export const Create = () => {
     return () => window.removeEventListener('beforeunload', warn);
   }, [review, anySent, toSign.length]);
 
-  const onBusy = (busy: boolean) =>
-    setReview((current) => (current ? { ...current, busy } : current));
+  /** Applies `change` to the review `id` only, never to a later one. */
+  const update = (id: number, change: (current: Review) => Review | null) =>
+    setReview((current) =>
+      current && current.id === id ? change(current) : current
+    );
 
-  const onSent = (attempt: Attempt) => (result: Sent) =>
-    setReview((current) => {
-      if (!current) return current;
+  const onBusy = (id: number, attempt: Attempt) => (busy: boolean) =>
+    update(id, (current) => ({
+      ...current,
+      busy,
+      busyAttempt: busy ? attempt.n : undefined
+    }));
+
+  const onSent = (id: number, attempt: Attempt) => (result: Sent) =>
+    update(id, (current) => {
       const hashes = [...current.hashes];
+      const results = { ...current.results };
       // send() returns the hashes in order, stopping at the first not sent.
       result.hashes.forEach((hash, k) => {
         hashes[attempt.indexes[k]] = hash;
+        // Followed again from here (an earlier send that turned up after all
+        // comes back under its own hash).
+        delete results[hash];
       });
       return {
         ...current,
         hashes,
+        results,
         busy: false,
+        busyAttempt: undefined,
         nextNonce: result.nextNonce,
         unconfirmed: [...current.unconfirmed, ...(result.unconfirmed ?? [])],
         attempts: current.attempts.map((a) =>
-          a.n === attempt.n ? { ...a, sent: true } : a
+          a.n === attempt.n ? { ...a, sent: true, result } : a
         )
       };
     });
 
-  const onFinished = async (hashes: string[], outcomes: TxOutcome[]) => {
-    setReview((current) =>
-      current
-        ? {
-            ...current,
-            results: {
-              ...current.results,
-              ...Object.fromEntries(
-                hashes.map((hash, k) => [
-                  hash,
-                  outcomes[k].status === 'success'
-                    ? 'success'
-                    : outcomes[k].status === 'missing'
-                      ? 'missing'
-                      : 'failed'
-                ])
-              )
-            }
-          }
-        : current
-    );
-    const ids = (
-      await Promise.all(
-        hashes
-          .filter((_, k) => outcomes[k].status === 'success')
-          .map(createdIdsOf)
-      )
-    ).flat();
-    setCreated((previous) =>
-      [...new Set([...previous, ...ids])].sort((a, b) => a - b)
-    );
-  };
-
-  const onClose = (attempt: Attempt) => () =>
-    setReview((current) => {
-      if (!current) return current;
-      // Nothing of the review was sent: the form unlocks.
-      if (!current.hashes.some(Boolean)) return null;
-      return {
+  const onFinished =
+    (id: number) => async (hashes: string[], outcomes: TxOutcome[]) => {
+      update(id, (current) => ({
         ...current,
-        attempts: current.attempts.filter((a) => a.n !== attempt.n)
-      };
-    });
+        results: {
+          ...current.results,
+          ...Object.fromEntries(
+            hashes.map((hash, k) => [
+              hash,
+              outcomes[k].status === 'success'
+                ? 'success'
+                : outcomes[k].status === 'missing'
+                  ? 'missing'
+                  : 'failed'
+            ])
+          )
+        }
+      }));
+      const ids = (
+        await Promise.all(
+          hashes
+            .filter((_, k) => outcomes[k].status === 'success')
+            .map(createdIdsOf)
+        )
+      ).flat();
+      // Read while another review may have started: not that one's.
+      if (reviewId.current !== id) return;
+      setCreated((previous) =>
+        [...new Set([...previous, ...ids])].sort((a, b) => a - b)
+      );
+    };
+
+  const onClose = (id: number, attempt: Attempt) => () =>
+    update(id, (current) =>
+      // Nothing of the review was sent: the form unlocks.
+      !current.hashes.some(Boolean)
+        ? null
+        : {
+            ...current,
+            attempts: current.attempts.filter((a) => a.n !== attempt.n)
+          }
+    );
 
   const signRemaining = () => {
     if (!review) return;
-    // After a send that never showed up, read the nonce from the network: the
-    // new one takes its nonce, so at most one of the two can ever execute.
-    const missing = toSign.some((index) => {
+    // A send that never showed up is signed again first, at a nonce read
+    // from the network: its nonce, which is still free. The node takes one
+    // transaction per nonce, so the copy and the lost one can never both
+    // execute. The others follow it.
+    const isMissing = (index: number) => {
       const hash = review.hashes[index];
       return hash !== undefined && review.results[hash] === 'missing';
-    });
+    };
+    const missing = toSign.filter(isMissing);
     setReview({
       ...review,
+      nextAttempt: review.nextAttempt + 1,
       attempts: [
         ...review.attempts,
         {
-          n: review.attempts.length,
-          indexes: toSign,
-          firstNonce: missing ? undefined : review.nextNonce
+          n: review.nextAttempt,
+          indexes: [...missing, ...toSign.filter((index) => !isMissing(index))],
+          firstNonce: missing.length > 0 ? undefined : review.nextNonce
         }
       ]
     });
   };
 
   const startOver = () => {
+    reviewId.current += 1;
     setReview(null);
     setCreated([]);
     setRows([{ address: '', amount: '' }]);
@@ -1083,14 +1116,20 @@ export const Create = () => {
             {review.attempts.map((attempt) => {
               // An attempt not sent yet is signed only by the account that
               // opened the review.
-              if (!attempt.sent && !sameAccount) return null;
+              // (A panel whose wallet prompt is open always stays.)
+              if (
+                !attempt.sent &&
+                !sameAccount &&
+                review.busyAttempt !== attempt.n
+              )
+                return null;
               const vestings = attempt.indexes.flatMap(
                 (index) => review.batches[index]
               );
               const locked = vestings.reduce((total, v) => total + v.total, 0n);
               return (
                 <TxPanel
-                  key={`${review.key}:${review.account}:${attempt.n}`}
+                  key={`${review.id}:${attempt.n}`}
                   sender={review.account}
                   label={
                     vestings.length === 1
@@ -1125,11 +1164,16 @@ export const Create = () => {
                   }
                   build={buildFor(review, attempt)}
                   firstNonce={attempt.firstNonce}
-                  onBusy={onBusy}
-                  onSent={onSent(attempt)}
-                  onFinished={onFinished}
+                  onBusy={onBusy(review.id, attempt)}
+                  onSent={onSent(review.id, attempt)}
+                  onFinished={onFinished(review.id)}
                   keepAfterSent
-                  onClose={onClose(attempt)}
+                  resume={{
+                    sent: attempt.result,
+                    signing: review.busyAttempt === attempt.n,
+                    total: attempt.indexes.length
+                  }}
+                  onClose={onClose(review.id, attempt)}
                 />
               );
             })}

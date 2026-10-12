@@ -56,6 +56,7 @@ export const TxPanel = ({
   onFinished,
   onBusy,
   keepAfterSent = false,
+  resume,
   onClose
 }: {
   sender: string;
@@ -73,12 +74,28 @@ export const TxPanel = ({
   onBusy?: (busy: boolean) => void;
   /** Once sent, stays on the page (no Close): the page keeps its record. */
   keepAfterSent?: boolean;
+  /**
+   * The page's own record of this signing, which outlives the panel (a
+   * disconnect, an account switch, a re-render that removes it): what was
+   * sent, or that the wallet is being asked. A panel mounted again from it
+   * never checks or offers "Sign" again.
+   */
+  resume?: { sent?: Sent; signing?: boolean; total: number };
   onClose: () => void;
 }) => {
-  const [phase, setPhase] = useState<Phase>({ step: 'checking' });
+  const [phase, setPhase] = useState<Phase>(() =>
+    resume?.sent
+      ? { step: 'sent', sent: resume.sent, total: resume.total }
+      : resume?.signing
+        ? { step: 'signing' }
+        : { step: 'checking' }
+  );
   const [outcomes, setOutcomes] = useState<Record<string, TxOutcome>>({});
   const run = useRef(0);
-  const locked = useRef(false);
+  const locked = useRef(Boolean(resume?.sent || resume?.signing));
+  // This panel asked the wallet itself (rather than being mounted while
+  // another instance of it did).
+  const signingHere = useRef(false);
 
   const check = async () => {
     if (locked.current) return;
@@ -103,8 +120,28 @@ export const TxPanel = ({
     // Only a new build (or sender) asks for a new check, never a re-render.
   }, [build, sender]);
 
+  // The page's record wins: a send that finished while this panel was off
+  // screen shows as sent; a signing that ended with nothing sent can be
+  // checked again.
+  useEffect(() => {
+    if (resume?.sent) {
+      if (phase.step !== 'sent') {
+        locked.current = true;
+        setPhase({ step: 'sent', sent: resume.sent, total: resume.total });
+      }
+    } else if (
+      !resume?.signing &&
+      phase.step === 'signing' &&
+      !signingHere.current
+    ) {
+      locked.current = false;
+      check();
+    }
+  }, [resume?.sent, resume?.signing]);
+
   const sign = async (transactions: Transaction[]) => {
     locked.current = true;
+    signingHere.current = true;
     run.current++;
     setPhase({ step: 'signing' });
     onBusy?.(true);
@@ -117,6 +154,7 @@ export const TxPanel = ({
       // send that may have arrived resolves as unconfirmed): checking again
       // is safe.
       locked.current = false;
+      signingHere.current = false;
       onBusy?.(false);
       setPhase({
         step: 'error',
@@ -202,8 +240,8 @@ export const TxPanel = ({
                 )}
                 decimals={18}
                 ticker='EGLD'
-              />
-              .
+              />{' '}
+              at the standard gas price (more if you raise it in your wallet).
             </Notice>
           )}
           <div className='flex flex-wrap gap-2'>

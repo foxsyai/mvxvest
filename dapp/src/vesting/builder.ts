@@ -90,13 +90,18 @@ const equalSplit = (rest: bigint, count: number): bigint[] => {
 const TOO_LONG =
   'A schedule can last at most 30 years (the contract refuses longer).';
 
-export const planProblem = (plan: Plan): string | null => {
+export const planProblem = (
+  plan: Plan,
+  now = Math.floor(Date.now() / 1000)
+): string | null => {
   const { shape, cliff } = plan;
   // Where the curve starts: a lump cliff moves it to the cliff.
   const origin = cliff?.style === 'lump' ? cliff.at : plan.start;
   // Huge counts reach dates no Date can show: the horizon is checked before
   // anything is built or drawn.
-  const tooLong = (end: number) => !(end - plan.start <= MAX_HORIZON);
+  // The contract's rule: the end at most 30 years after the creation (a
+  // start in the past is fine).
+  const tooLong = (end: number) => !(end <= now + MAX_HORIZON);
   // A cleared or half-typed field reaches here as NaN: say so, never build.
   if (!isTime(plan.start)) return 'Choose a start date.';
   if (cliff) {
@@ -130,7 +135,7 @@ export const planProblem = (plan: Plan): string | null => {
       if (shape.count > MAX_TRANCHES)
         return `At most ${MAX_TRANCHES} releases.`;
       if (
-        shape.months * shape.count > 12 * 31 ||
+        shape.months * shape.count > 12 * 1000 ||
         tooLong(addMonths(origin, shape.months * shape.count))
       )
         return TOO_LONG;

@@ -76,10 +76,10 @@ const createTx = (nonce: bigint) =>
     data: new TextEncoder().encode('create@01')
   });
 
+// sdk-core 15 returns the hash as hex already (corrected after review 3: the
+// first version of this test hex-encoded it twice, as send.ts then did).
 const hashOf = (tx: Transaction) =>
-  Buffer.from(new TransactionComputer().computeTransactionHash(tx)).toString(
-    'hex'
-  );
+  new TransactionComputer().computeTransactionHash(tx);
 
 /** axios as sdk-dapp sees it: the POST gave up after 4 s, no response. */
 const timeout = () => {

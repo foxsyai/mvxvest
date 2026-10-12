@@ -194,8 +194,10 @@ export interface TxOutcome {
 
 /** Where a sent transaction stands, read fresh (not cached). */
 export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
+  // A stalled connection must not stop the following for good.
   const response = await fetch(
-    `${apiUrl}/transactions/${hash}?withResults=true&withLogs=true`
+    `${apiUrl}/transactions/${hash}?withResults=true&withLogs=true`,
+    { signal: AbortSignal.timeout(15_000) }
   );
   if (!response.ok)
     return { status: 'pending', unknown: response.status === 404 };
