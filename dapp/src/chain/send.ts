@@ -17,6 +17,7 @@ import {
 } from '@multiversx/sdk-core';
 import { setAccountNonce } from '@multiversx/sdk-dapp/out/store/actions/account/accountActions';
 import { getAccountProvider, TransactionManager } from 'lib';
+import { stillCounted } from './missing';
 import { api, forget, networkProvider } from './network';
 
 export const MAX_GAS = 600_000_000n;
@@ -59,6 +60,12 @@ export const prepare = async (
   transactions: Transaction[],
   firstNonce?: bigint
 ): Promise<Prepared> => {
+  const lost = stillCounted();
+  if (lost) {
+    throw new Error(
+      `transaction ${lost.slice(0, 10)}… was not seen on the network, and your wallet session still counts it: anything signed now would wait behind it. Disconnect and connect your wallet again, then check again`
+    );
+  }
   const account = await networkProvider.getAccount(
     Address.newFromBech32(sender)
   );

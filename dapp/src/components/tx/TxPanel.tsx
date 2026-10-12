@@ -1,5 +1,6 @@
 import { Transaction } from '@multiversx/sdk-core';
 import { ReactNode, useEffect, useRef, useState } from 'react';
+import { markMissing } from 'chain/missing';
 import { outcomeOf, TxOutcome } from 'chain/reads';
 import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
@@ -54,6 +55,7 @@ export const TxPanel = ({
   firstNonce,
   onSent,
   onFinished,
+  onProgress,
   onBusy,
   keepAfterSent = false,
   resume,
@@ -70,6 +72,12 @@ export const TxPanel = ({
   /** Called once, as soon as the network has accepted what it accepted. */
   onSent?: (sent: Sent) => void;
   onFinished?: (hashes: string[], outcomes: TxOutcome[]) => void;
+  /**
+   * Every change of what is known, pending included: a page that keeps its
+   * own record (Create) must hear of a missing transaction even while
+   * another is still processing.
+   */
+  onProgress?: (hashes: string[], outcomes: TxOutcome[]) => void;
   /** True when the wallet is asked; false again if nothing was sent. */
   onBusy?: (busy: boolean) => void;
   /** Once sent, stays on the page (no Close): the page keeps its record. */
@@ -170,6 +178,7 @@ export const TxPanel = ({
     let stopped = false;
     const unknownSince = new Map<string, number>();
     let reported = '';
+    let shown = '';
     const poll = async () => {
       const next: Record<string, TxOutcome> = {};
       for (const hash of hashes) {
@@ -187,6 +196,16 @@ export const TxPanel = ({
       if (stopped) return;
       setOutcomes(next);
       const statuses = hashes.map((hash) => next[hash].status);
+      for (const hash of hashes)
+        markMissing(hash, next[hash].status === 'missing');
+      const progress = statuses.join(',');
+      if (progress !== shown) {
+        shown = progress;
+        onProgress?.(
+          hashes,
+          hashes.map((hash) => next[hash])
+        );
+      }
       if (statuses.includes('pending')) {
         setTimeout(poll, 3_000);
         return;

@@ -458,11 +458,15 @@ export const Create = () => {
 
   // Leaving the page with transactions half done loses this record.
   useEffect(() => {
-    if (!review || !(review.busy || (anySent && toSign.length > 0))) return;
+    if (
+      !review ||
+      !(review.busy || (anySent && (toSign.length > 0 || lost.length > 0)))
+    )
+      return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [review, anySent, toSign.length]);
+  }, [review, anySent, toSign.length, lost.length]);
 
   /** Applies `change` to the review `id` only, never to a later one. */
   const update = (id: number, change: (current: Review) => Review | null) =>
@@ -499,31 +503,38 @@ export const Create = () => {
       };
     });
 
-  const onFinished =
+  // Hashes whose created ids were already read (each is read once).
+  const idsRead = useRef(new Set<string>());
+
+  /**
+   * What the panel knows, on every change: a final result is recorded, a
+   * pending one clears any earlier verdict (a missing transaction that turns
+   * up is processing again, not missing). Never "failed" for pending: only
+   * a real failure lets a line be signed again.
+   */
+  const onProgress =
     (id: number) => async (hashes: string[], outcomes: TxOutcome[]) => {
-      update(id, (current) => ({
-        ...current,
-        results: {
-          ...current.results,
-          ...Object.fromEntries(
-            hashes.map((hash, k) => [
-              hash,
-              outcomes[k].status === 'success'
+      update(id, (current) => {
+        const results = { ...current.results };
+        hashes.forEach((hash, k) => {
+          const status = outcomes[k].status;
+          if (status === 'pending') delete results[hash];
+          else
+            results[hash] =
+              status === 'success'
                 ? 'success'
-                : outcomes[k].status === 'missing'
+                : status === 'missing'
                   ? 'missing'
-                  : 'failed'
-            ])
-          )
-        }
-      }));
-      const ids = (
-        await Promise.all(
-          hashes
-            .filter((_, k) => outcomes[k].status === 'success')
-            .map(createdIdsOf)
-        )
-      ).flat();
+                  : 'failed';
+        });
+        return { ...current, results };
+      });
+      const fresh = hashes.filter(
+        (hash, k) =>
+          outcomes[k].status === 'success' && !idsRead.current.has(hash)
+      );
+      fresh.forEach((hash) => idsRead.current.add(hash));
+      const ids = (await Promise.all(fresh.map(createdIdsOf))).flat();
       // Read while another review may have started: not that one's.
       if (reviewId.current !== id) return;
       setCreated((previous) =>
@@ -1127,10 +1138,12 @@ export const Create = () => {
               // An attempt not sent yet is signed only by the account that
               // opened the review.
               // (A panel whose wallet prompt is open always stays.)
+              // A signing not sent yet is also withdrawn once a send of this
+              // creation is missing: nothing more of it is signed then.
               if (
                 !attempt.sent &&
-                !sameAccount &&
-                review.busyAttempt !== attempt.n
+                review.busyAttempt !== attempt.n &&
+                (!sameAccount || lost.length > 0)
               )
                 return null;
               const vestings = attempt.indexes.flatMap(
@@ -1176,7 +1189,7 @@ export const Create = () => {
                   firstNonce={attempt.firstNonce}
                   onBusy={onBusy(review.id, attempt)}
                   onSent={onSent(review.id, attempt)}
-                  onFinished={onFinished(review.id)}
+                  onProgress={onProgress(review.id)}
                   keepAfterSent
                   resume={{
                     sent: attempt.result,

@@ -63,11 +63,21 @@ export const parseBeneficiaries = (
   const rows: Beneficiary[] = [];
   const errors: CsvResult['errors'] = [];
   const lines = text.replace(/^﻿/, '').split(/\r?\n/);
-  if (lines.filter((line) => line.trim()).length > MAX_CSV_LINES) {
+  const filled = lines.filter((line) => line.trim());
+  // A header line does not count toward the limit.
+  const [firstAddress = '', firstAmount = ''] = filled.length
+    ? splitLine(filled[0]).cells
+    : [];
+  const headed =
+    header && filled.length > 0 && isHeader(firstAddress, firstAmount);
+  if (filled.length - (headed ? 1 : 0) > MAX_CSV_LINES) {
     return {
       rows,
       errors: [
-        { line: 0, message: `At most ${MAX_CSV_LINES} lines per file.` }
+        {
+          line: 0,
+          message: `At most ${MAX_CSV_LINES} beneficiaries per file.`
+        }
       ],
       repeated: []
     };
