@@ -1,0 +1,197 @@
+// Shared helpers for the deploy and interaction scripts: network, keys, ABI,
+// sending transactions and recording what happened.
+//
+// Keys never live in the repo. Devnet and testnet keys are read from
+// ~/.config/mvxvest/<network>/<name>.pem (or MVXVEST_PEM). Mainnet actions go
+// through the multisig, so this file refuses to load a mainnet key.
+
+import {
+  Abi,
+  Account,
+  Address,
+  DevnetEntrypoint,
+  MainnetEntrypoint,
+  NetworkEntrypoint,
+  TestnetEntrypoint,
+  Transaction,
+} from "@multiversx/sdk-core";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+export const CONTRACT_OUTPUT = join(ROOT, "contracts/vesting/output");
+
+export type Network = "devnet" | "testnet" | "mainnet";
+
+const NETWORKS: Record<Network, { api: string; explorer: string }> = {
+  devnet: {
+    api: "https://devnet-api.multiversx.com",
+    explorer: "https://devnet-explorer.multiversx.com",
+  },
+  testnet: {
+    api: "https://testnet-api.multiversx.com",
+    explorer: "https://testnet-explorer.multiversx.com",
+  },
+  mainnet: {
+    api: "https://api.multiversx.com",
+    explorer: "https://explorer.multiversx.com",
+  },
+};
+
+export const EGLD = 10n ** 18n;
+
+export function network(): Network {
+  const value = process.env.MVXVEST_NETWORK ?? "devnet";
+  if (value !== "devnet" && value !== "testnet" && value !== "mainnet") {
+    throw new Error(`MVXVEST_NETWORK must be devnet, testnet or mainnet, not ${value}`);
+  }
+  return value;
+}
+
+export function api(): string {
+  return NETWORKS[network()].api;
+}
+
+export function explorerTx(hash: string): string {
+  return `${NETWORKS[network()].explorer}/transactions/${hash}`;
+}
+
+export function entrypoint(): NetworkEntrypoint {
+  switch (network()) {
+    case "devnet":
+      return new DevnetEntrypoint({ clientName: "mvxvest-scripts" });
+    case "testnet":
+      return new TestnetEntrypoint({ clientName: "mvxvest-scripts" });
+    case "mainnet":
+      return new MainnetEntrypoint({ clientName: "mvxvest-scripts" });
+  }
+}
+
+export function abi(): Abi {
+  const json = JSON.parse(readFileSync(join(CONTRACT_OUTPUT, "mvxvest.abi.json"), "utf8"));
+  return Abi.create(json);
+}
+
+/** Loads a signing key for devnet or testnet. Never for mainnet. */
+export async function signer(name: string): Promise<Account> {
+  const net = network();
+  if (net === "mainnet") {
+    throw new Error("Mainnet actions go through the mvxsafe multisig, not a local key.");
+  }
+  const path = process.env.MVXVEST_PEM ?? join(homedir(), ".config/mvxvest", net, `${name}.pem`);
+  const account = await Account.newFromPem(path);
+  account.nonce = await entrypoint().recallAccountNonce(account.address);
+  return account;
+}
+
+// ------------------------------------------------------------------ state
+
+const STATE_DIR = join(ROOT, "scripts/state");
+
+export interface State {
+  contract?: string;
+  claimKey?: string;
+  cancelKey?: string;
+  tokens?: Record<string, string>;
+  runs?: RunRecord[];
+}
+
+export interface RunRecord {
+  step: string;
+  hash: string;
+  status: string;
+  gasLimit: string;
+  gasUsed?: number;
+  fee?: string;
+  note?: string;
+  at: string;
+}
+
+function statePath(): string {
+  return join(STATE_DIR, `${network()}.json`);
+}
+
+export function loadState(): State {
+  return existsSync(statePath()) ? JSON.parse(readFileSync(statePath(), "utf8")) : {};
+}
+
+export function saveState(state: State): void {
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(statePath(), JSON.stringify(state, null, 2) + "\n");
+}
+
+export function contractAddress(): Address {
+  const state = loadState();
+  if (!state.contract) throw new Error(`No contract in ${statePath()}: run deploy first.`);
+  return Address.newFromBech32(state.contract);
+}
+
+// --------------------------------------------------------------- sending
+
+interface ApiTransaction {
+  status: string;
+  gasUsed?: number;
+  fee?: string;
+  results?: { returnMessage?: string }[];
+  logs?: { events?: { identifier: string; topics?: string[]; data?: string }[] };
+}
+
+/** The API's view of a transaction once it is final, with its gas used. */
+export async function fetchFinal(hash: string): Promise<ApiTransaction> {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const response = await fetch(`${api()}/transactions/${hash}?withResults=true`);
+    if (response.ok) {
+      const body = (await response.json()) as ApiTransaction & { pendingResults?: boolean };
+      if (body.status !== "pending" && !body.pendingResults) return body;
+    }
+    await new Promise((done) => setTimeout(done, 3_000));
+  }
+  throw new Error(`Transaction ${hash} still pending after 3 minutes`);
+}
+
+/**
+ * Sends a signed transaction, waits until it and all its results are final,
+ * records it, and returns the API's view. Throws if it failed, unless
+ * `expectFailure` is set.
+ */
+export async function send(
+  step: string,
+  tx: Transaction,
+  options: { expectFailure?: boolean; note?: string } = {},
+): Promise<ApiTransaction & { hash: string }> {
+  const hash = await entrypoint().sendTransaction(tx);
+  console.log(`${step}: ${explorerTx(hash)}`);
+  await entrypoint().awaitCompletedTransaction(hash);
+  const final = await fetchFinal(hash);
+  const state = loadState();
+  state.runs = [
+    ...(state.runs ?? []),
+    {
+      step,
+      hash,
+      status: final.status,
+      gasLimit: tx.gasLimit.toString(),
+      gasUsed: final.gasUsed,
+      fee: final.fee,
+      note: options.note,
+      at: new Date().toISOString(),
+    },
+  ];
+  saveState(state);
+  const failed = final.status !== "success";
+  console.log(`  ${final.status}, gas used ${final.gasUsed ?? "?"} of ${tx.gasLimit}`);
+  if (failed && !options.expectFailure) {
+    const reason = final.results?.map((r) => r.returnMessage).filter(Boolean).join("; ");
+    throw new Error(`${step} failed: ${reason || final.status} (${explorerTx(hash)})`);
+  }
+  if (!failed && options.expectFailure) {
+    throw new Error(`${step} was expected to fail but succeeded (${explorerTx(hash)})`);
+  }
+  return { ...final, hash };
+}
+
+export function amount(units: bigint, decimals: number): bigint {
+  return units * 10n ** BigInt(decimals);
+}
