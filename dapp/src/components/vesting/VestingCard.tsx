@@ -30,7 +30,9 @@ export const VestingCard = ({
     ? null
     : nextRelease(vesting.schedule, vesting.total, now);
   return (
-    <Card className='space-y-3'>
+    // As tall as its row (cards side by side match), actions at the bottom so
+    // the buttons of neighbouring cards line up.
+    <Card className='flex h-full flex-col gap-3'>
       <div className='flex flex-wrap items-start justify-between gap-2'>
         <div className='min-w-0'>
           <Link
@@ -89,7 +91,18 @@ export const VestingCard = ({
         <div>
           <dt className='text-xs text-muted'>Next release</dt>
           <dd>
-            {next ? (
+            {next &&
+            vesting.schedule.curve.kind === 'linear' &&
+            now >= vesting.schedule.cliff ? (
+              // Past the cliff a linear curve releases continuously: the next
+              // "release" is a second away, so say how it goes instead.
+              <>
+                every second
+                <span className='block text-xs text-muted'>
+                  until <When seconds={vesting.schedule.end} />
+                </span>
+              </>
+            ) : next ? (
               <>
                 <When seconds={next[0]} />
                 {vesting.schedule.curve.kind !== 'linear' && (
@@ -104,7 +117,9 @@ export const VestingCard = ({
           </dd>
         </div>
       </dl>
-      {actions && <div className='flex flex-wrap gap-2 pt-1'>{actions}</div>}
+      {actions && (
+        <div className='mt-auto flex flex-wrap gap-2 pt-1'>{actions}</div>
+      )}
     </Card>
   );
 };
