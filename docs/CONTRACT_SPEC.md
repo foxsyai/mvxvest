@@ -81,15 +81,17 @@ more than 30 years ahead.
 
 Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 50 of
 them (1 to 33 when cancelable: the network allows about 100 built-in calls
-per transaction, and each vesting mints and sends one or two keys),
-them, all of the payment's token, all sharing `cancelable` and `label`. Pay the
-sum of the totals exactly, plus the fee times the number of entries. The same
+per transaction, and each vesting mints and sends one or two keys), all of
+the payment's token, all sharing `cancelable` and `label`. Pay the sum of the
+totals exactly, plus the fee times the number of entries. The same
 checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
 to the creator in one transfer.
 
 ### `claim()`
 
-Payable with one or more claim keys. For each key: pays `vested(now) -
+Payable with one or more claim keys: at most 99 per transaction (each
+finished key is burned, a built-in call, and the network allows 100), and in
+practice fewer, as each key costs about 7M gas; the dApp sends at most 50. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
 the key, or burns it when nothing more can ever be claimed (`claimed` equals
 the total, or what had vested at the cancel). Each key that paid or burned
@@ -101,7 +103,8 @@ burned (`nothing to claim yet`): so claiming twice in one block pays once.
 
 ### `cancel()`
 
-Payable with one or more cancel keys. For each: sets `cancelled_at = now`,
+Payable with one or more cancel keys, at most 99 per transaction (each is
+burned); the dApp sends at most 50. For each: sets `cancelled_at = now`,
 pays `total - vested(now)` to the caller (whoever holds the key), and burns the
 key. What had vested stays claimable with the claim key. Allowed at any time,
 also after the end (refund 0). A non-cancelable vesting has no cancel key and

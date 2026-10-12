@@ -13,8 +13,7 @@ endpoint, mapped to the tests that check it. Run them with
   (the one validators run): deploy, a full lifecycle, every payment and payout
   shape with pinned logs, bounce recovery and the largest batch. Needs
   `mx-scenario-go` (`sc-meta install mx-scenario-go`) and a build.
-- `review4_*.rs`, `review3_*.rs`, `review2_*.rs`: tests from the fourth,
-  third and second reviews.
+- `review5_*.rs` to `review2_*.rs`: tests from the fifth to second reviews.
 - `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
   failing on the code it reviewed, plus a long random walk checked against an
   independent model. See [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).
@@ -58,6 +57,7 @@ endpoint, mapped to the tests that check it. Run them with
 | `recoverSurplus` | `admin_test::surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `review3_go_vm_test::money_paths`, `review4_stray_nft_cannot_be_returned_test` |
 | claim mixing paying, non-paying and finishing keys | `review4_safe_claim_mix_test` |
 | every cancel key of the largest batch reaches the creator | `review4_go_vm_test` |
+| the largest batches make exactly the 100 built-in calls the network allows; 99 keys fit one claim or cancel | `review5_builtin_calls_test`, `review5_go_vm_test` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
 | `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
 | deploy on the real VM | `go_vm_test::deploy` |

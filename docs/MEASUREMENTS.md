@@ -25,9 +25,8 @@ shard. Measured on the code after the third review.
 | 100 | no | 470.8M |
 
 About 6.4M gas per cancelable vesting and 4.7M per non-cancelable one, linear.
-`MAX_BATCH` is therefore 75 (`go_vm_test::batch_max` proves 75 cancelable
-fit). Explicit tranche schedules cost more per vesting (more argument data and
-storage); the dApp simulates each transaction and splits a CSV accordingly.
+Gas turned out not to be the limit on the real chain: see the devnet section
+(at most 33 cancelable or 50 non-cancelable vestings per batch).
 
 From the third review (same VM): a claim of 80 keys where one pays costs about
 92M.

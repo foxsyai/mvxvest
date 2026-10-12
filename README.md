@@ -9,8 +9,11 @@ or a buyer. A cancelable vesting also gives its creator a **cancel key**:
 sending it back stops the vesting, refunds what has not vested and leaves what
 has vested claimable. Anyone can read every vesting without signing anything.
 
-Status: **milestone 1**, the contract, in development on devnet. Private until
-it is audited. The brief is in [docs/BRIEF.md](docs/BRIEF.md).
+Status: **milestone 1 done**: the contract runs on devnet
+(`erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp`), after five
+internal reviews. Next: the dApp (milestone 2). Private until audited. The
+brief is in [docs/BRIEF.md](docs/BRIEF.md); deploying is in
+[docs/DEPLOY.md](docs/DEPLOY.md), costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
 
 ## Repository
 

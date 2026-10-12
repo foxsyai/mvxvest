@@ -817,7 +817,7 @@
     },
     {
       "step": "checkState",
-      "comment": "the 75 distinct cancel keys worked and are burned; everything refunded",
+      "comment": "the 33 distinct cancel keys worked and are burned; everything refunded",
       "accounts": {
         "address:creator": {
           "nonce": "*",

@@ -1,0 +1,2415 @@
+{
+  "name": "review5: 99 keys in one claim or cancel (the most the network's 100 built-in calls allow: one burn each plus one transfer) work on the Go VM",
+  "steps": [
+    {
+      "step": "setState",
+      "comment": "key nonces start at 101 (mx-scenario-go mis-reads nonce 45 in state checks)",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "199000000"
+          }
+        },
+        "address:holder": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "100"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "100"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancelable-1",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "33000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancelable-2",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "33000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancelable-3",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "33000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "plain-1",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "50000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "false",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "plain-2",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "50000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "false",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1782993600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancel-99",
+      "comment": "99 burns + 1 refund transfer = 100 built-in calls, the network's maximum",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "101",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "102",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "103",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "104",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "105",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "106",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "107",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "108",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "109",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "110",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "111",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "112",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "113",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "114",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "115",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "116",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "117",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "118",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "119",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "120",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "121",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "122",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "123",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "124",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "125",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "126",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "127",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "128",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "129",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "130",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "131",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "132",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "133",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "134",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "135",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "136",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "137",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "138",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "139",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "140",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "141",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "142",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "143",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "144",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "145",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "146",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "147",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "148",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "149",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "150",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "151",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "152",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "153",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "154",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "155",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "156",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "157",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "158",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "159",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "160",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "161",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "162",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "163",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "164",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "165",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "166",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "167",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "168",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "169",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "170",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "171",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "172",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "173",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "174",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "175",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "176",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "177",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "178",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "179",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "180",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "181",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "182",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "183",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "184",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "185",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "186",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "187",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "188",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "189",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "190",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "191",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "192",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "193",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "194",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "195",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "196",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "197",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "198",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "199",
+            "value": "1"
+          }
+        ],
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": [],
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1798761601"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-99-finished-plain",
+      "comment": "99 burns + 1 payout transfer = 100 built-in calls",
+      "tx": {
+        "from": "address:holder",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "200",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "201",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "202",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "203",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "204",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "205",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "206",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "207",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "208",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "209",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "210",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "211",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "212",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "213",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "214",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "215",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "216",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "217",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "218",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "219",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "220",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "221",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "222",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "223",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "224",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "225",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "226",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "227",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "228",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "229",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "230",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "231",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "232",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "233",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "234",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "235",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "236",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "237",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "238",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "239",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "240",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "241",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "242",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "243",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "244",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "245",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "246",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "247",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "248",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "249",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "250",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "251",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "252",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "253",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "254",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "255",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "256",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "257",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "258",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "259",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "260",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "261",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "262",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "263",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "264",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "265",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "266",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "267",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "268",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "269",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "270",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "271",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "272",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "273",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "274",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "275",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "276",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "277",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "278",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "279",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "280",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "281",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "282",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "283",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "284",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "285",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "286",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "287",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "288",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "289",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "290",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "291",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "292",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "293",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "294",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "295",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "296",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "297",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "298",
+            "value": "1"
+          }
+        ],
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": [],
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-99-finished-cancelled",
+      "comment": "the claim keys of the 99 cancelled vestings: 99 burns + 1 payout",
+      "tx": {
+        "from": "address:holder",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "101",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "102",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "103",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "104",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "105",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "106",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "107",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "108",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "109",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "110",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "111",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "112",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "113",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "114",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "115",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "116",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "117",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "118",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "119",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "120",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "121",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "122",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "123",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "124",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "125",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "126",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "127",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "128",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "129",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "130",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "131",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "132",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "133",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "134",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "135",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "136",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "137",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "138",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "139",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "140",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "141",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "142",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "143",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "144",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "145",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "146",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "147",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "148",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "149",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "150",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "151",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "152",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "153",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "154",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "155",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "156",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "157",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "158",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "159",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "160",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "161",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "162",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "163",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "164",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "165",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "166",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "167",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "168",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "169",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "170",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "171",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "172",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "173",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "174",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "175",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "176",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "177",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "178",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "179",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "180",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "181",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "182",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "183",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "184",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "185",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "186",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "187",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "188",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "189",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "190",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "191",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "192",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "193",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "194",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "195",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "196",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "197",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "198",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "199",
+            "value": "1"
+          }
+        ],
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": [],
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "refunds and payouts exact; only the claim key of vesting 199 is left",
+      "accounts": {
+        "address:creator": {
+          "nonce": "*",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "49500000",
+            "str:VESTCANCEL-123456": {
+              "instances": []
+            }
+          },
+          "storage": {},
+          "code": ""
+        },
+        "address:holder": {
+          "nonce": "*",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "148500000",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "299",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": {},
+          "code": ""
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "1000000",
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "299"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "199"
+            }
+          }
+        },
+        "+": ""
+      }
+    }
+  ]
+}
