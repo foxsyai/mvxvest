@@ -1,0 +1,6 @@
+# Findings checked by hand and known not to be secrets (one fingerprint each).
+#
+# KEY_HOLDER in a review test is the PUBLIC key (hex) of the devnet test
+# wallet erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u: public
+# data, flagged only because the variable's name contains "KEY" (12 Oct 2026).
+3d35c88c2a03b1dff7102ba4e77dc0e6eafe0064:dapp/src/chain/tests/review_history.test.ts:generic-api-key:25
