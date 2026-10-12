@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <title>mvxvest CANCEL KEY</title>
-  <rect width="512" height="512" rx="56" fill="#9f1239"/>
-  <rect x="24" y="24" width="464" height="464" rx="40" fill="none" stroke="#fecdd3" stroke-width="3"/>
-  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="190" cy="200" r="62"/>
-    <path d="M240 238 L352 350"/>
-    <path d="M316 314 L346 284"/>
-    <path d="M290 288 L314 264"/>
+  <rect width="512" height="512" rx="56" fill="#0E0E12"/>
+  <rect x="24" y="24" width="464" height="464" rx="40" fill="none" stroke="#FB7185" stroke-width="3"/>
+  <g transform="translate(141 58) scale(0.45)">
+    <path d="M 84 24 L 180 160 L 332 160 L 428 24 L 472 300 L 256 492 L 40 300 Z" fill="#E11D48" stroke="#E11D48" stroke-width="18" stroke-linejoin="round"/>
+    <g transform="translate(250 290) scale(5.6) translate(-30 -31)" fill="none" stroke="#09090D" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="24" cy="25" r="8.5"/>
+      <path d="M30 31l13 13M39.5 40.5l4-4M35.5 36.5l3-3"/>
+    </g>
   </g>
-  <path d="M168 178 L212 222 M212 178 L168 222" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
-  <text x="256" y="424" text-anchor="middle" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="40" font-weight="bold" fill="#ffffff">CANCEL KEY</text>
-  <text x="256" y="462" text-anchor="middle" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="22" fill="#fecdd3">mvxvest</text>
+  <text x="256" y="372" text-anchor="middle" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="44" font-weight="bold" fill="#F5F5F5">CANCEL KEY</text>
+  <text x="256" y="430" text-anchor="middle" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="24" fill="#FB7185">mvxvest</text>
 </svg>

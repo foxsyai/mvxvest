@@ -1,9 +1,9 @@
 // Light or dark before the first paint: the reader's choice if they made one,
-// otherwise their system setting. hooks/useTheme.ts takes over after load.
+// otherwise dark (the mvxsafe.io look). hooks/useTheme.ts takes over after load.
 (function () {
-  var choice = 'system';
+  var choice = 'dark';
   try {
-    choice = localStorage.getItem('mvxvest:theme') || 'system';
+    choice = localStorage.getItem('mvxvest:theme') || 'dark';
   } catch (e) {}
   var dark =
     choice === 'dark' ||

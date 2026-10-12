@@ -31,17 +31,18 @@
 }
 
 :root {
+  /* Light: the FOXSY orange, a shade deeper so links read on white (5.2:1). */
   color-scheme: light;
-  --c-canvas: #f5f6f5;
+  --c-canvas: #f6f6f7;
   --c-surface: #ffffff;
-  --c-raised: #f0f2f1;
-  --c-line: #dfe3e1;
-  --c-ink: #141819;
-  --c-muted: #56606a;
-  --c-faint: #8a949c;
-  --c-accent: #0f766e;
+  --c-raised: #f0f0f2;
+  --c-line: #e1e1e6;
+  --c-ink: #09090d;
+  --c-muted: #565b63;
+  --c-faint: #8a8f98;
+  --c-accent: #c2410c;
   --c-accent-ink: #ffffff;
-  --c-accent-soft: #e2f3f0;
+  --c-accent-soft: #fff1e8;
   --c-cancel: #9f1239;
   --c-cancel-soft: #fbe8ee;
   --c-warn: #a15c07;
@@ -52,19 +53,20 @@
   --c-danger-soft: #fdeaea;
 }
 
-
 :root[data-theme='dark'] {
+  /* Dark, the default: the palette of mvxsafe.io. Orange #FF6E0A, ink
+     #09090D, chalk #F5F5F5 on #0E0E12. */
   color-scheme: dark;
-  --c-canvas: #0b0e0f;
-  --c-surface: #121719;
-  --c-raised: #192023;
-  --c-line: #263034;
-  --c-ink: #e7eced;
-  --c-muted: #9aa7ac;
-  --c-faint: #6b787d;
-  --c-accent: #2dd4bf;
-  --c-accent-ink: #062521;
-  --c-accent-soft: #0f2c29;
+  --c-canvas: #0e0e12;
+  --c-surface: #121218;
+  --c-raised: #1a1a22;
+  --c-line: #2a2a32;
+  --c-ink: #f5f5f5;
+  --c-muted: #9aa0a6;
+  --c-faint: #6b7280;
+  --c-accent: #ff6e0a;
+  --c-accent-ink: #09090d;
+  --c-accent-soft: #2b1a0f;
   --c-cancel: #fb7185;
   --c-cancel-soft: #3a1520;
   --c-warn: #fbbf24;

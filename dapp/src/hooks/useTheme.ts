@@ -6,9 +6,10 @@ const KEY = 'mvxvest:theme';
 const read = (): ThemeChoice => {
   try {
     const value = localStorage.getItem(KEY);
-    return value === 'light' || value === 'dark' ? value : 'system';
+    // Dark unless the reader chose otherwise: the mvxsafe.io look.
+    return value === 'light' || value === 'system' ? value : 'dark';
   } catch {
-    return 'system';
+    return 'dark';
   }
 };
 
@@ -40,8 +41,8 @@ export const useTheme = () => {
 
   const choose = useCallback((next: ThemeChoice) => {
     try {
-      if (next === 'system') localStorage.removeItem(KEY);
-      else localStorage.setItem(KEY, next);
+      // Stored even for "system": with nothing stored the site is dark.
+      localStorage.setItem(KEY, next);
     } catch {
       // Private mode: the choice lasts for this page only.
     }
