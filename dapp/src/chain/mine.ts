@@ -56,6 +56,32 @@ export const createdVestings = async (
   return { list: list.sort((a, b) => b.id - a.id), count };
 };
 
+/**
+ * Vestings whose cancel key `address` holds although it did not create them
+ * (a key sent on to a treasury, a multisig, a new owner), newest first: each
+ * cancel key held that is not one of `known` is looked up by its nonce.
+ */
+export const cancelKeysOfOthers = async (
+  address: string,
+  cancelCollection: string,
+  known: Vesting[],
+  limit = 100
+): Promise<Vesting[]> => {
+  const mine = new Set(known.map((v) => v.cancelNonce));
+  const others = (await keysHeld(address, cancelCollection))
+    .filter((nonce) => !mine.has(nonce))
+    .slice(-limit);
+  const ids: number[] = [];
+  for (const nonce of others) {
+    const id = await vesting.vestingByCancelNonce(nonce);
+    if (id) ids.push(id);
+  }
+  const list: Vesting[] = [];
+  for (const part of chunks(ids, 100))
+    list.push(...(await vesting.vestings(part)));
+  return list.sort((a, b) => b.id - a.id);
+};
+
 /** Every vesting of a token (at most `limit`), newest first. */
 export const tokenVestings = async (
   token: string,

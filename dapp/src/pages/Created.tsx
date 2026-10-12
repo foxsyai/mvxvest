@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createdVestings } from 'chain/mine';
+import { cancelKeysOfOthers, createdVestings } from 'chain/mine';
 import { keysHeld, tokenInfo } from 'chain/reads';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
@@ -25,7 +25,8 @@ export const Created = () => {
       createdVestings(address),
       keysHeld(address, collections.cancel)
     ]);
-    return { collections, list, count, cancelKeys: new Set(cancelKeys) };
+    const held = await cancelKeysOfOthers(address, collections.cancel, list);
+    return { collections, list, count, held, cancelKeys: new Set(cancelKeys) };
   }, [address]);
 
   const build = useCallback(
@@ -110,14 +111,40 @@ export const Created = () => {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const { list, count, cancelKeys } = data.data;
+  const { list, count, held, cancelKeys } = data.data;
+  const cancelAction = (v: Vesting) =>
+    v.cancelable &&
+    v.cancelledAt === 0 &&
+    cancelKeys.has(v.cancelNonce) &&
+    !cancelling ? (
+      <Button variant='danger' onClick={() => setCancelling(v)}>
+        Cancel
+      </Button>
+    ) : undefined;
 
   return (
     <div className='space-y-6'>
       <PageTitle
         title='Created by me'
-        lead='Every vesting this wallet created, and every beneficiary’s progress. Cancel is offered where this wallet still holds the cancel key.'
+        lead='Every vesting this wallet created, and every beneficiary’s progress. Cancel is offered where this wallet holds the cancel key, including vestings created by another wallet whose cancel key was sent here.'
       />
+      {cancelling && (
+        <TxPanel
+          sender={address}
+          label={`Cancel vesting #${cancelling.id}`}
+          summary={
+            <Notice tone='warn'>
+              Stops vesting #{cancelling.id} when the transaction runs, and
+              cannot be undone. What has vested by then stays claimable with the
+              claim key; the rest comes back to this wallet. The cancel key is
+              burned.
+            </Notice>
+          }
+          build={build}
+          onClose={() => setCancelling(null)}
+          onFinished={() => data.reload()}
+        />
+      )}
       {list.length === 0 ? (
         <Notice>
           This wallet has not created any vestings yet.{' '}
@@ -138,43 +165,37 @@ export const Created = () => {
           <Button variant='secondary' onClick={exportCsv}>
             Export to CSV
           </Button>
-          {cancelling && (
-            <TxPanel
-              sender={address}
-              label={`Cancel vesting #${cancelling.id}`}
-              summary={
-                <Notice tone='warn'>
-                  Stops vesting #{cancelling.id} when the transaction runs, and
-                  cannot be undone. What has vested by then stays claimable with
-                  the claim key; the rest comes back to this wallet. The cancel
-                  key is burned.
-                </Notice>
-              }
-              build={build}
-              onClose={() => setCancelling(null)}
-              onFinished={() => data.reload()}
-            />
-          )}
           <div className='grid gap-4 lg:grid-cols-2'>
             {list.map((v) => (
               <VestingCard
                 key={v.id}
                 vesting={v}
                 now={now}
-                actions={
-                  v.cancelable &&
-                  v.cancelledAt === 0 &&
-                  cancelKeys.has(v.cancelNonce) &&
-                  !cancelling ? (
-                    <Button variant='danger' onClick={() => setCancelling(v)}>
-                      Cancel
-                    </Button>
-                  ) : undefined
-                }
+                actions={cancelAction(v)}
               />
             ))}
           </div>
         </>
+      )}
+      {held.length > 0 && (
+        <section className='space-y-3'>
+          <h2 className='font-bold'>Cancel keys in this wallet</h2>
+          <p className='text-sm text-muted'>
+            Vestings another wallet created, whose cancel key was sent to this
+            one: this wallet can cancel them, and what has not vested comes
+            here.
+          </p>
+          <div className='grid gap-4 lg:grid-cols-2'>
+            {held.map((v) => (
+              <VestingCard
+                key={v.id}
+                vesting={v}
+                now={now}
+                actions={cancelAction(v)}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
