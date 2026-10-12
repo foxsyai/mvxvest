@@ -159,7 +159,8 @@ async function display() {
       if (!response.ok) throw new Error(`${uri} answered ${response.status}: publish the images first`);
     }
     if (!announce(`setKeyDisplay(${kind}, "", ${uris.join(", ")})`)) continue;
-    await call(`setKeyDisplay ${kind}`, "setKeyDisplay", [kind, "", ...uris], { gasLimit: 10_000_000n });
+    // Simulated gas (x1.2): a fixed limit far above use is charged in full.
+    await call(`setKeyDisplay ${kind}`, "setKeyDisplay", [kind, "", ...uris]);
   }
 }
 
@@ -214,11 +215,16 @@ async function handover() {
     sender: deployer.address,
     receiver: contract,
     value: 0n,
-    gasLimit: 6_000_000n,
+    gasLimit: 0n,
     chainID: "1",
     nonce: deployer.getNonceThenIncrement(),
     data: new TextEncoder().encode(`ChangeOwnerAddress@${target.toHex()}`),
   });
+  // Simulated, then x1.2: never far above what it uses (a limit far above use
+  // is charged in full).
+  const cost = BigInt((await entrypoint().createNetworkProvider().estimateTransactionCost(tx)).gasLimit);
+  tx.gasLimit = (cost * 12n) / 10n;
+  console.log(`gas: simulated ${cost}, limit ${tx.gasLimit}`);
   tx.signature = await deployer.signTransaction(tx);
   await send("ChangeOwnerAddress", tx);
   const after = await account(contract.toBech32());
@@ -230,19 +236,24 @@ async function sweep() {
   const target = await multisig();
   const deployer = await signer("deployer");
   const balance = BigInt((await account(deployer.address.toBech32())).balance);
-  const fee = 50_000n * 1_000_000_000n;
+  // A plain EGLD transfer costs exactly 50,000 gas: no more is set.
+  const gasLimit = 50_000n;
+  const fee = gasLimit * 1_000_000_000n;
   if (balance <= fee) {
     console.log("Nothing left to send.");
     return;
   }
   const amount = balance - fee;
   if (!announce(`send ${Number(amount) / 1e18} EGLD from the deployer to the multisig`)) return;
-  const tx = await entrypoint()
-    .createTransfersController()
-    .createTransactionForTransfer(deployer, deployer.getNonceThenIncrement(), {
-      receiver: target,
-      nativeAmount: amount,
-    });
+  const tx = new Transaction({
+    sender: deployer.address,
+    receiver: target,
+    value: amount,
+    gasLimit,
+    chainID: "1",
+    nonce: deployer.getNonceThenIncrement(),
+  });
+  tx.signature = await deployer.signTransaction(tx);
   await send("sweep to the multisig", tx);
 }
 

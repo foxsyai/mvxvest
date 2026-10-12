@@ -23,7 +23,8 @@ esac
 cd "$HERE"
 
 # Mainnet has no contract yet: refuse rather than publish a site that points nowhere.
-if [ "$NETWORK" = mainnet ] && ! grep -q "contractAddress = 'erd1" src/config/config.mainnet.ts; then
+# (The address may sit on the line after "contractAddress =".)
+if [ "$NETWORK" = mainnet ] && ! tr -d ' \n' < src/config/config.mainnet.ts | grep -Eq "contractAddress='erd1[02-9ac-hj-np-z]{58}'"; then
   echo "REFUSING: no mainnet contract address in src/config/config.mainnet.ts."; exit 1
 fi
 
