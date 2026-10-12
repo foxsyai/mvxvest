@@ -13,7 +13,8 @@ import {
   formatAmount,
   formatAmountExact,
   formatDate,
-  formatUtc
+  formatUtc,
+  isoDate
 } from 'vesting/format';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -157,7 +158,7 @@ export const When = ({
   className?: string;
 }) => (
   <time
-    dateTime={new Date(seconds * 1000).toISOString()}
+    dateTime={isoDate(seconds)}
     title={formatUtc(seconds)}
     className={`tabular ${className}`}
   >

@@ -25,7 +25,7 @@ export const MAX_CSV_LINES = 5_000;
 const isAddress = (value: string) =>
   /^erd1[02-9ac-hj-np-z]{58}$/.test(value) && Address.isValid(value);
 
-const splitLine = (line: string): string[] => {
+const splitLine = (line: string): { cells: string[]; separator: string } => {
   // Tab or semicolon when the file uses one; otherwise a comma, which then
   // cannot also be a thousands separator unless the amount is quoted.
   const separator = line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',';
@@ -40,7 +40,7 @@ const splitLine = (line: string): string[] => {
     } else cell += char;
   }
   cells.push(cell);
-  return cells.map((value) => value.trim());
+  return { cells: cells.map((value) => value.trim()), separator };
 };
 
 /** A first line that names its columns rather than holding a vesting. */
@@ -72,16 +72,19 @@ export const parseBeneficiaries = (
       repeated: []
     };
   }
+  let first = true;
   lines.forEach((raw, index) => {
     const line = index + 1;
     if (!raw.trim()) return;
-    const [address = '', amountText = '', ...rest] = splitLine(raw);
-    if (
-      header &&
-      rows.length + errors.length === 0 &&
-      isHeader(address, amountText)
-    )
-      return;
+    const { cells, separator } = splitLine(raw);
+    const [address = '', amountText = '', ...rest] = cells;
+    // Only the first line with anything on it can be a header.
+    const firstLine = first;
+    first = false;
+    if (header && firstLine && isHeader(address, amountText)) return;
+    // Semicolons separate cells where the comma is the decimal mark, and a
+    // point may group thousands there.
+    const options = { pointMayGroup: separator === ';' };
     if (rest.some((cell) => cell !== '')) {
       errors.push({
         line,
@@ -96,11 +99,11 @@ export const parseBeneficiaries = (
       });
       return;
     }
-    const amount = parseAmount(amountText, decimals);
+    const amount = parseAmount(amountText, decimals, options);
     if (amount === null) {
       errors.push({
         line,
-        message: `Not a valid amount: ${amountText || '(empty)'} (${amountProblem(amountText, decimals)})`
+        message: `Not a valid amount: ${amountText || '(empty)'} (${amountProblem(amountText, decimals, options)})`
       });
       return;
     }
@@ -122,12 +125,20 @@ export const parseBeneficiaries = (
 /**
  * One CSV cell. Text a spreadsheet would run as a formula (= + - @, or a tab or
  * carriage return before one) gets a leading apostrophe: labels are anyone's
- * bytes on chain. Plain numbers, negative ones included, are left alone.
+ * bytes on chain. Plain numbers, negative ones included, are left alone. A
+ * cell holding a separator of any dialect (comma, semicolon, tab) or a line
+ * break is quoted, so no spreadsheet splits it into a new cell.
  */
 const csvCell = (cell: string | number) => {
   let text = String(cell);
-  if (typeof cell !== 'number' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  if (typeof cell !== 'number') {
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    // A semicolon-locale spreadsheet does not split on commas, so quotes do
+    // not hold there: it starts a new cell at every semicolon (or tab), and a
+    // formula could start right after one.
+    text = text.replace(/([;\t])(?=\s*[=+\-@])/g, "$1'");
+  }
+  return /[",;\t\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 
 /** Back to CSV, for an export: address, amount in token units as text. */

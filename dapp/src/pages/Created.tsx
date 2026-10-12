@@ -11,7 +11,7 @@ import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import type { Vesting } from 'vesting/client';
 import { toCsv } from 'vesting/csv';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
-import { formatAmountExact } from 'vesting/format';
+import { formatAmountExact, isoDate } from 'vesting/format';
 
 const download = (name: string, text: string) => {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
@@ -64,8 +64,8 @@ export const Created = () => {
         amount(v.claimed),
         amount(v.claimable),
         STATUS_LABEL[statusOf(v, now)],
-        new Date(v.schedule.start * 1000).toISOString(),
-        new Date(v.schedule.end * 1000).toISOString(),
+        isoDate(v.schedule.start),
+        isoDate(v.schedule.end),
         v.cancelable ? 'yes' : 'no'
       ]);
     }

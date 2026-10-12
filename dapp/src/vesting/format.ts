@@ -35,13 +35,21 @@ export const formatAmountExact = (units: bigint, decimals: number) =>
  * is only taken as a thousands separator where it cannot be a decimal comma:
  * "1,234.5" and "1,234,567" are fine, "1,5", "1,500" and "1.500,75" are refused
  * (in much of Europe they mean 1.5, 1.5 and 1500.75), never guessed.
+ *
+ * `pointMayGroup`: the text comes from a semicolon-separated file, where the
+ * comma is the decimal mark and a point groups thousands ("10.000" is ten
+ * thousand). There a point followed by exactly three digits is refused too:
+ * write 10000, or 10.0 for ten.
  */
 export const amountProblem = (
   text: string,
-  decimals: number
+  decimals: number,
+  { pointMayGroup = false }: { pointMayGroup?: boolean } = {}
 ): string | null => {
   const clean = text.trim().replace(/[_\s]/g, '');
   if (!clean) return 'empty';
+  if (pointMayGroup && /^[1-9]\d{0,2}(?:\.\d{3})+$/.test(clean))
+    return `in a file separated by semicolons ${clean} may mean thousands: write it without separators, like ${clean.replace(/\./g, '')}, or with another decimal, like ${clean}0`;
   let plain = clean;
   if (clean.includes(',')) {
     const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d*)?$/.test(clean);
@@ -64,8 +72,12 @@ export const amountProblem = (
  * comma (see amountProblem), or when it has more decimals than the token
  * allows: an amount must never be rounded or guessed silently.
  */
-export const parseAmount = (text: string, decimals: number): bigint | null => {
-  if (amountProblem(text, decimals) !== null) return null;
+export const parseAmount = (
+  text: string,
+  decimals: number,
+  options: { pointMayGroup?: boolean } = {}
+): bigint | null => {
+  if (amountProblem(text, decimals, options) !== null) return null;
   const clean = text.trim().replace(/[,_\s]/g, '');
   const [whole, fraction = ''] = clean.split('.');
   const digits = (fraction + '0'.repeat(decimals)).slice(0, decimals);
@@ -89,17 +101,28 @@ const localDay = new Intl.DateTimeFormat(undefined, {
   day: 'numeric'
 });
 
+/** A time no Date can hold (NaN, beyond year 275760): shown, never thrown. */
+const validDate = (seconds: number) =>
+  Number.isFinite(new Date(seconds * 1000).getTime());
+const NO_DATE = 'no valid date';
+
 /** A timestamp (seconds) in the reader's own time zone. */
 export const formatDate = (seconds: number) =>
-  localFormat.format(new Date(seconds * 1000));
+  validDate(seconds) ? localFormat.format(new Date(seconds * 1000)) : NO_DATE;
 
 /** The day only, in the reader's own time zone. */
 export const formatDay = (seconds: number) =>
-  localDay.format(new Date(seconds * 1000));
+  validDate(seconds) ? localDay.format(new Date(seconds * 1000)) : NO_DATE;
 
 /** The same moment in UTC, for the hover text: "2027-03-01 00:00 UTC". */
 export const formatUtc = (seconds: number) =>
-  `${new Date(seconds * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+  validDate(seconds)
+    ? `${new Date(seconds * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC`
+    : NO_DATE;
+
+/** For a dateTime attribute; empty when the time is not a valid date. */
+export const isoDate = (seconds: number) =>
+  validDate(seconds) ? new Date(seconds * 1000).toISOString() : '';
 
 /** "3 days", "5 months": a duration in seconds, roughly, for prose. */
 export const formatDuration = (seconds: number): string => {

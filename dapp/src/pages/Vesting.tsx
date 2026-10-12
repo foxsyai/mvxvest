@@ -38,7 +38,7 @@ export const VestingPage = () => {
   const [action, setAction] = useState<'claim' | 'cancel' | null>(null);
 
   const data = useAsync(async () => {
-    if (!Number.isInteger(id) || id < 1)
+    if (!Number.isSafeInteger(id) || id < 1)
       throw new Error('not a vesting number');
     const [v, collections] = await Promise.all([
       client.vesting(id),

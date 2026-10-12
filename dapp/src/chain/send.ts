@@ -113,6 +113,12 @@ export interface Sent {
    * not (it and every later one did not reach the network), and why.
    */
   stopped?: { at: number; reason: string };
+  /**
+   * Hashes the network never confirmed receiving (every POST timed out or
+   * failed on the server side): they may have gone through. They are followed
+   * like the others, and nothing after them was sent.
+   */
+  unconfirmed?: string[];
   /** The nonce the next transaction of this sender should use. */
   nextNonce: bigint;
 }
@@ -133,23 +139,56 @@ const retryable = (failure: unknown) =>
   );
 
 /**
- * Sends one signed transaction, asking again on a refusal that may pass later
- * (rate limit, server error). A transaction the network already holds is
- * accepted as sent: the signed bytes, and so the hash, are the same.
+ * A failure after which the transaction may still have reached the network:
+ * no answer at all (a timeout, a dropped connection) or a server error. A rate
+ * limit (429) or any answer from the node about the transaction itself means
+ * it was not taken.
  */
-const sendOne = async (manager: any, transaction: Transaction) => {
+const mayHaveArrived = (failure: unknown) => {
+  const status = (failure as any)?.response?.status;
+  return status === undefined
+    ? /timeout|timed out|aborted|network|failed to fetch/i.test(
+        reasonOf(failure)
+      )
+    : status >= 500;
+};
+
+/** The node refuses a nonce it has already used (executed). */
+const nonceUsed = (failure: unknown) =>
+  /lowerNonceInTx: true|nonce too low|lower nonce/i.test(reasonOf(failure));
+
+/**
+ * Sends one signed transaction, asking again on a refusal that may pass later
+ * (rate limit, server error, timeout). The signed bytes, and so the hash, are
+ * the same on every try, so:
+ * - "already holds it" means sent;
+ * - after a try that may have arrived, "nonce already used" means that try was
+ *   executed (sdk-dapp gives up on a POST after 4 s; a round is 0.6 s);
+ * - when every try may have arrived but none was confirmed, it is returned as
+ *   unconfirmed, never as "not sent": signing it again could create it twice.
+ */
+const sendOne = async (
+  manager: any,
+  transaction: Transaction
+): Promise<{ entry: any; unconfirmed?: boolean }> => {
+  const hash = Buffer.from(
+    new TransactionComputer().computeTransactionHash(transaction)
+  ).toString('hex');
+  const local = { ...transaction.toPlainObject(), hash, status: 'pending' };
+  let maybeArrived = false;
   for (let attempt = 0; ; attempt++) {
     try {
       const sent = await manager.send([transaction]);
-      return Array.isArray(sent) ? sent.flat() : [sent];
+      const list = Array.isArray(sent) ? sent.flat() : [sent];
+      return { entry: list[0]?.hash ? list[0] : local };
     } catch (failure) {
-      if (/already|duplicat/i.test(reasonOf(failure))) {
-        const hash = Buffer.from(
-          new TransactionComputer().computeTransactionHash(transaction)
-        ).toString('hex');
-        return [{ ...transaction.toPlainObject(), hash, status: 'pending' }];
+      if (/already|duplicat/i.test(reasonOf(failure))) return { entry: local };
+      if (maybeArrived && nonceUsed(failure)) return { entry: local };
+      maybeArrived ||= mayHaveArrived(failure);
+      if (attempt >= 3 || !retryable(failure)) {
+        if (maybeArrived) return { entry: local, unconfirmed: true };
+        throw failure;
       }
-      if (attempt >= 3 || !retryable(failure)) throw failure;
       // The API counts requests per second: 0.4, 0.8 then 1.6 s is enough.
       await wait(400 * 2 ** attempt);
     }
@@ -171,10 +210,24 @@ export const send = async (
   const manager = TransactionManager.getInstance();
   const signed = await provider.signTransactions(transactions);
   const sent: any[] = [];
+  const unconfirmed: string[] = [];
   let stopped: Sent['stopped'];
   for (const [index, transaction] of signed.entries()) {
     try {
-      sent.push(...(await sendOne(manager, transaction)));
+      const one = await sendOne(manager, transaction);
+      sent.push(one.entry);
+      if (one.unconfirmed) {
+        unconfirmed.push(one.entry.hash);
+        // Its nonce may or may not be used: sending the next ones could leave
+        // them waiting behind a gap. Stop, and let the reader look first.
+        if (index + 1 < signed.length) {
+          stopped = {
+            at: index + 1,
+            reason: `the network did not confirm transaction ${index + 1}; check it before signing the rest`
+          };
+        }
+        break;
+      }
     } catch (failure) {
       // sdk-dapp moved its stored nonce forward when the wallet signed; the
       // ones not sent did not use theirs (mvxsafe tx audit TX-08).
@@ -184,6 +237,8 @@ export const send = async (
       break;
     }
   }
+  if (stopped && unconfirmed.length > 0)
+    setAccountNonce(Number(transactions[stopped.at].nonce));
   const hashes: string[] = sent
     .map((transaction: any) => transaction?.hash ?? '')
     .filter(Boolean);
@@ -218,5 +273,10 @@ export const send = async (
   setTimeout(settled, 8_000);
   setTimeout(settled, 18_000);
   const lastSent = transactions[(stopped?.at ?? transactions.length) - 1];
-  return { hashes, stopped, nextNonce: (lastSent?.nonce ?? 0n) + 1n };
+  return {
+    hashes,
+    stopped,
+    ...(unconfirmed.length > 0 ? { unconfirmed } : {}),
+    nextNonce: (lastSent?.nonce ?? 0n) + 1n
+  };
 };

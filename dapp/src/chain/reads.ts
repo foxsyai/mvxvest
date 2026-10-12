@@ -181,7 +181,13 @@ export const historyOf = async (id: number): Promise<HistoryEvent[]> => {
 };
 
 export interface TxOutcome {
-  status: 'success' | 'fail' | 'invalid' | 'pending';
+  /**
+   * 'missing': the network has not seen it for long enough to say it never
+   * went through (set by whoever follows it; outcomeOf only flags `unknown`).
+   */
+  status: 'success' | 'fail' | 'invalid' | 'pending' | 'missing';
+  /** Pending, and the API does not know the hash at all (yet). */
+  unknown?: boolean;
   /** The contract's or the protocol's reason, when it failed. */
   reason?: string;
 }
@@ -191,7 +197,8 @@ export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
   const response = await fetch(
     `${apiUrl}/transactions/${hash}?withResults=true&withLogs=true`
   );
-  if (!response.ok) return { status: 'pending' };
+  if (!response.ok)
+    return { status: 'pending', unknown: response.status === 404 };
   const tx = await response.json();
   if (tx.status === 'pending' || tx.pendingResults)
     return { status: 'pending' };

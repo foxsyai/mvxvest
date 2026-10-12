@@ -22,9 +22,17 @@ const maxFee = (tx: Transaction) => {
   return dataGas * 1_000_000_000n + execution * 10_000_000n;
 };
 
+/**
+ * How long a sent hash may stay unknown to the API before it is called
+ * missing: a transaction is executed and indexed within seconds.
+ */
+const MISSING_AFTER_MS = 120_000;
+
 const outcomeText = (outcome?: TxOutcome) => {
   if (!outcome || outcome.status === 'pending') return 'processing';
   if (outcome.status === 'success') return 'done';
+  if (outcome.status === 'missing')
+    return 'not found on the network: it did not go through';
   return `failed: ${outcome.reason ?? outcome.status}`;
 };
 
@@ -46,6 +54,8 @@ export const TxPanel = ({
   firstNonce,
   onSent,
   onFinished,
+  onBusy,
+  keepAfterSent = false,
   onClose
 }: {
   sender: string;
@@ -59,6 +69,10 @@ export const TxPanel = ({
   /** Called once, as soon as the network has accepted what it accepted. */
   onSent?: (sent: Sent) => void;
   onFinished?: (hashes: string[], outcomes: TxOutcome[]) => void;
+  /** True when the wallet is asked; false again if nothing was sent. */
+  onBusy?: (busy: boolean) => void;
+  /** Once sent, stays on the page (no Close): the page keeps its record. */
+  keepAfterSent?: boolean;
   onClose: () => void;
 }) => {
   const [phase, setPhase] = useState<Phase>({ step: 'checking' });
@@ -93,13 +107,17 @@ export const TxPanel = ({
     locked.current = true;
     run.current++;
     setPhase({ step: 'signing' });
+    onBusy?.(true);
     try {
       const sent = await send(transactions, label);
       setPhase({ step: 'sent', sent, total: transactions.length });
       onSent?.(sent);
     } catch (failure) {
-      // Nothing reached the network: checking again is safe.
+      // send() rejects only when nothing can have reached the network (a
+      // send that may have arrived resolves as unconfirmed): checking again
+      // is safe.
       locked.current = false;
+      onBusy?.(false);
       setPhase({
         step: 'error',
         message: explainWalletFailure(failure, label)
@@ -112,12 +130,20 @@ export const TxPanel = ({
     if (phase.step !== 'sent') return;
     const { hashes } = phase.sent;
     let stopped = false;
+    const unknownSince = new Map<string, number>();
     const poll = async () => {
       const next: Record<string, TxOutcome> = {};
       for (const hash of hashes) {
-        next[hash] = await outcomeOf(hash).catch(() => ({
+        let outcome: TxOutcome = await outcomeOf(hash).catch(() => ({
           status: 'pending' as const
         }));
+        if (outcome.unknown) {
+          const since = unknownSince.get(hash) ?? Date.now();
+          unknownSince.set(hash, since);
+          if (Date.now() - since > MISSING_AFTER_MS)
+            outcome = { status: 'missing' };
+        } else unknownSince.delete(hash);
+        next[hash] = outcome;
       }
       if (stopped) return;
       setOutcomes(next);
@@ -196,6 +222,17 @@ export const TxPanel = ({
       {phase.step === 'signing' && <Spinner label='Waiting for your wallet' />}
       {phase.step === 'sent' && (
         <div className='space-y-2'>
+          {phase.sent.unconfirmed?.length ? (
+            <Notice tone='warn'>
+              The network did not confirm that it received{' '}
+              {phase.sent.unconfirmed.length === 1
+                ? 'one transaction'
+                : `${phase.sent.unconfirmed.length} transactions`}{' '}
+              (the connection timed out). It may well have gone through: it is
+              followed below. Do not sign it again before it shows done or not
+              found.
+            </Notice>
+          ) : null}
           {phase.sent.stopped ? (
             <Notice tone='warn'>
               {phase.sent.hashes.length} of {phase.total} transactions were
@@ -230,9 +267,11 @@ export const TxPanel = ({
               </li>
             ))}
           </ul>
-          <Button variant='secondary' onClick={onClose}>
-            Close
-          </Button>
+          {!keepAfterSent && (
+            <Button variant='secondary' onClick={onClose}>
+              Close
+            </Button>
+          )}
         </div>
       )}
       {phase.step === 'error' && (

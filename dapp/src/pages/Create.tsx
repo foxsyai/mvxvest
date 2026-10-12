@@ -1,6 +1,6 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { balancesOf, createdIdsOf } from 'chain/reads';
+import { balancesOf, createdIdsOf, TxOutcome } from 'chain/reads';
 import type { Sent } from 'chain/send';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
@@ -72,26 +72,43 @@ const Step = ({
   </Card>
 );
 
-/** What was reviewed and is being signed: frozen while the panel is open. */
+/** One signing of some of the review's transactions. */
+interface Attempt {
+  n: number;
+  /** Which of the review's transactions (indexes into `batches`). */
+  indexes: number[];
+  /** The account's next nonce when earlier ones may still be pending. */
+  firstNonce?: bigint;
+  /** Something of it reached the network: it stays on the page. */
+  sent?: boolean;
+}
+
+/**
+ * What was reviewed and is being signed, frozen when "Check and sign" is
+ * pressed. Once any of it reached the network the review stays (the form stays
+ * locked) until "Start a new creation": what was sent is never offered again,
+ * only the transactions that created nothing.
+ */
 interface Review {
   key: string;
+  /** The account that opened it: only it signs any of it. */
+  account: string;
   tokenId: string;
   batches: NewVesting[][];
   cancelable: boolean;
   label: string;
   fee: bigint;
-  count: number;
-  sum: bigint;
   decimals: number;
   ticker: string;
-  /** Batches already accepted by the network. */
-  done: number;
-  /** Bumped to sign the remaining batches after a partial send. */
-  attempt: number;
-  /** Something was sent: the form stays locked. */
-  sending?: boolean;
-  /** The last send stopped before the end. */
-  stopped?: boolean;
+  /** Per transaction: the hash it was sent with. */
+  hashes: (string | undefined)[];
+  /** Final results by hash. */
+  results: Record<string, 'success' | 'failed' | 'missing'>;
+  /** Sent, but the network did not confirm receiving them. */
+  unconfirmed: string[];
+  attempts: Attempt[];
+  /** The wallet is asked, or the transactions are being sent. */
+  busy: boolean;
   nextNonce?: bigint;
 }
 
@@ -156,7 +173,8 @@ export const Create = () => {
   // 5. signing: what was reviewed is frozen until it is sent or dropped
   const [review, setReview] = useState<Review | null>(null);
   const [created, setCreated] = useState<number[]>([]);
-  const [changed, setChanged] = useState(false);
+  /** Why an open review was closed before anything was sent. */
+  const [closed, setClosed] = useState<'form' | 'account' | null>(null);
 
   // ------------------------------------------------------------ derived
 
@@ -279,11 +297,9 @@ export const Create = () => {
       ),
     0
   );
-  const batches = splitIntoBatches(
-    entries,
-    cancelable === true,
-    limits,
-    tranchesEach
+  const batches = useMemo(
+    () => splitIntoBatches(entries, cancelable === true, limits, tranchesEach),
+    [entries, cancelable, limits, tranchesEach]
   );
   const egld =
     balances.data?.find((balance) => balance.identifier === EGLD)?.balance ??
@@ -328,88 +344,188 @@ export const Create = () => {
     [tokenId, entries, cancelable, label, fee, batches]
   );
 
+  // A build per attempt, made once: TxPanel checks again only for a new one.
+  const builds = useRef(new Map<string, () => Promise<any[]>>());
+  const buildFor = (r: Review, attempt: Attempt) => {
+    const id = `${r.key}:${r.account}:${attempt.n}`;
+    let build = builds.current.get(id);
+    if (!build) {
+      build = () =>
+        Promise.all(
+          attempt.indexes.map((index) => {
+            const batch = r.batches[index];
+            return batch.length === 1
+              ? client.create(
+                  r.account,
+                  r.tokenId,
+                  batch[0],
+                  r.cancelable,
+                  r.label,
+                  r.fee
+                )
+              : client.createBatch(
+                  r.account,
+                  r.tokenId,
+                  batch,
+                  r.cancelable,
+                  r.label,
+                  r.fee
+                );
+          })
+        );
+      builds.current.set(id, build);
+    }
+    return build;
+  };
+
   const openReview = () => {
-    setChanged(false);
+    builds.current.clear();
+    setClosed(null);
     setCreated([]);
     setReview({
       key: formKey,
+      account: address,
       tokenId,
       batches,
       cancelable: cancelable === true,
       label,
       fee,
-      count: beneficiaries.list.length,
-      sum,
       decimals,
       ticker: token?.ticker ?? '',
-      done: 0,
-      attempt: 0
+      hashes: batches.map(() => undefined),
+      results: {},
+      unconfirmed: [],
+      attempts: [{ n: 0, indexes: batches.map((_, index) => index) }],
+      busy: false
     });
   };
 
-  // Nothing sent yet and the form changed: close the review; it must be
-  // checked again. (The form is disabled while it is open; this is the guard
-  // behind that.)
+  const anySent = review ? review.hashes.some(Boolean) : false;
+  const openAttempt = review?.attempts.find((attempt) => !attempt.sent);
+  // Transactions that created nothing: never sent, or final without success.
+  const toSign = review
+    ? review.batches
+        .map((_, index) => index)
+        .filter((index) => {
+          const hash = review.hashes[index];
+          return !hash || (review.results[hash] ?? 'success') !== 'success';
+        })
+    : [];
+  // A send the network did not confirm must be settled before the rest.
+  const waiting = review
+    ? review.unconfirmed.some((hash) => !review.results[hash])
+    : false;
+  const sameAccount = review?.account === address;
+
+  // Before anything is sent, the review closes when what it was made from
+  // changes: the form (locked while it is open, so only the token's settings
+  // can) or the connected account. After, it stays: it is the record of what
+  // was sent.
   useEffect(() => {
-    if (
-      review &&
-      review.done === 0 &&
-      !review.sending &&
-      review.key !== formKey
-    ) {
+    if (!review || review.busy || review.hashes.some(Boolean)) return;
+    if (review.account !== address) {
       setReview(null);
-      setChanged(true);
+      setClosed('account');
+    } else if (review.key !== formKey) {
+      setReview(null);
+      setClosed('form');
     }
-  }, [review, formKey]);
+  }, [review, formKey, address]);
 
-  const remaining = review ? review.batches.slice(review.done) : [];
-  const build = useCallback(
-    () =>
-      Promise.all(
-        remaining.map((batch) =>
-          batch.length === 1
-            ? client.create(
-                address,
-                review!.tokenId,
-                batch[0],
-                review!.cancelable,
-                review!.label,
-                review!.fee
-              )
-            : client.createBatch(
-                address,
-                review!.tokenId,
-                batch,
-                review!.cancelable,
-                review!.label,
-                review!.fee
-              )
+  // Leaving the page with transactions half done loses this record.
+  useEffect(() => {
+    if (!review || !(review.busy || (anySent && toSign.length > 0))) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [review, anySent, toSign.length]);
+
+  const onBusy = (busy: boolean) =>
+    setReview((current) => (current ? { ...current, busy } : current));
+
+  const onSent = (attempt: Attempt) => (result: Sent) =>
+    setReview((current) => {
+      if (!current) return current;
+      const hashes = [...current.hashes];
+      // send() returns the hashes in order, stopping at the first not sent.
+      result.hashes.forEach((hash, k) => {
+        hashes[attempt.indexes[k]] = hash;
+      });
+      return {
+        ...current,
+        hashes,
+        busy: false,
+        nextNonce: result.nextNonce,
+        unconfirmed: [...current.unconfirmed, ...(result.unconfirmed ?? [])],
+        attempts: current.attempts.map((a) =>
+          a.n === attempt.n ? { ...a, sent: true } : a
         )
-      ),
-    // A new build only for a new review or a new attempt at the remaining.
+      };
+    });
 
-    [review?.key, review?.attempt, address]
-  );
-
-  const sent = (result: Sent) => {
+  const onFinished = async (hashes: string[], outcomes: TxOutcome[]) => {
     setReview((current) =>
       current
         ? {
             ...current,
-            sending: true,
-            done: current.done + result.hashes.length,
-            nextNonce: result.nextNonce,
-            stopped: Boolean(result.stopped)
+            results: {
+              ...current.results,
+              ...Object.fromEntries(
+                hashes.map((hash, k) => [
+                  hash,
+                  outcomes[k].status === 'success'
+                    ? 'success'
+                    : outcomes[k].status === 'missing'
+                      ? 'missing'
+                      : 'failed'
+                ])
+              )
+            }
           }
         : current
     );
-  };
-
-  const finished = async (hashes: string[]) => {
-    const ids = (await Promise.all(hashes.map(createdIdsOf))).flat();
+    const ids = (
+      await Promise.all(
+        hashes
+          .filter((_, k) => outcomes[k].status === 'success')
+          .map(createdIdsOf)
+      )
+    ).flat();
     setCreated((previous) =>
       [...new Set([...previous, ...ids])].sort((a, b) => a - b)
     );
+  };
+
+  const onClose = (attempt: Attempt) => () =>
+    setReview((current) => {
+      if (!current) return current;
+      // Nothing of the review was sent: the form unlocks.
+      if (!current.hashes.some(Boolean)) return null;
+      return {
+        ...current,
+        attempts: current.attempts.filter((a) => a.n !== attempt.n)
+      };
+    });
+
+  const signRemaining = () => {
+    if (!review) return;
+    // After a send that never showed up, read the nonce from the network: the
+    // new one takes its nonce, so at most one of the two can ever execute.
+    const missing = toSign.some((index) => {
+      const hash = review.hashes[index];
+      return hash !== undefined && review.results[hash] === 'missing';
+    });
+    setReview({
+      ...review,
+      attempts: [
+        ...review.attempts,
+        {
+          n: review.attempts.length,
+          indexes: toSign,
+          firstNonce: missing ? undefined : review.nextNonce
+        }
+      ]
+    });
   };
 
   const startOver = () => {
@@ -940,9 +1056,11 @@ export const Create = () => {
             Choose whether the vestings can be cancelled (step 4).
           </Notice>
         )}
-        {changed && !review && (
+        {closed && !review && (
           <Notice tone='warn'>
-            The form changed after the review opened. Check and sign again.
+            {closed === 'account'
+              ? 'The wallet changed account after the review opened. Check and sign again.'
+              : 'The form changed after the review opened. Check and sign again.'}
           </Notice>
         )}
         {created.length > 0 && (
@@ -962,69 +1080,88 @@ export const Create = () => {
         )}
         {review ? (
           <>
-            {(remaining.length > 0 || review.sending) && (
-              <TxPanel
-                key={`${review.key}:${review.attempt}`}
-                sender={address}
-                label={
-                  review.count === 1
-                    ? 'Create a vesting'
-                    : `Create ${review.count} vestings`
-                }
-                summary={
-                  <p>
-                    {review.done > 0 && !review.sending
-                      ? `The remaining ${remaining.length} of ${review.batches.length} transactions: `
-                      : ''}
-                    Locks{' '}
-                    <Amount
-                      units={review.sum}
-                      decimals={review.decimals}
-                      ticker={review.ticker}
-                    />{' '}
-                    in {review.count} vesting{review.count === 1 ? '' : 's'}
-                    {review.cancelable
-                      ? ' that you can cancel'
-                      : ' that cannot be cancelled'}
-                    {review.batches.length > 1
-                      ? `, in ${review.batches.length} transactions`
-                      : ''}
-                    . Each beneficiary receives a claim key NFT
-                    {review.cancelable
-                      ? '; you receive a cancel key per vesting'
-                      : ''}
-                    .
-                  </p>
-                }
-                build={build}
-                firstNonce={review.nextNonce}
-                onSent={sent}
-                onFinished={finished}
-                onClose={() => (review.sending ? undefined : setReview(null))}
-              />
-            )}
-            {review.sending && review.stopped && remaining.length > 0 && (
-              <div className='space-y-2'>
-                <Notice tone='warn'>
-                  {review.done} of {review.batches.length} transactions were
-                  sent; {remaining.length} were not. Check the created vestings
-                  above before going on.
-                </Notice>
-                <Button
-                  onClick={() =>
-                    setReview({
-                      ...review,
-                      sending: false,
-                      stopped: false,
-                      attempt: review.attempt + 1
-                    })
+            {review.attempts.map((attempt) => {
+              // An attempt not sent yet is signed only by the account that
+              // opened the review.
+              if (!attempt.sent && !sameAccount) return null;
+              const vestings = attempt.indexes.flatMap(
+                (index) => review.batches[index]
+              );
+              const locked = vestings.reduce((total, v) => total + v.total, 0n);
+              return (
+                <TxPanel
+                  key={`${review.key}:${review.account}:${attempt.n}`}
+                  sender={review.account}
+                  label={
+                    vestings.length === 1
+                      ? 'Create a vesting'
+                      : `Create ${vestings.length} vestings`
                   }
-                >
-                  Sign the remaining {remaining.length}
-                </Button>
+                  summary={
+                    <p>
+                      {attempt.n > 0
+                        ? `The remaining ${attempt.indexes.length} of ${review.batches.length} transactions: `
+                        : ''}
+                      Locks{' '}
+                      <Amount
+                        units={locked}
+                        decimals={review.decimals}
+                        ticker={review.ticker}
+                      />{' '}
+                      in {vestings.length} vesting
+                      {vestings.length === 1 ? '' : 's'}
+                      {review.cancelable
+                        ? ' that you can cancel'
+                        : ' that cannot be cancelled'}
+                      {attempt.indexes.length > 1
+                        ? `, in ${attempt.indexes.length} transactions`
+                        : ''}
+                      . Each beneficiary receives a claim key NFT
+                      {review.cancelable
+                        ? '; you receive a cancel key per vesting'
+                        : ''}
+                      .
+                    </p>
+                  }
+                  build={buildFor(review, attempt)}
+                  firstNonce={attempt.firstNonce}
+                  onBusy={onBusy}
+                  onSent={onSent(attempt)}
+                  onFinished={onFinished}
+                  keepAfterSent
+                  onClose={onClose(attempt)}
+                />
+              );
+            })}
+            {anySent && toSign.length > 0 && !openAttempt && !review.busy && (
+              <div className='space-y-2'>
+                {!sameAccount ? (
+                  <Notice tone='warn'>
+                    {toSign.length} of {review.batches.length} transactions
+                    created nothing yet. They were prepared for{' '}
+                    <span className='font-mono'>{review.account}</span>: connect
+                    that account again to sign them.
+                  </Notice>
+                ) : waiting ? (
+                  <Notice>
+                    Waiting for the network to confirm the transaction above
+                    before the rest can be signed.
+                  </Notice>
+                ) : (
+                  <>
+                    <Notice tone='warn'>
+                      {toSign.length} of {review.batches.length} transactions
+                      created nothing yet (not sent, or failed). The vestings
+                      already created are listed above and are not signed again.
+                    </Notice>
+                    <Button onClick={signRemaining}>
+                      Sign the remaining {toSign.length}
+                    </Button>
+                  </>
+                )}
               </div>
             )}
-            {review.sending && (
+            {anySent && !review.busy && (
               <Button variant='secondary' onClick={startOver}>
                 Start a new creation
               </Button>
