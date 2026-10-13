@@ -1,4 +1,12 @@
-import { Card, PageTitle } from 'components/ui';
+import { ReactNode } from 'react';
+import { Card, ExplorerLink, PageTitle } from 'components/ui';
+import {
+  contractAddress,
+  contractCodeHashes,
+  keyCollections,
+  ownerMultisig,
+  ownerQuorum
+} from 'config';
 
 const sections: [string, string][] = [
   [
@@ -19,13 +27,76 @@ const sections: [string, string][] = [
   ],
   [
     'Before you create',
-    'Check every address: a vesting cannot be redirected. A smart contract as beneficiary must be able to receive tokens from other contracts, or its key bounces back and has to be returned by the owner. A token whose issuer can freeze or wipe it can still be blocked by that issuer.'
+    'Check every address: a vesting cannot be redirected, with one exception. A smart contract as beneficiary must be able to receive tokens from other contracts, or its key bounces back to the vesting contract, and the owner multisig sends it on to the address it decides. A token whose issuer can pause, freeze or wipe it can still be blocked by that issuer: the vesting and token pages show what each issuer can do.'
   ],
   [
     'Fees',
     'Each transaction pays the network fee, a fraction of a cent. Creating a vesting may also pay the contract fee, shown before you sign. Claiming and cancelling pay only the network fee.'
   ]
 ];
+
+const Fact = ({
+  label,
+  path,
+  children
+}: {
+  label: string;
+  /** On the explorer. */
+  path?: string;
+  children: ReactNode;
+}) => (
+  <div>
+    <dt className='text-xs text-muted'>
+      {label}
+      {path && (
+        <>
+          {' '}
+          <ExplorerLink path={path}>explorer</ExplorerLink>
+        </>
+      )}
+    </dt>
+    <dd className='mt-0.5 font-mono text-sm break-all'>{children}</dd>
+  </div>
+);
+
+/**
+ * The identifiers to compare against: a clone of the site, or a key from a
+ * look-alike collection, differs in at least one of them (red team RT8).
+ */
+const Verify = () =>
+  contractAddress ? (
+    <Card className='md:col-span-2'>
+      <h2 className='font-bold'>Check that it is the real mvxvest</h2>
+      <dl className='mt-3 grid gap-4 sm:grid-cols-2'>
+        <Fact label='Contract' path={`/accounts/${contractAddress}`}>
+          {contractAddress}
+        </Fact>
+        <Fact label='Code hash (reproducible build)'>
+          {contractCodeHashes.join(', ')}
+        </Fact>
+        <Fact label='Claim keys' path={`/collections/${keyCollections.claim}`}>
+          {keyCollections.claim}
+        </Fact>
+        <Fact
+          label='Cancel keys'
+          path={`/collections/${keyCollections.cancel}`}
+        >
+          {keyCollections.cancel}
+        </Fact>
+        <Fact label='Owner, a multisig' path={`/accounts/${ownerMultisig}`}>
+          {ownerMultisig}
+        </Fact>
+        <Fact label='Owner quorum'>
+          {ownerQuorum.signatures} of {ownerQuorum.signers} signatures
+        </Fact>
+      </dl>
+      <p className='mt-3 text-sm text-muted'>
+        A key from any other collection is not from mvxvest, whatever its name
+        or picture. Every page compares the contract&apos;s code and owner with
+        these and warns at the top if they differ.
+      </p>
+    </Card>
+  ) : null;
 
 export const Guide = () => (
   <div>
@@ -37,6 +108,7 @@ export const Guide = () => (
           <p className='mt-2 text-sm text-muted'>{text}</p>
         </Card>
       ))}
+      <Verify />
     </div>
   </div>
 );

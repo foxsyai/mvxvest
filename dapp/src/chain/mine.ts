@@ -20,10 +20,17 @@ export const claimableVestings = async (
   address: string,
   claimCollection: string
 ): Promise<Vesting[]> => {
-  const nonces = await keysHeld(address, claimCollection);
-  const found: Vesting[] = [];
+  // Each vesting mints one claim key, so the newest key's nonce is the count.
   const count = await vesting.vestingCount();
+  const nonces = await keysHeld(address, claimCollection, count);
+  const found: Vesting[] = [];
   const guessed = nonces.filter((nonce) => nonce <= count);
+  // A key newer than the count read (cached for up to 2 minutes) is looked up
+  // on its own rather than dropped.
+  for (const nonce of nonces.filter((n) => n > count)) {
+    const id = await vesting.vestingByClaimNonce(nonce);
+    if (id) found.push(await vesting.vesting(id));
+  }
   for (const part of chunks(guessed, 100)) {
     const list = await vesting.vestings(part);
     for (const [index, item] of list.entries()) {

@@ -7,13 +7,11 @@ import { Schedule } from './schedule';
 export type Status = 'upcoming' | 'vesting' | 'vested' | 'cancelled' | 'done';
 
 export const statusOf = (vesting: Vesting, now: number): Status => {
-  if (
-    vesting.claimed === vesting.finalAmount &&
-    (vesting.cancelledAt !== 0 || vesting.claimed === vesting.total)
-  ) {
-    return 'done';
-  }
+  // A cancelled vesting stays "Cancelled" even once its vested part is
+  // claimed: cancelled before its cliff, "Completed" made a team that pulled
+  // an allocation back look like one that paid it out (red team RT6).
   if (vesting.cancelledAt !== 0) return 'cancelled';
+  if (vesting.claimed === vesting.total) return 'done';
   if (now < vesting.schedule.cliff) return 'upcoming';
   if (now >= vesting.schedule.end) return 'vested';
   return 'vesting';

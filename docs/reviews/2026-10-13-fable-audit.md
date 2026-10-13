@@ -22,21 +22,23 @@ Upgrade constraints, pinned by `audit_fable_accounting.rs`:
 
 ## dApp
 
-| # | Severity | Finding |
-|---|---|---|
-| D1 | High | The guard against signing behind a possibly-lost send works only while a signing panel is open. After navigating away, Close or a reload, the next creation can be signed behind the lost send, and both execute if it turns up. |
-| RT1 | Medium | Dust-key spam: past 10,000 keys the API refuses to page, so My vestings and the address page fail. Below that, real vestings are buried, and 2,000 dust vestings push them off the Token page. |
-| RT2 | Medium | A look-alike token, such as a fake "FOXSY", shows as FOXSY on the cards. |
-| RT4 | Medium | The token issuer's powers are never shown (FOXSY can be paused by its issuer). "Nobody can stop it" overstates this. |
-| RT5 | Medium | Nothing tells a user that the contract was upgraded to unknown code. The owner multisig and its signers are not named. |
-| RT6 | Medium | A vesting cancelled before anything vested shows "Completed". |
-| D2 | Low | My vestings, Created by me and the vesting page can offer "Sign" again after a disconnect and reconnect while a signature is in flight. Create was fixed in round 3. |
-| D3 | Low | A wallet that hands back nothing is reported as "sent". |
-| D4 | Low | A key the contract holds after a bounce is shown as an ordinary holder. |
-| RT7 | Low | One hostile dust key, for example of a frozen token, makes "Claim all" fail, and the page cannot say which key. |
-| RT8 | Low | The guide gives readers nothing to verify against: no contract address, collections, owner or quorum, and no mention of the bounce exception. |
-| RT9 | Low | A smart contract as beneficiary passes without a warning. |
-| info | Info | `deploy.sh` defaults to mainnet; the shown fee ignores the guardian's 50,000 gas; there is no timeout on `createdIdsOf`; outcome polls bypass the rate limiter; the claim-key list can miss a key minted in the last 2 minutes. |
+All fixed on 13 Oct 2026; each proof passes now.
+
+| # | Severity | Finding | Fix |
+|---|---|---|---|
+| D1 | High | The guard against signing behind a possibly-lost send works only while a signing panel is open. After navigating away, Close or a reload, the next creation can be signed behind the lost send, and both execute if it turns up. | `prepare()` asks the network about every transaction the wallet session still counts that has not executed. It uses the session's own clock, which survives a reload. It asks for a wait at 30 s and for a reconnect at 2 minutes. |
+| RT1 | Medium | Dust-key spam: past 10,000 keys the API refuses to page, so My vestings and the address page fail. Below that, real vestings are buried, and 2,000 dust vestings push them off the Token page. | The key list stops at the API's window. Past it, the newest 2,000 vestings' keys are asked about by name, and a note says the wallet holds more keys than are listed. My vestings and the address page have a filter by token and show 50 cards at a time. The Token page already says when it shows only the newest. |
+| RT2 | Medium | A look-alike token, such as a fake "FOXSY", shows as FOXSY on the cards. | Cards, the vesting page, the Token page and Create show the identifier and mark a token without registered assets "unverified". |
+| RT4 | Medium | The token issuer's powers are never shown (FOXSY can be paused by its issuer). "Nobody can stop it" overstates this. | The vesting page, the Token page and Create name the issuer and what it can do (pause, freeze, wipe, add a transfer role, change these settings). A paused token or a transfer role in place is shown in red. |
+| RT5 | Medium | Nothing tells a user that the contract was upgraded to unknown code. The owner multisig and its signers are not named. | Every page compares the contract's code hash and owner with the build's config and shows a red banner when either differs. The guide names the owner multisig and its quorum. The signers wait for Sebastian (L8). |
+| RT6 | Medium | A vesting cancelled before anything vested shows "Completed". | A cancelled vesting is always "Cancelled". |
+| D2 | Low | My vestings, Created by me and the vesting page can offer "Sign" again after a disconnect and reconnect while a signature is in flight. Create was fixed in round 3. | Each page keeps its own record of the signing (`useSigningRecord`), and a panel mounted again resumes from it. |
+| D3 | Low | A wallet that hands back nothing is reported as "sent". | `send()` treats it as a refusal. |
+| D4 | Low | A key the contract holds after a bounce is shown as an ordinary holder. | The page says the key could not be delivered and waits for the owner. |
+| RT7 | Low | One hostile dust key, for example of a frozen token, makes "Claim all" fail, and the page cannot say which key. | When the refusal names a token, the page names that vesting at once. Otherwise "Check each vesting on its own" simulates each key. Either way, "Claim the other N" is offered. |
+| RT8 | Low | The guide gives readers nothing to verify against: no contract address, collections, owner or quorum, and no mention of the bounce exception. | A "Check that it is the real mvxvest" box: contract, code hash, both collections, owner and quorum. The guide now states the bounce exception. |
+| RT9 | Low | A smart contract as beneficiary passes without a warning. | Create warns about each smart-contract line. |
+| info | Info | `deploy.sh` defaults to mainnet; the shown fee ignores the guardian's 50,000 gas; there is no timeout on `createdIdsOf`; outcome polls bypass the rate limiter; the claim-key list can miss a key minted in the last 2 minutes. | All fixed: `deploy.sh` needs the network named, and the guardian's gas is counted at full price. Transaction reads are paced, uncached and time out after 15 s. A key newer than the cached count is looked up on its own. |
 
 ## Deployment and operations
 

@@ -4,8 +4,13 @@ import { claimableVestings } from 'chain/mine';
 import { vesting as client } from 'chain/vesting';
 import { TxPanel } from 'components/tx/TxPanel';
 import { Button, Notice, PageTitle, ReadFailed, Spinner } from 'components/ui';
-import { VestingCard } from 'components/vesting/VestingCard';
-import { useAsync } from 'hooks';
+import { BlockingKeys } from 'components/vesting/BlockingKeys';
+import {
+  KeyWindowNote,
+  TokenFilter,
+  VestingGrid
+} from 'components/vesting/VestingList';
+import { useAsync, useSigningRecord } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { splitKeys } from 'vesting/batches';
 import type { Vesting } from 'vesting/client';
@@ -15,6 +20,12 @@ export const Mine = () => {
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
   const [claiming, setClaiming] = useState<Vesting[] | null>(null);
+  const signing = useSigningRecord();
+  const [tokenFilter, setTokenFilter] = useState<string | null>(null);
+  const startClaim = (vestings: Vesting[]) => {
+    signing.clear();
+    setClaiming(vestings);
+  };
 
   const data = useAsync(async () => {
     if (!address) return null;
@@ -63,7 +74,8 @@ export const Mine = () => {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const list = data.data.list;
+  const all = data.data.list;
+  const list = tokenFilter ? all.filter((v) => v.token === tokenFilter) : all;
   const ready = list.filter(worthClaiming);
 
   return (
@@ -72,7 +84,12 @@ export const Mine = () => {
         title='My vestings'
         info='Every vesting whose claim key is in this wallet. Whoever holds the key claims: send the key to another wallet and the vesting goes with it.'
       />
-      {list.length === 0 ? (
+      <KeyWindowNote
+        address={address}
+        collection={data.data.collections.claim}
+        listed={all.length}
+      />
+      {all.length === 0 ? (
         <Notice>
           No claim keys in this wallet. If someone created a vesting for you,
           its key is in the wallet they sent it to. Anyone can look a vesting up
@@ -84,8 +101,13 @@ export const Mine = () => {
         </Notice>
       ) : (
         <>
+          <TokenFilter
+            list={all}
+            value={tokenFilter}
+            onChange={setTokenFilter}
+          />
           {ready.length > 1 && !claiming && (
-            <Button onClick={() => setClaiming(ready)}>
+            <Button onClick={() => startClaim(ready)}>
               Claim all ({ready.length})
             </Button>
           )}
@@ -112,33 +134,42 @@ export const Mine = () => {
                 </p>
               }
               build={build}
-              onClose={() => setClaiming(null)}
+              {...signing.panel(
+                address,
+                splitKeys(claiming.map((v) => v.claimNonce)).length
+              )}
+              refusalHelp={(problems) => (
+                <BlockingKeys
+                  problems={problems}
+                  vestings={claiming}
+                  address={address}
+                  collection={data.data!.collections.claim}
+                  onClaim={startClaim}
+                />
+              )}
+              onClose={() => {
+                signing.clear();
+                setClaiming(null);
+              }}
               onFinished={() => data.reload()}
             />
           )}
-          <div className='grid gap-4 lg:grid-cols-2'>
-            {list.map((v) => (
-              <VestingCard
-                key={v.id}
-                vesting={v}
-                now={now}
-                actions={
-                  (v.claimable > 0n || spent(v)) && !claiming ? (
-                    // Any amount can be claimed from its own card; a small
-                    // one is offered quietly.
-                    <Button
-                      variant={worthClaiming(v) ? 'primary' : 'secondary'}
-                      onClick={() => setClaiming([v])}
-                    >
-                      {v.claimable > 0n
-                        ? 'Claim'
-                        : 'Close (burns the spent key)'}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ))}
-          </div>
+          <VestingGrid
+            list={list}
+            now={now}
+            actions={(v) =>
+              (v.claimable > 0n || spent(v)) && !claiming ? (
+                // Any amount can be claimed from its own card; a small one is
+                // offered quietly.
+                <Button
+                  variant={worthClaiming(v) ? 'primary' : 'secondary'}
+                  onClick={() => startClaim([v])}
+                >
+                  {v.claimable > 0n ? 'Claim' : 'Close (burns the spent key)'}
+                </Button>
+              ) : undefined
+            }
+          />
         </>
       )}
     </div>

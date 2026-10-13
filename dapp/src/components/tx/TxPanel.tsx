@@ -1,6 +1,6 @@
 import { Transaction } from '@multiversx/sdk-core';
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { markMissing } from 'chain/missing';
+import { MISSING_AFTER_MS } from 'chain/missing';
 import { outcomeOf, TxOutcome } from 'chain/reads';
 import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
@@ -15,19 +15,15 @@ type Phase =
 
 /**
  * The most a transaction can cost: its data at the full gas price, the rest at
- * the 1% the network charges for contract execution (gas price 10^9).
+ * the 1% the network charges for contract execution (gas price 10^9). A
+ * guarded transaction's extra 50,000 is charged at the full price too.
  */
 const maxFee = (tx: Transaction) => {
-  const dataGas = 50_000n + 1_500n * BigInt(tx.data.length);
+  const guarded = tx.guardian && !tx.guardian.isEmpty() ? 50_000n : 0n;
+  const dataGas = 50_000n + guarded + 1_500n * BigInt(tx.data.length);
   const execution = tx.gasLimit > dataGas ? tx.gasLimit - dataGas : 0n;
   return dataGas * 1_000_000_000n + execution * 10_000_000n;
 };
-
-/**
- * How long a sent hash may stay unknown to the API before it is called
- * missing: a transaction is executed and indexed within seconds.
- */
-const MISSING_AFTER_MS = 120_000;
 
 const outcomeText = (outcome?: TxOutcome) => {
   if (!outcome || outcome.status === 'pending') return 'processing';
@@ -59,6 +55,7 @@ export const TxPanel = ({
   onBusy,
   keepAfterSent = false,
   resume,
+  refusalHelp,
   onClose
 }: {
   sender: string;
@@ -89,6 +86,8 @@ export const TxPanel = ({
    * never checks or offers "Sign" again.
    */
   resume?: { sent?: Sent; signing?: boolean; total: number };
+  /** More the page can say when the network would refuse (which item blocks). */
+  refusalHelp?: (problems: (string | null)[]) => ReactNode;
   onClose: () => void;
 }) => {
   const [phase, setPhase] = useState<Phase>(() =>
@@ -196,8 +195,6 @@ export const TxPanel = ({
       if (stopped) return;
       setOutcomes(next);
       const statuses = hashes.map((hash) => next[hash].status);
-      for (const hash of hashes)
-        markMissing(hash, next[hash].status === 'missing');
       const progress = statuses.join(',');
       if (progress !== shown) {
         shown = progress;
@@ -262,6 +259,7 @@ export const TxPanel = ({
                   ) : null
                 )}
               </ul>
+              {refusalHelp?.(phase.problems)}
             </Notice>
           ) : (
             <Notice>

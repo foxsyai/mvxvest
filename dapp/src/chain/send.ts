@@ -17,7 +17,7 @@ import {
 } from '@multiversx/sdk-core';
 import { setAccountNonce } from '@multiversx/sdk-dapp/out/store/actions/account/accountActions';
 import { getAccountProvider, TransactionManager } from 'lib';
-import { stillCounted } from './missing';
+import { lostSend } from './missing';
 import { api, forget, networkProvider } from './network';
 
 export const MAX_GAS = 600_000_000n;
@@ -60,16 +60,21 @@ export const prepare = async (
   transactions: Transaction[],
   firstNonce?: bigint
 ): Promise<Prepared> => {
-  const lost = stillCounted();
-  if (lost) {
-    throw new Error(
-      `transaction ${lost.slice(0, 10)}… was not seen on the network, and your wallet session still counts it: anything signed now would wait behind it. Disconnect and connect your wallet again, then check again`
-    );
-  }
   const account = await networkProvider.getAccount(
     Address.newFromBech32(sender)
   );
   const accountNonce = BigInt(account.nonce);
+  const lost = await lostSend(sender, accountNonce);
+  if (lost?.missing) {
+    throw new Error(
+      `transaction ${lost.hash.slice(0, 10)}… was not seen on the network, and your wallet session still counts it: anything signed now would wait behind it. Disconnect and connect your wallet again, then check again`
+    );
+  }
+  if (lost) {
+    throw new Error(
+      `transaction ${lost.hash.slice(0, 10)}… is not seen on the network yet, and anything signed now would wait behind it. Wait a minute, then check again`
+    );
+  }
   const startNonce =
     firstNonce !== undefined && firstNonce > accountNonce
       ? firstNonce
@@ -237,7 +242,12 @@ export const send = async (
 ): Promise<Sent> => {
   const provider = getAccountProvider();
   const manager = TransactionManager.getInstance();
-  const signed = await provider.signTransactions(transactions);
+  const signed = (await provider.signTransactions(transactions)) ?? [];
+  // sdk-dapp hands back an empty list when a guarded account's web wallet
+  // could not co-sign: nothing was signed, so nothing can have been sent
+  // (main audit D3).
+  if (signed.length === 0)
+    throw new Error('the wallet returned no signed transaction');
   const sent: any[] = [];
   const unconfirmed: string[] = [];
   let stopped: Sent['stopped'];

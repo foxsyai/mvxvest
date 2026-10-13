@@ -2,6 +2,7 @@ import { PropsWithChildren, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { networkName } from 'chain/network';
 import { useGetIsLoggedIn } from 'lib';
+import { CodeCheck } from './CodeCheck';
 import {
   AddressChip,
   ConnectButton,
@@ -54,6 +55,7 @@ export const Layout = ({ children }: PropsWithChildren) => {
           {networkName}: test network, no real money
         </div>
       )}
+      <CodeCheck />
       <header className='border-b border-line bg-surface'>
         {/* One row everywhere. Left: the logo, then the pages (desktop).
             Right: the address (a click copies it), the theme, the menu

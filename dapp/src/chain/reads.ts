@@ -5,7 +5,7 @@
 import { Address } from '@multiversx/sdk-core';
 import { contractAddress } from 'config';
 import { EGLD } from 'vesting/client';
-import { api, apiUrl } from './network';
+import { api, fresh } from './network';
 
 export interface TokenInfo {
   identifier: string;
@@ -14,6 +14,23 @@ export interface TokenInfo {
   decimals: number;
   /** Logo, when the token has registered assets. */
   icon?: string;
+  /**
+   * The token has registered assets (a logo and a description reviewed by
+   * MultiversX). A look-alike "FOXSY-abc123" has none, and its ticker reads
+   * exactly like the real FOXSY's (red team RT2).
+   */
+  verified?: boolean;
+  /** Who can change the token, and what they can still do to every balance. */
+  owner?: string;
+  isPaused?: boolean;
+  canPause?: boolean;
+  canFreeze?: boolean;
+  canWipe?: boolean;
+  canAddSpecialRoles?: boolean;
+  canUpgrade?: boolean;
+  canChangeOwner?: boolean;
+  /** A transfer role is set: only the addresses holding it can move the token. */
+  transferRole?: boolean;
 }
 
 /** "TFOX" from "TFOX-d61b09": the API's ticker is the full id when a token has no assets. */
@@ -24,7 +41,8 @@ export const EGLD_INFO: TokenInfo = {
   identifier: EGLD,
   ticker: 'EGLD',
   name: 'EGLD',
-  decimals: 18
+  decimals: 18,
+  verified: true
 };
 
 /** What the API knows about a fungible token; EGLD needs no call. */
@@ -36,7 +54,21 @@ export const tokenInfo = async (identifier: string): Promise<TokenInfo> => {
     ticker: tickerOf(token.ticker, identifier),
     name: token.name ?? identifier,
     decimals: Number(token.decimals ?? 0),
-    icon: token.assets?.svgUrl ?? token.assets?.pngUrl
+    icon: token.assets?.svgUrl ?? token.assets?.pngUrl,
+    verified: Boolean(token.assets),
+    owner: token.owner,
+    isPaused: token.isPaused === true,
+    canPause: token.canPause === true,
+    canFreeze: token.canFreeze === true,
+    canWipe: token.canWipe === true,
+    canAddSpecialRoles: token.canAddSpecialRoles === true,
+    canUpgrade: token.canUpgrade === true,
+    canChangeOwner: token.canChangeOwner === true,
+    // The protocol's ESDTTransferRole; matched loosely, as the API's names
+    // of roles vary (ESDTRoleLocalBurn, ESDTRoleBurnForAll).
+    transferRole: (token.roles ?? []).some((entry: any) =>
+      (entry?.roles ?? []).some((role: string) => /transfer/i.test(role))
+    )
   };
 };
 
@@ -67,21 +99,62 @@ export const balancesOf = async (address: string): Promise<Balance[]> => {
   return list;
 };
 
-/** Nonces of the keys of `collection` that `address` holds. */
+const hexOf = (n: number) => {
+  const hex = n.toString(16);
+  return hex.length % 2 ? `0${hex}` : hex;
+};
+
+/** How far the API pages (its search window): from + size at most this. */
+const API_WINDOW = 10_000;
+/** Past the window, how many of the newest keys are asked about by name. */
+const NEWEST_CHECKED = 2_000;
+
+/** How many keys of `collection` `address` holds. */
+export const keysCount = (address: string, collection: string) =>
+  collection
+    ? api<number>(`/accounts/${address}/nfts/count?collections=${collection}`)
+    : Promise.resolve(0);
+
+/**
+ * Nonces of the keys of `collection` that `address` holds. The API lists them
+ * oldest first and refuses to page past 10,000, which anyone can reach by
+ * sending a wallet dust vestings (red team RT1): past it, the keys of the
+ * newest vestings (up to `newestNonce`) are asked about by name, and the rest
+ * cannot be listed.
+ */
 export const keysHeld = async (
   address: string,
-  collection: string
+  collection: string,
+  newestNonce?: number
 ): Promise<number[]> => {
   if (!collection) return [];
-  const nonces: number[] = [];
+  const nonces = new Set<number>();
+  let full = false;
   for (let from = 0; ; from += 100) {
+    if (from + 100 > API_WINDOW) {
+      full = true;
+      break;
+    }
     const page = await api<{ nonce: number }[]>(
       `/accounts/${address}/nfts?collections=${collection}&from=${from}&size=100&fields=nonce`
     );
-    nonces.push(...page.map((nft) => nft.nonce));
+    page.forEach((nft) => nonces.add(nft.nonce));
     if (page.length < 100) break;
   }
-  return nonces.sort((a, b) => a - b);
+  if (full && newestNonce) {
+    const listed = Math.max(...nonces);
+    const lowest = Math.max(listed + 1, newestNonce - NEWEST_CHECKED + 1);
+    for (let top = newestNonce; top >= lowest; top -= 100) {
+      const names: string[] = [];
+      for (let nonce = top; nonce > top - 100 && nonce >= lowest; nonce--)
+        names.push(`${collection}-${hexOf(nonce)}`);
+      const held = await api<{ nonce: number }[]>(
+        `/accounts/${address}/nfts?identifiers=${names.join(',')}&size=100&fields=nonce`
+      );
+      held.forEach((nft) => nonces.add(nft.nonce));
+    }
+  }
+  return [...nonces].sort((a, b) => a - b);
 };
 
 /**
@@ -113,10 +186,6 @@ export interface HistoryEvent {
   amount: bigint;
 }
 
-const hexOf = (n: number) => {
-  const hex = n.toString(16);
-  return hex.length % 2 ? `0${hex}` : hex;
-};
 const NAMES: Record<string, HistoryEvent['kind']> = {
   [Buffer.from('vestingCreated').toString('hex')]: 'created',
   [Buffer.from('vestingClaimed').toString('hex')]: 'claimed',
@@ -134,8 +203,6 @@ const toBech32 = (hex: string) => Address.newFromHex(hex).toBech32();
 
 /** The endpoints that log a vesting's events, as the API names them. */
 const HISTORY_ENDPOINTS = ['create', 'createBatch', 'claim', 'cancel'];
-/** How far the API pages (its search window). */
-const API_WINDOW = 10_000;
 
 /**
  * The created, claimed and cancelled events of vesting `id`, oldest first. The
@@ -194,10 +261,8 @@ export interface TxOutcome {
 
 /** Where a sent transaction stands, read fresh (not cached). */
 export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
-  // A stalled connection must not stop the following for good.
-  const response = await fetch(
-    `${apiUrl}/transactions/${hash}?withResults=true&withLogs=true`,
-    { signal: AbortSignal.timeout(15_000) }
+  const response = await fresh(
+    `/transactions/${hash}?withResults=true&withLogs=true`
   );
   if (!response.ok)
     return { status: 'pending', unknown: response.status === 404 };
@@ -223,8 +288,8 @@ export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
 
 /** Ids of the vestings a transaction created, from its vestingCreated events. */
 export const createdIdsOf = async (hash: string): Promise<number[]> => {
-  const response = await fetch(
-    `${apiUrl}/transactions/${hash}?withLogs=true&withResults=true`
+  const response = await fresh(
+    `/transactions/${hash}?withLogs=true&withResults=true`
   );
   if (!response.ok) return [];
   const tx = await response.json();

@@ -1,3 +1,4 @@
+import { Address } from '@multiversx/sdk-core';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { balancesOf, createdIdsOf, TxOutcome } from 'chain/reads';
@@ -17,7 +18,8 @@ import {
 } from 'components/ui';
 import { ScheduleChart } from 'components/vesting/Chart';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
-import { useAsync } from 'hooks';
+import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { useAsync, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { DEFAULT_LIMITS, splitIntoBatches } from 'vesting/batches';
 import { buildSchedule, DAY, Plan, planProblem, Shape } from 'vesting/builder';
@@ -173,6 +175,9 @@ export const Create = () => {
     (balance) => balance.identifier === tokenId
   );
   const decimals = token?.decimals ?? 18;
+  // Its issuer's powers and whether it is verified: the wallet's balance list
+  // does not carry them.
+  const tokenFacts = useToken(tokenId || undefined);
 
   // 2. beneficiaries
   const [mode, setMode] = useState<'rows' | 'csv'>('rows');
@@ -262,6 +267,15 @@ export const Create = () => {
           (error) => judgeAll || judged.has(error.line - 1)
         )
       : beneficiaries.errors;
+
+  // A smart contract as beneficiary is allowed, but it must accept tokens from
+  // other contracts and be able to move the key (red team RT9). Its address
+  // says so by its shape: the first eight bytes are zero.
+  const contracts = beneficiaries.list.filter(
+    (row) =>
+      (mode === 'csv' || judgeAll || judged.has(row.line - 1)) &&
+      Address.newFromBech32(row.address).isSmartContract()
+  );
 
   const plan = useMemo((): Plan | null => {
     const startAt = fromLocalInput(start);
@@ -713,6 +727,13 @@ export const Create = () => {
               </select>
             </Field>
           )}
+          {token && tokenFacts.known && tokenFacts.verified === false && (
+            <p className='text-sm text-warn'>
+              {tokenFacts.identifier} has no registered logo or description:
+              check that it is the token you mean, not a look-alike.
+            </p>
+          )}
+          {token && tokenFacts.known && <IssuerPowers token={tokenFacts} />}
         </Step>
 
         <Step
@@ -899,6 +920,22 @@ export const Create = () => {
                 ? ' appears'
                 : 'es appear'}{' '}
               more than once. Each line becomes its own vesting.
+            </Notice>
+          )}
+          {contracts.length > 0 && (
+            <Notice tone='warn'>
+              {contracts.length === 1
+                ? `Line ${contracts[0].line} is a smart contract`
+                : `Lines ${contracts
+                    .slice(0, 10)
+                    .map((row) => row.line)
+                    .join(
+                      ', '
+                    )}${contracts.length > 10 ? ' and more' : ''} are smart contracts`}
+              . It must accept tokens from other contracts and be able to send
+              the claim key on; if it cannot, the key comes back to the vesting
+              contract until the owner returns it, or stays stuck. A wallet
+              address is safer unless you know the contract can.
             </Notice>
           )}
           {beneficiaries.list.length > 0 && token && (
@@ -1133,9 +1170,10 @@ export const Create = () => {
           info={
             <>
               <b>Cannot be cancelled:</b> once created, no key can stop it; the
-              beneficiaries receive everything on schedule. The strongest
-              promise to a community (the contract itself is upgradeable by its
-              multisig; see How it works).
+              beneficiaries receive everything on schedule, as far as the
+              token&apos;s own issuer allows (step 1 shows its powers). The
+              strongest promise to a community (the contract itself is
+              upgradeable by its multisig; see How it works).
               <br />
               <br />
               <b>Cancelable:</b> you receive a cancel key NFT per vesting.

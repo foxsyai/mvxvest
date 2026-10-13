@@ -13,7 +13,7 @@ import {
   Spinner
 } from 'components/ui';
 import { VestingCard } from 'components/vesting/VestingCard';
-import { useAsync } from 'hooks';
+import { useAsync, useSigningRecord } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import type { Vesting } from 'vesting/client';
 import { downloadFile, toCsv } from 'vesting/csv';
@@ -24,6 +24,7 @@ export const Created = () => {
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
   const [cancelling, setCancelling] = useState<Vesting | null>(null);
+  const signing = useSigningRecord();
 
   const data = useAsync(async () => {
     if (!address) return null;
@@ -124,7 +125,13 @@ export const Created = () => {
     v.cancelledAt === 0 &&
     cancelKeys.has(v.cancelNonce) &&
     !cancelling ? (
-      <Button variant='danger' onClick={() => setCancelling(v)}>
+      <Button
+        variant='danger'
+        onClick={() => {
+          signing.clear();
+          setCancelling(v);
+        }}
+      >
         Cancel
       </Button>
     ) : undefined;
@@ -148,7 +155,11 @@ export const Created = () => {
             </Notice>
           }
           build={build}
-          onClose={() => setCancelling(null)}
+          {...signing.panel(address, 1)}
+          onClose={() => {
+            signing.clear();
+            setCancelling(null);
+          }}
           onFinished={() => data.reload()}
         />
       )}

@@ -111,6 +111,8 @@ Rules that follow from it:
 ## Upgrades
 
 `scripts/src/deploy.ts upgrade` on devnet; a multisig proposal on mainnet.
+
+Every page compares the contract's code hash with `contractCodeHashes` in `dapp/src/config/config.<network>.ts` and shows a red banner when it is not listed. Before proposing an upgrade, add the new build's hash there and deploy the site. Once the upgrade is done, remove the old hash and deploy again. The same file names the owner multisig. The site warns when the owner differs, so a change of owner also needs a site deploy.
 Same metadata as the deploy (the contract cannot check it in `upgrade`).
 Storage layout must stay compatible: never reuse the old storage name
 `claimKeyUsed`. Record each version's code hash in the CHANGELOG.

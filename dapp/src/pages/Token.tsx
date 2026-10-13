@@ -14,6 +14,7 @@ import {
   Progress,
   Spinner
 } from 'components/ui';
+import { IssuerPowers } from 'components/vesting/TokenTrust';
 import { useAsync, useToken } from 'hooks';
 import { unlockCalendar } from 'vesting/calendar';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
@@ -93,9 +94,10 @@ export const Token = () => {
       <PageTitle
         back
         title={token.ticker || identifier}
-        lead={`${identifier} · ${count.toLocaleString('en-US')} vestings`}
+        lead={`${identifier}${token.verified === false ? ' (unverified: no registered logo or description)' : ''} · ${count.toLocaleString('en-US')} vestings`}
         info='Every vesting of this token, read from the contract.'
       />
+      {token.known && <IssuerPowers token={token} />}
       <Card className='space-y-4'>
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
           <div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { claimableVestings, createdVestings } from 'chain/mine';
 import { vesting as client } from 'chain/vesting';
@@ -9,7 +10,11 @@ import {
   ReadFailed,
   Spinner
 } from 'components/ui';
-import { VestingCard } from 'components/vesting/VestingCard';
+import {
+  KeyWindowNote,
+  TokenFilter,
+  VestingGrid
+} from 'components/vesting/VestingList';
 import { useAsync } from 'hooks';
 
 /** Any address, read-only: what it created and which claim keys it holds. */
@@ -21,8 +26,9 @@ export const Account = () => {
       createdVestings(address),
       claimableVestings(address, collections.claim)
     ]);
-    return { created, held };
+    return { created, held, collections };
   }, [address]);
+  const [tokenFilter, setTokenFilter] = useState<string | null>(null);
   const now = Math.floor(Date.now() / 1000);
 
   return (
@@ -55,14 +61,29 @@ export const Account = () => {
             <h2 className='font-bold'>
               Claim keys it holds ({data.data.held.length})
             </h2>
+            <KeyWindowNote
+              address={address}
+              collection={data.data.collections.claim}
+              listed={data.data.held.length}
+            />
             {data.data.held.length === 0 ? (
               <p className='text-sm text-muted'>None.</p>
             ) : (
-              <div className='grid gap-4 lg:grid-cols-2'>
-                {data.data.held.map((v) => (
-                  <VestingCard key={v.id} vesting={v} now={now} />
-                ))}
-              </div>
+              <>
+                <TokenFilter
+                  list={data.data.held}
+                  value={tokenFilter}
+                  onChange={setTokenFilter}
+                />
+                <VestingGrid
+                  list={
+                    tokenFilter
+                      ? data.data.held.filter((v) => v.token === tokenFilter)
+                      : data.data.held
+                  }
+                  now={now}
+                />
+              </>
             )}
           </section>
           <section className='space-y-3'>
@@ -77,11 +98,7 @@ export const Account = () => {
             {data.data.created.list.length === 0 ? (
               <p className='text-sm text-muted'>None.</p>
             ) : (
-              <div className='grid gap-4 lg:grid-cols-2'>
-                {data.data.created.list.map((v) => (
-                  <VestingCard key={v.id} vesting={v} now={now} />
-                ))}
-              </div>
+              <VestingGrid list={data.data.created.list} now={now} />
             )}
           </section>
         </>

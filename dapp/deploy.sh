@@ -2,7 +2,9 @@
 # Builds and ships mvxvest.io to the websites droplet (adapted from mvxsafe.io's).
 #
 #   ./deploy.sh devnet     # devnet build   -> https://devnet.mvxvest.io
-#   ./deploy.sh            # mainnet build  -> https://mvxvest.io (ask Sebastian first)
+#   ./deploy.sh mainnet    # mainnet build  -> https://mvxvest.io (ask Sebastian first)
+#
+# The network is always named: a bare ./deploy.sh used to mean mainnet.
 #
 # The droplet serves about ten other sites from the same nginx. This script only
 # writes /var/www/mvxvest.io or /var/www/devnet.mvxvest.io and never touches the
@@ -10,14 +12,14 @@
 # public/nft/, so they are part of every build and survive rsync --delete.
 set -euo pipefail
 
-NETWORK="${1:-mainnet}"
+NETWORK="${1:-}"
 REMOTE="web@134.209.228.52"
 REMOTE_DIR="/var/www/mvxvest.io"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 case "$NETWORK" in
   mainnet|devnet|testnet) ;;
-  *) echo "Unknown network: $NETWORK (use mainnet, devnet or testnet)"; exit 1 ;;
+  *) echo "Name the network: ./deploy.sh devnet | mainnet | testnet"; exit 1 ;;
 esac
 
 cd "$HERE"

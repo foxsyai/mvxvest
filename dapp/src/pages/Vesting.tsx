@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   ExplorerLink,
+  Info,
   Notice,
   PageTitle,
   Progress,
@@ -18,7 +19,9 @@ import {
 } from 'components/ui';
 import { ScheduleChart } from 'components/vesting/Chart';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
-import { useAsync, useToken } from 'hooks';
+import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { contractAddress } from 'config';
+import { useAsync, useSigningRecord, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
 import { nextRelease } from 'vesting/schedule';
@@ -30,12 +33,38 @@ const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 );
 
+/**
+ * A key sent to a smart contract that could not take it comes back to the
+ * vesting contract, which holds it until the owner returns it (main audit D4).
+ */
+const Bounced = () => (
+  <span className='text-warn'>
+    could not be delivered: the vesting contract holds it until the owner
+    returns it
+    <Info label='About a returned key'>
+      The address it was sent to is a smart contract that could not receive it,
+      so it came back. Nothing is lost: the tokens stay in the contract, and
+      only the owner multisig can send the key on, by a vote
+      (recoverBouncedKey). Ask the creator or the owner to have it returned.
+    </Info>
+  </span>
+);
+
 export const VestingPage = () => {
   const params = useParams();
   const id = Number(params.id);
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
   const [action, setAction] = useState<'claim' | 'cancel' | null>(null);
+  const signing = useSigningRecord();
+  const start = (next: 'claim' | 'cancel') => {
+    signing.clear();
+    setAction(next);
+  };
+  const close = () => {
+    signing.clear();
+    setAction(null);
+  };
 
   const data = useAsync(async () => {
     if (!Number.isSafeInteger(id) || id < 1)
@@ -138,6 +167,11 @@ export const VestingPage = () => {
               >
                 {v.token}
               </Link>
+              {token.verified === false && (
+                <span className='ml-1.5 text-sm font-semibold text-warn'>
+                  unverified
+                </span>
+              )}
               , {describeCurve(v.schedule).toLowerCase()}.
             </>
           }
@@ -263,13 +297,12 @@ export const VestingPage = () => {
             had vested and stays claimable.
           </Notice>
         )}
+        {token.known && <IssuerPowers token={token} />}
         {(canClaim || holdsCancel) && !action && (
           <div className='flex flex-wrap gap-2'>
-            {canClaim && (
-              <Button onClick={() => setAction('claim')}>Claim</Button>
-            )}
+            {canClaim && <Button onClick={() => start('claim')}>Claim</Button>}
             {holdsCancel && (
-              <Button variant='danger' onClick={() => setAction('cancel')}>
+              <Button variant='danger' onClick={() => start('cancel')}>
                 Cancel this vesting
               </Button>
             )}
@@ -292,7 +325,8 @@ export const VestingPage = () => {
               </p>
             }
             build={buildClaim}
-            onClose={() => setAction(null)}
+            {...signing.panel(address, 1)}
+            onClose={close}
             onFinished={() => data.reload()}
           />
         )}
@@ -319,7 +353,8 @@ export const VestingPage = () => {
               </Notice>
             }
             build={buildCancel}
-            onClose={() => setAction(null)}
+            {...signing.panel(address, 1)}
+            onClose={close}
             onFinished={() => data.reload()}
           />
         )}
@@ -400,6 +435,8 @@ export const VestingPage = () => {
           >
             {claimHolder === undefined ? (
               <span className='text-muted'>could not be read right now</span>
+            ) : claimHolder === contractAddress ? (
+              <Bounced />
             ) : claimHolder ? (
               <AddressText address={claimHolder} />
             ) : v.claimed === v.finalAmount ? (
@@ -425,6 +462,8 @@ export const VestingPage = () => {
               </span>
             ) : cancelHolder === undefined ? (
               <span className='text-muted'>could not be read right now</span>
+            ) : cancelHolder === contractAddress ? (
+              <Bounced />
             ) : cancelHolder ? (
               <AddressText address={cancelHolder} />
             ) : v.cancelledAt !== 0 ? (

@@ -5,6 +5,7 @@ import { useToken } from 'hooks';
 import type { Vesting } from 'vesting/client';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
 import { nextRelease } from 'vesting/schedule';
+import { TokenId } from './TokenTrust';
 
 const STATUS_TONE = {
   upcoming: 'info',
@@ -54,6 +55,7 @@ export const VestingCard = ({
               decimals={token.decimals}
               ticker={token.ticker}
             />
+            <TokenId token={token} className='ml-2' />
           </div>
         </div>
         <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>

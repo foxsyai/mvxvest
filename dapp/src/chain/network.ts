@@ -289,6 +289,16 @@ export const forget = (address: string) => {
 };
 
 /**
+ * A GET that must be fresh, such as the state of a transaction being followed:
+ * queued and paced like every other read (a signing panel polls every few
+ * seconds per transaction, and used to do it past the pace), never cached,
+ * settled within 15 s, and answered with the response itself so a 404 can be
+ * told apart.
+ */
+export const fresh = (path: string): Promise<Response> =>
+  schedule(() => fetchWithTimeout(`${apiUrl}${path}`));
+
+/**
  * A GET on the public API, queued, retried and cached for a minute by path.
  * NEVER call it inside cached(): both queue, so the outer call holds one of
  * the six slots while waiting for another, and six of those at once stop

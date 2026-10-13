@@ -17,7 +17,8 @@ export type ShownToken = Omit<TokenInfo, 'decimals'> & {
  */
 export const useToken = (identifier: string | undefined): ShownToken => {
   const { data, error, reload } = useAsync(
-    () => (identifier ? tokenInfo(identifier) : Promise.resolve(EGLD_INFO)),
+    // async: a read that throws at once is a failed read, never a crash.
+    async () => (identifier ? tokenInfo(identifier) : EGLD_INFO),
     [identifier]
   );
   if (data) return { ...data, known: true, failed: false, reload };
