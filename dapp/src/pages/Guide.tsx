@@ -5,7 +5,9 @@ import {
   contractCodeHashes,
   keyCollections,
   ownerMultisig,
-  ownerQuorum
+  ownerQuorum,
+  ownerSigners,
+  ownerSignersDistinct
 } from 'config';
 
 const sections: [string, string][] = [
@@ -96,6 +98,20 @@ const Verify = () =>
         <Fact label='Owner quorum'>
           {ownerQuorum.signatures} of {ownerQuorum.signers} signatures
         </Fact>
+        {ownerSigners.length > 0 && (
+          <div className='sm:col-span-2'>
+            <dt className='text-xs text-muted'>
+              The owner&apos;s signers
+              {ownerSignersDistinct &&
+                `, ${ownerSigners.length} different people`}
+            </dt>
+            <dd className='mt-0.5 space-y-0.5 font-mono text-sm break-all'>
+              {ownerSigners.map((signer) => (
+                <div key={signer}>{signer}</div>
+              ))}
+            </dd>
+          </div>
+        )}
       </dl>
       <p className='mt-3 text-sm text-muted'>
         A key from any other collection is not from mvxvest, whatever its name

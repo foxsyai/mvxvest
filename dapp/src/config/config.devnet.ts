@@ -18,3 +18,10 @@ export const keyCollections = {
 export const ownerMultisig: string =
   'erd1qqqqqqqqqqqqqpgqyhjacmc59pem8ywgu9e5met6l49mst7lerksrtaq6e';
 export const ownerQuorum = { signatures: 2, signers: 2 };
+/** The board: the devnet "owner" and "holder" test keys. */
+export const ownerSigners = [
+  'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl',
+  'erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u'
+];
+/** The site may say the signers are different people. */
+export const ownerSignersDistinct: boolean = false;

@@ -29,3 +29,11 @@ export const keyCollections = {
 export const ownerMultisig: string =
   'erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3';
 export const ownerQuorum = { signatures: 2, signers: 3 };
+/** The board: three different people (confirmed by Sebastian, 13 Oct 2026). */
+export const ownerSigners = [
+  'erd1u05m7s9u4dthgzzgxd0795kaxpadhj93yv24nydjczw832a66qlsgw5esx',
+  'erd1cn8w9h2gfks6fglhxcmfka5w98hym47s0w8r9y4nqq9syh3ddfvsr0ljwe',
+  'erd1q83m7yeunpjctjzyk6u30qfwphwvrg6ez0glcnar50s55dykcnqqr3s7j4'
+];
+/** The site may say the signers are different people. */
+export const ownerSignersDistinct: boolean = true;

@@ -36,7 +36,6 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
   - what to do if a transaction is not found.
 
   Take the shots on devnet with play money, or on mainnet with small amounts. They are retaken by running the script again whenever the interface changes.
-- **Name the owner on the site.** DECISIONS #3 says the site names the multisig, its signers and its quorum. The guide only says "a multisig" so far: add the address `erd1…ul78u3`, 2 of 3, its three signers, and the contract's code hash.
 - **Say what was received.** After a claim or a cancel, show the amounts ("Claimed 2,000 TUSD and 1,000.02 TFOX") instead of only "done". Read them from the transaction's events.
 - **Warn before leaving Create.** In-app navigation away from it with transactions half done still loses the record; only a browser close or reload warns today.
 
