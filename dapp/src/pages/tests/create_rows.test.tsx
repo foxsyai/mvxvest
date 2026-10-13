@@ -48,9 +48,42 @@ jest.mock('chain/vesting', () => ({
 
 const flush = async () => {
   for (let i = 0; i < 5; i++) await act(async () => undefined);
+  // A row is judged just after its blur (a zero-delay timer).
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 };
 
+// The page has focus unless a test says otherwise (jsdom's window never has).
+let pageFocused = true;
+beforeEach(() => {
+  pageFocused = true;
+  jest.spyOn(document, 'hasFocus').mockImplementation(() => pageFocused);
+});
+afterEach(() => jest.restoreAllMocks());
+
 describe('beneficiaries typed one by one', () => {
+  it('switching to another window to copy an address does not judge the line', async () => {
+    render(
+      <MemoryRouter>
+        <Create />
+      </MemoryRouter>
+    );
+    await flush();
+    fireEvent.change(screen.getByDisplayValue('Choose a token'), {
+      target: { value: 'TFOX-d61b09' }
+    });
+    const address = screen.getByPlaceholderText('erd1... beneficiary address');
+    // The reader clicks into the field, then goes to another app to copy the
+    // address: the input loses focus to nothing, and the page has no focus.
+    pageFocused = false;
+    fireEvent.blur(address, { relatedTarget: null });
+    await flush();
+    // Back, and pastes it: still in the line, nothing to say yet.
+    pageFocused = true;
+    fireEvent.change(address, { target: { value: A } });
+    await flush();
+    expect(screen.queryByText(/Fix these lines first/)).toBeNull();
+  });
+
   it('a line is not judged while the reader is still in it', async () => {
     render(
       <MemoryRouter>

@@ -186,9 +186,20 @@ export const Create = () => {
       setCsv(text);
       setCsvFile(file.name);
     });
-  // Rows typed one by one are judged once the reader leaves them (focus goes
-  // outside the row), or presses "Check and sign": not while still typing.
+  // Rows typed one by one are judged once the reader leaves them for
+  // something else on the page, not while still typing in them, and not when
+  // they only switch to another window (to copy an address, say). Editing a
+  // row hides its message again until it is left. After "Check and sign"
+  // every row is judged, live.
   const [judged, setJudged] = useState<Set<number>>(new Set());
+  const [judgeAll, setJudgeAll] = useState(false);
+  const editing = (index: number) =>
+    setJudged((previous) => {
+      if (!previous.has(index)) return previous;
+      const next = new Set(previous);
+      next.delete(index);
+      return next;
+    });
 
   // 3. schedule
   const now = useMemo(() => Math.floor(Date.now() / 60_000) * 60, []);
@@ -247,7 +258,9 @@ export const Create = () => {
   // In rows mode a line's problems show once it was left (see `judged`).
   const shownErrors =
     mode === 'rows'
-      ? beneficiaries.errors.filter((error) => judged.has(error.line - 1))
+      ? beneficiaries.errors.filter(
+          (error) => judgeAll || judged.has(error.line - 1)
+        )
       : beneficiaries.errors;
 
   const plan = useMemo((): Plan | null => {
@@ -428,7 +441,7 @@ export const Create = () => {
   const reviewId = useRef(0);
 
   const openReview = () => {
-    setJudged(new Set(rows.map((_, index) => index)));
+    setJudgeAll(true);
     builds.current.clear();
     reviewId.current += 1;
     setClosed(null);
@@ -622,6 +635,8 @@ export const Create = () => {
     setRows([{ address: '', amount: '' }]);
     setCsv('');
     setCsvFile(null);
+    setJudged(new Set());
+    setJudgeAll(false);
   };
 
   // ------------------------------------------------------------- render
@@ -728,40 +743,47 @@ export const Create = () => {
                   key={index}
                   className='flex flex-col gap-2 sm:flex-row'
                   onBlur={(event) => {
-                    if (
-                      !event.currentTarget.contains(
-                        event.relatedTarget as Node | null
-                      )
-                    )
+                    const row = event.currentTarget;
+                    const next = event.relatedTarget as Node | null;
+                    // If the page itself lost focus (another window, another
+                    // app), it is not leaving the row: checked now and once
+                    // the blur is over, whichever the browser reports first.
+                    const pageHadFocus = document.hasFocus();
+                    setTimeout(() => {
+                      if (!pageHadFocus || !document.hasFocus()) return;
+                      if (next && row.contains(next)) return;
                       setJudged((previous) => new Set(previous).add(index));
+                    }, 0);
                   }}
                 >
                   <input
                     className={`${inputClass} font-mono sm:flex-[3]`}
                     placeholder='erd1... beneficiary address'
                     value={row.address}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      editing(index);
                       setRows(
                         rows.map((r, i) =>
                           i === index
                             ? { ...r, address: event.target.value }
                             : r
                         )
-                      )
-                    }
+                      );
+                    }}
                   />
                   <input
                     className={`${inputClass} sm:flex-1`}
                     placeholder={`Amount${ticker ? ` of ${ticker}` : ''}`}
                     inputMode='decimal'
                     value={row.amount}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      editing(index);
                       setRows(
                         rows.map((r, i) =>
                           i === index ? { ...r, amount: event.target.value } : r
                         )
-                      )
-                    }
+                      );
+                    }}
                   />
                   {(rows.length > 1 || row.address || row.amount) && (
                     <Button
