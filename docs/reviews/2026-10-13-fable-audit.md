@@ -43,8 +43,8 @@ Upgrade constraints, pinned by `audit_fable_accounting.rs`:
 | # | Severity | Finding | Status |
 |---|---|---|---|
 | H1 | High | The emergency path (a pause or upgrade by multisig vote) had never been exercised, and there was no tool for it. | **Done:** `scripts/src/multisig.ts`, rehearsed on devnet (pause, unpause, key images, upgrade); runbook in [DEPLOY.md](../DEPLOY.md). Board members still lack a wallet-friendly way to send the transactions (a page). |
-| H2 | High | The deploy account on the shared droplet is passwordless root, and a GitHub Actions key can log in as it. | Sebastian's decision (server). |
-| M1 | Medium | Certificate renewals never reload nginx for the webroot sites, so mvxsafe.io would serve an expired certificate from 4 Jan 2027 and mvxvest.io around 10 Jan. | A renewal hook on the server; Sebastian's OK needed. |
+| H2 | High | The deploy account on the shared droplet is passwordless root, and a GitHub Actions key can log in as it. | Later, with Sebastian: a separate deploy user without root. |
+| M1 | Medium | Certificate renewals never reload nginx for the webroot sites, so mvxsafe.io would serve an expired certificate from 4 Jan 2027 and mvxvest.io around 10 Jan. | **Done 13 Oct:** `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx` runs `nginx -t && systemctl reload nginx`; `certbot renew --dry-run` passes for every certificate. |
 | M2 | Medium | The site promises checks the public cannot make yet (the repo is private) and does not name the owner. | Guide: a verify box. |
 | M3 | Medium | CI does not prove that `main` still reproduces the deployed code hash. | A CI job. |
 | L1–L8 | Low | Docs out of date; internal details to trim before the repo goes public; repo hygiene (SECURITY.md, package.json, branch protection); the collections' unused roles to be documented; a guard for the key images; confirm the three signers are distinct people. | With the fixes, and before the repo goes public. |

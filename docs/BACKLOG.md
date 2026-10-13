@@ -42,5 +42,5 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 ## mvxsafe (Sebastian's multisig app, separate repo)
 
-- **Contract-call and upgrade proposals** (`proposeAsyncCall`, `proposeSCUpgradeFromSource`), so the multisig can manage mvxvest from mvxsafe: pause, fee, `recoverBouncedKey`, `recoverSurplus`, `claimFees`, upgrade. Today mvxsafe proposes only transfers and board or quorum changes; until this exists, the official MultiversX multisig app can be used.
+- **Contract-call and upgrade proposals** (`proposeAsyncCall`, `proposeSCUpgradeFromSource`), so the multisig can manage mvxvest from mvxsafe: pause, fee, `recoverBouncedKey`, `recoverSurplus`, `claimFees`, upgrade. The full brief for mvxsafe's agent is [handoff/mvxsafe-upgrade-and-calls.md](handoff/mvxsafe-upgrade-and-calls.md). Until it exists, [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds these transactions.
 - **Add `devnet.mvxsafe.io` to the allowlist of mvxsafe's Reown project.** Without it, WalletConnect is probably refused there, as it was on devnet.mvxvest.io.
