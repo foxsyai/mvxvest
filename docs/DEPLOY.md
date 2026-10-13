@@ -123,6 +123,48 @@ Rules that follow from it:
 - **An upgrade needs a source**: the new reproducible build, deployed in the **multisig's shard** (shard 1 on mainnet), because `performAction` reads the code there. Check that the source's code hash on chain equals the build's before proposing (`stage` does this on devnet). Then `proposeSCUpgradeFromSource@<contract>@@<source>@0500`. The metadata must be `0500` (upgradeable, readable, not payable): anything else changes the contract for good.
 - **Deploys are charged their whole gas limit** (devnet multisig 96M of 96M, source 105.5M of 105.5M, mainnet 150M of 150M). Simulate them, and keep the margin small.
 
+## Version 2 rehearsed on devnet (13 Oct 2026)
+
+The upgrade of [CONTRACT_SPEC.md](CONTRACT_SPEC.md) version 2 (branch `upgrade-v2` at 505f424) was rehearsed end to end on devnet, twice, with two independent toolchains.
+
+**The build:** reproducible, `multiversx/sdk-rust-contract-builder:v12.0.0`, 27,332 bytes, code hash `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`.
+
+**mvxvest's own devnet contract, through its 2-of-2 multisig, with `scripts/src/multisig.ts`:**
+
+| Step | Transaction | Gas |
+|---|---|---|
+| Source deployed in shard 1 (not upgradeable), hash checked | `ea69573ad4e5b147fbda42f88317a8b582f6d26180b1c056ce1853f4ca88db42` | 108.7M, charged in full |
+| Propose the upgrade | `7418cab23536ac287dbb500cfa851add4e978d1ce4784fb673ad75dbc846d330` | 6.2M |
+| Perform it | `3ab0d78d2f57e864122709f925676cb39893013b0d653f3b9fcb2cc26369d163` | 25.5M (7.5M + 11.0M + 7M) |
+| `setTokenFee` 100 (1%), then `setFee` 0.1, later 0.01 | three votes | 19.1M per perform |
+| `createBatch` of 49, both fees | `9163c695ff999e0a0e00d6a7cca3dbb2b6db2ca0e8af35d7766d0af4c808b973` | 292M |
+| `createBatch` of 32 cancelable, both fees | `fa970c78e784f95796a0f0e71cb99884bde0ec508c3c0d9f48213fb09e83e504` | 286M |
+
+After the upgrade:
+- the code hash is the build's;
+- the contract is still upgradeable, readable and not payable, with the same owner;
+- every total, the vesting count and every surplus are unchanged;
+- the largest batches fit the network's 100 built-in calls;
+- each 1% reached the multisig;
+- the EGLD fees were booked;
+- new claim keys say `cancelable:0` or `cancelable:1`.
+
+`scripts/src/v2-batches.ts` repeats the batch check.
+
+**mvxsafe's own builders and gas, against its devnet copy `erd1…l9dzg` (2-of-3 safe):**
+- the same source, upgrade performed with 25.6M; the upgrade used 8.50M;
+- then `setTokenFee@64` voted and carried out.
+
+mvxsafe's docs/upgrade-and-calls.md lists those transactions.
+
+**Before the mainnet upgrade:**
+1. The audit rounds review this code. If they change it, the hash changes and this rehearsal is repeated.
+2. Add the new hash to `contractCodeHashes` in `config.mainnet.ts` and deploy the site.
+3. Deploy the source in shard 1.
+4. A first harmless mainnet vote (`setFee 0`) shows how mainnet's callback gas compares with devnet's. Until then the mainnet perform keeps a generous budget.
+5. Then propose, sign and perform the upgrade.
+6. Then vote the fees: `setTokenFee 100` and `setFee 0.1`.
+
 ## Upgrades
 
 `scripts/src/deploy.ts upgrade` on devnet; a multisig proposal on mainnet.

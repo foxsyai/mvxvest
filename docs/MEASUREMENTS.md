@@ -108,3 +108,13 @@ The fixed limits were charged in full, about 1.5-1.7x the need: roughly 0.02 EGL
 
 - **Deploys and upgrades** are simulated and given 1.2x.
 - **Calls that reach the ESDT system contract** use a measured 75M. The simulation cannot follow them.
+
+## Version 2 on devnet (13 Oct 2026)
+
+- **Upgrade from source:** a perform of 25.5M worked (7.5M for the multisig, 11.0M for the upgrade, 7M kept for the callback). mvxsafe measured 8.50M used by the upgrade itself, for 27,332 bytes. The 106M first budgeted was about ten times the need.
+- **The largest batches with both fees:**
+  - 49 vestings: 292M gas;
+  - 32 cancelable vestings: 286M.
+
+  They make 99 and 98 built-in calls, under the network's 100; 50 and 33 would make 101. The contract's limits are therefore 49 and 32.
+- **The source deploy** of 27 KB was charged its whole 108.7M limit: 0.082 xEGLD.
