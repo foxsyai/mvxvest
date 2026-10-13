@@ -33,3 +33,27 @@ Both collections are owned by the contract. They cannot be frozen, wiped or paus
 The deployer wallet `erd17yc20n8f4crqnu9f545p89gyts60ajag2ja5g7wu8lw5gc3duc2qzvrqwa` is empty and owns nothing. Its key was deleted after the sweep (shredded on 12 Oct 2026, with Sebastian's agreement). Every owner action from now on is a vote of the multisig. That covers pausing, the fee, upgrades and returning bounced keys.
 
 The gas each step needed is in [MEASUREMENTS.md](MEASUREMENTS.md).
+
+## Milestone 4: the in-house test (13 October 2026)
+
+Done by Sebastian on https://mvxvest.io with real wallets, then checked on chain. Wallets:
+- creator `erd16pe7…zvjwd`;
+- first beneficiary `erd1u05m…gw5esx`, a wallet with a guardian;
+- second wallet `erd1q83m…r3s7j4`, also guarded.
+
+| Step | On chain |
+|---|---|
+| Create 2 × 100 FOXSY (`FOXSY-5d5f3e`), cancelable, linear over 1 hour, one transaction | #1 for `erd1u05m…`, #2 for `erd1q83m…` |
+| Claim from #1 | 13.666667 FOXSY to `erd1u05m…` |
+| Move #1's claim key (`VESTKEY-f56bea-01`) to `erd1q83m…` and claim there | 10.111111 FOXSY to `erd1q83m…` |
+| Cancel #2 with its cancel key | 60.277778 FOXSY back to the creator; the vested 39.722222 stays for the beneficiary |
+| Claim #2's vested part | 39.722222 FOXSY to `erd1q83m…`; #2's claim and cancel keys are burned |
+
+The contract then held exactly 76.222222 FOXSY, which is what #1 still owes (100 − 23.777778). Its FOXSY surplus was 0.
+
+The test found two problems, both fixed and live the same day:
+
+- **f955bf6:** copying an address from another window made the form judge the line.
+- **7a0114d:** a guarded wallet (2FA) could not create anything. The network refuses even to simulate a guarded account's transaction that does not name its guardian, and the page only named the guardian after the simulation.
+
+The page also explains its figures now (d4ce0d7): "vested = claimed + claimable · not vested yet".
