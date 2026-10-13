@@ -44,14 +44,24 @@ pub trait KeysModule: storage::StorageModule {
 
     /// Mints one key for vesting `id` and returns its nonce. The key stays in
     /// the contract until the caller sends it on.
-    fn mint_key(&self, kind: KeyKind, id: u64, token: &TokenId) -> u64 {
+    ///
+    /// The attributes say whether the vesting can be cancelled
+    /// (`cancelable:1` or `cancelable:0`, since version 2): a claim key is
+    /// sold as an NFT, and outside this dApp its attributes are all a buyer
+    /// sees (red team RT3). The contract itself never reads them.
+    fn mint_key(&self, kind: KeyKind, id: u64, token: &TokenId, cancelable: bool) -> u64 {
         let collection = self.key_mapper(kind).get_token_id();
         let display = self.key_display_or_default(kind);
         let name = match kind {
             KeyKind::Claim => sc_format!("Vesting #{} claim key", id),
             KeyKind::Cancel => sc_format!("Vesting #{} cancel key", id),
         };
-        let mut attributes = sc_format!("tags:mvxvest,vesting;vesting:{};token:{}", id, token);
+        let mut attributes = sc_format!(
+            "tags:mvxvest,vesting;vesting:{};token:{};cancelable:{}",
+            id,
+            token,
+            if cancelable { 1u8 } else { 0u8 }
+        );
         if !display.metadata.is_empty() {
             attributes.append_bytes(b";metadata:");
             attributes.append(&display.metadata);

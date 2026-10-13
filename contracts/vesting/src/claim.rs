@@ -133,23 +133,29 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
     }
 
     /// Owner only. Sends what the contract holds of `token` beyond what it
-    /// owes (locked, claimable and fees). Such a surplus only appears when a
-    /// payout bounced back; the events show whom it belongs to. Locked funds
+    /// owes (locked, claimable and fees): `amount` of it, or all of it when no
+    /// amount is given. Such a surplus only appears when a payout bounced
+    /// back; the events show whom it belongs to, and the amount lets two
+    /// bounced payouts go back to their two owners (audit C1). Locked funds
     /// can never be moved this way.
     #[only_owner]
     #[endpoint(recoverSurplus)]
-    fn recover_surplus(&self, token: TokenId, to: ManagedAddress) {
+    fn recover_surplus(&self, token: TokenId, to: ManagedAddress, amount: OptionalValue<BigUint>) {
         self.require_valid_recipient(&to);
         let surplus = self.surplus(&token);
         require!(surplus > 0u32, ERR_NO_SURPLUS);
-        self.surplus_recovered_event(&token, &to, &surplus);
+        let amount = match amount {
+            OptionalValue::Some(amount) => {
+                require!(amount > 0u32, ERR_ZERO_AMOUNT);
+                require!(amount <= surplus, ERR_ABOVE_SURPLUS);
+                amount
+            }
+            OptionalValue::None => surplus,
+        };
+        self.surplus_recovered_event(&token, &to, &amount);
         self.tx()
             .to(&to)
-            .payment(Payment::new(
-                token,
-                0,
-                NonZeroBigUint::new_or_panic(surplus),
-            ))
+            .payment(Payment::new(token, 0, NonZeroBigUint::new_or_panic(amount)))
             .transfer();
     }
 

@@ -69,6 +69,18 @@ pub trait EventsModule {
     #[event("feeSet")]
     fn fee_set_event(&self, #[indexed] fee_per_vesting: &BigUint);
 
+    #[event("tokenFeeSet")]
+    fn token_fee_set_event(&self, #[indexed] bps: u32);
+
+    /// The token fee of one creation, sent to the owner.
+    #[event("tokenFeePaid")]
+    fn token_fee_paid_event(
+        &self,
+        #[indexed] token: &TokenId,
+        #[indexed] to: &ManagedAddress,
+        amount: &BigUint,
+    );
+
     #[event("creationPaused")]
     fn creation_paused_event(&self, #[indexed] paused: bool);
 

@@ -1,11 +1,20 @@
 //! Creating vestings: one (`create`) or many in one transaction
-//! (`createBatch`). The creator pays the totals plus the fee; each
+//! (`createBatch`). The creator pays the totals plus the fees; each
 //! beneficiary receives a claim key; a cancelable vesting also gives the
 //! creator a cancel key.
+//!
+//! Two fees, both set by the owner under hard caps, both 0 until set:
+//! - the EGLD fee, a flat amount per vesting (`setFee`), collected with
+//!   `claimFees`;
+//! - the token fee, a share of each vesting's total in its own token
+//!   (`setTokenFee`), paid on top of the total and sent to the owner at once.
+//!
+//! The beneficiary always receives exactly the total.
 
 use multiversx_sc::{derive_imports::*, imports::*};
 
 use crate::{
+    admin::BPS,
     errors::*,
     events::{self, CreatedEvent},
     keys,
@@ -13,14 +22,17 @@ use crate::{
     storage::{self, KeyKind, Vesting},
 };
 
-/// Most vestings one `createBatch` may create. The network allows about 100
+/// Most vestings one `createBatch` may create. The network allows 100
 /// built-in calls (NFT mints and transfers) per transaction: a vesting needs
-/// two (mint and send its claim key), so 50 fit; measured on devnet
-/// (docs/MEASUREMENTS.md). The dApp splits a CSV into several transactions.
-pub const MAX_BATCH: usize = 50;
+/// two (mint and send its claim key), and the token fee one transfer, so 49
+/// fit (50 did before the token fee; measured on devnet, docs/MEASUREMENTS.md).
+/// The dApp reads this from `getLimits` and splits a CSV into several
+/// transactions.
+pub const MAX_BATCH: usize = 49;
 /// The same for cancelable vestings, which also mint a cancel key: three
-/// calls each, plus one transfer of all cancel keys, so 33 fit.
-pub const MAX_BATCH_CANCELABLE: usize = 33;
+/// calls each, plus one transfer of all cancel keys and one of the token fee,
+/// so 32 fit.
+pub const MAX_BATCH_CANCELABLE: usize = 32;
 /// Longest label, in bytes.
 pub const MAX_LABEL_LEN: usize = 64;
 /// A schedule must end within this many seconds of its creation (30 years),
@@ -41,10 +53,11 @@ pub struct KeyDelivery<M: ManagedTypeApi> {
 pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::KeysModule {
     /// Creates one vesting of `total` for `beneficiary`, and returns its id.
     ///
-    /// Pay exactly `total` of the vested token, plus the fee in EGLD when
-    /// there is one. For an EGLD vesting, pay `total` plus the fee in EGLD.
-    /// The total is explicit so that a fee change between preview and signing
-    /// makes the transaction fail instead of changing the vesting.
+    /// Pay exactly `total` plus the token fee (`getTokenFee`) of the vested
+    /// token, and the EGLD fee (`getFee`) in EGLD. For an EGLD vesting, pay
+    /// all three in EGLD. The total is explicit so that a fee change between
+    /// preview and signing makes the transaction fail instead of changing the
+    /// vesting.
     #[payable]
     #[endpoint(create)]
     fn create(
@@ -68,14 +81,17 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
             &mut claim_keys,
             &mut cancel_keys,
         );
-        self.settle_payment(&token, &token_amount, &egld_amount, 1, &total);
+        let token_fee = self.token_fee_of(&total);
+        self.settle_payment(&token, &token_amount, &egld_amount, 1, &total, &token_fee);
         self.deliver_keys(claim_keys, cancel_keys);
+        self.pay_token_fee(&token, token_fee);
         id
     }
 
     /// Creates one vesting per entry, all of the same token, the same
-    /// cancelability and the same label. Pay the sum of the totals, plus the
-    /// fee for each vesting. Returns the ids, in the order of the entries.
+    /// cancelability and the same label. Pay the sum of the totals plus the
+    /// token fee of each vesting, and the EGLD fee for each vesting. Returns
+    /// the ids, in the order of the entries.
     #[payable]
     #[endpoint(createBatch)]
     fn create_batch(
@@ -94,11 +110,15 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
         let (token, token_amount, egld_amount) = self.received_payments();
         let mut ids = MultiValueEncoded::new();
         let mut sum = BigUint::zero();
+        let mut token_fee = BigUint::zero();
         let mut claim_keys = ManagedVec::new();
         let mut cancel_keys = ManagedVec::new();
         for entry in entries.into_iter() {
             let (beneficiary, total, schedule) = entry.into_tuple();
             sum += &total;
+            // Per vesting, so a batch pays what the same vestings created
+            // one by one would.
+            token_fee += self.token_fee_of(&total);
             ids.push(self.create_one(
                 &token,
                 beneficiary,
@@ -110,9 +130,37 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
                 &mut cancel_keys,
             ));
         }
-        self.settle_payment(&token, &token_amount, &egld_amount, count, &sum);
+        self.settle_payment(&token, &token_amount, &egld_amount, count, &sum, &token_fee);
         self.deliver_keys(claim_keys, cancel_keys);
+        self.pay_token_fee(&token, token_fee);
         ids
+    }
+
+    /// The token fee of one vesting of `total`, rounded down.
+    fn token_fee_of(&self, total: &BigUint) -> BigUint {
+        let bps = self.token_fee_bps().get();
+        if bps == 0 {
+            return BigUint::zero();
+        }
+        total * bps / BPS
+    }
+
+    /// Sends the token fee of this creation to the owner, with an event.
+    /// Nothing is booked: the fee never belongs to a vesting.
+    fn pay_token_fee(&self, token: &TokenId, fee: BigUint) {
+        if fee == 0u32 {
+            return;
+        }
+        let owner = self.blockchain().get_owner_address();
+        self.token_fee_paid_event(token, &owner, &fee);
+        self.tx()
+            .to(&owner)
+            .payment(Payment::new(
+                token.clone(),
+                0,
+                NonZeroBigUint::new_or_panic(fee),
+            ))
+            .transfer();
     }
 
     /// Sums what the call carries: the one vested token (EGLD when no ESDT
@@ -143,8 +191,8 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
         }
     }
 
-    /// Checks the payment covers exactly `sum` plus the fee for `count`
-    /// vestings, then books the deposit and the fee.
+    /// Checks the payment covers exactly `sum` plus `token_fee` and the EGLD
+    /// fee for `count` vestings, then books the deposit and the EGLD fee.
     fn settle_payment(
         &self,
         token: &TokenId,
@@ -152,12 +200,13 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
         egld_amount: &BigUint,
         count: usize,
         sum: &BigUint,
+        token_fee: &BigUint,
     ) {
         let fees = self.fee_per_vesting().get() * count as u64;
         if token.is_native() {
-            require!(*egld_amount == sum + &fees, ERR_WRONG_DEPOSIT);
+            require!(*egld_amount == sum + token_fee + &fees, ERR_WRONG_DEPOSIT);
         } else {
-            require!(token_amount == sum, ERR_WRONG_DEPOSIT);
+            require!(*token_amount == sum + token_fee, ERR_WRONG_DEPOSIT);
             require!(*egld_amount == fees, ERR_WRONG_FEE);
         }
         if fees > 0u32 {
@@ -202,9 +251,9 @@ pub trait CreateModule: storage::StorageModule + events::EventsModule + keys::Ke
             *last += 1;
             *last
         });
-        let claim_nonce = self.mint_key(KeyKind::Claim, id, token);
+        let claim_nonce = self.mint_key(KeyKind::Claim, id, token, cancelable);
         let cancel_nonce = if cancelable {
-            self.mint_key(KeyKind::Cancel, id, token)
+            self.mint_key(KeyKind::Cancel, id, token, true)
         } else {
             0
         };

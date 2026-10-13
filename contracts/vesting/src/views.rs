@@ -4,7 +4,7 @@
 use multiversx_sc::{derive_imports::*, imports::*};
 
 use crate::{
-    admin::MAX_FEE_PER_VESTING,
+    admin::{MAX_FEE_PER_VESTING, MAX_TOKEN_FEE_BPS},
     claim,
     create::{MAX_BATCH, MAX_BATCH_CANCELABLE, MAX_HORIZON, MAX_LABEL_LEN},
     errors::*,
@@ -167,6 +167,17 @@ pub trait ViewsModule:
     #[view(getMaxFee)]
     fn get_max_fee(&self) -> BigUint {
         BigUint::from(MAX_FEE_PER_VESTING)
+    }
+
+    /// The token fee, in basis points of each vesting's total (100 = 1%).
+    #[view(getTokenFee)]
+    fn get_token_fee(&self) -> u32 {
+        self.token_fee_bps().get()
+    }
+
+    #[view(getMaxTokenFee)]
+    fn get_max_token_fee(&self) -> u32 {
+        MAX_TOKEN_FEE_BPS
     }
 
     #[view(getFeesAccrued)]

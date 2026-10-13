@@ -38,6 +38,16 @@ fn builtin_calls(logs: &[Log]) -> usize {
         .count()
 }
 
+fn set_token_fee(f: &mut Fixture, bps: u32) {
+    f.world
+        .tx()
+        .from(OWNER)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .set_token_fee(bps)
+        .run();
+}
+
 fn set_fee(f: &mut Fixture, fee: u128) {
     f.world
         .tx()
@@ -49,7 +59,7 @@ fn set_fee(f: &mut Fixture, fee: u128) {
 }
 
 /// A batch of `count` linear vestings of 10 FOX for `who`, ending at
-/// `T0 + DAY`, paying the fee; returns the ids and the built-in calls.
+/// `T0 + DAY`, paying the EGLD fee; returns the ids and the built-in calls.
 fn batch(
     f: &mut Fixture,
     cancelable: bool,
@@ -57,18 +67,31 @@ fn batch(
     who: TestAddress,
     fee: u128,
 ) -> (Vec<u64>, usize) {
+    batch_of(f, cancelable, count, who, fee, 10, 0)
+}
+
+/// The same with `total` FOX each and a token fee of `token_fee` FOX each.
+fn batch_of(
+    f: &mut Fixture,
+    cancelable: bool,
+    count: u64,
+    who: TestAddress,
+    fee: u128,
+    total: u128,
+    token_fee: u128,
+) -> (Vec<u64>, usize) {
     let mut entries = MultiValueEncoded::new();
     for _ in 0..count {
         entries.push(
             (
                 who.to_managed_address(),
-                big(10),
+                big(total),
                 linear(T0, T0, 0, T0 + DAY),
             )
                 .into(),
         );
     }
-    let mut pay = vec![(Some(FOX), 10 * count as u128)];
+    let mut pay = vec![(Some(FOX), (total + token_fee) * count as u128)];
     if fee > 0 {
         pay.push((None, fee * count as u128));
     }
@@ -114,24 +137,54 @@ fn cancel_calls(f: &mut Fixture, nonces: &[u64]) -> usize {
     builtin_calls(&logs)
 }
 
-/// SAFE: the largest batches make exactly 100 built-in calls, with the fee
-/// paid in EGLD next to the token (the fee adds none): 50 plain = 50 mints +
-/// 50 key transfers; 33 cancelable = 66 mints + 33 claim key transfers + 1
-/// transfer of all cancel keys. One more vesting would make 102 or 103.
+/// SAFE (version 2): the largest batches fit with both fees set. The EGLD
+/// fee comes in with the payment and adds no call; the token fee goes out in
+/// one transfer. 49 plain = 49 mints + 49 key transfers + 1 fee transfer = 99;
+/// 32 cancelable = 64 mints + 32 claim key transfers + 1 transfer of all
+/// cancel keys + 1 fee transfer = 98. The counts are 2n + 1 and 3n + 2, so
+/// 50 plain or 33 cancelable would make 101, which the network refuses: the
+/// limits had to drop by one when the token fee came (they were 50 and 33).
 #[test]
-fn safe_largest_batches_make_exactly_100_builtin_calls() {
+fn safe_largest_batches_fit_with_both_fees() {
     let mut f = Fixture::new();
     set_fee(&mut f, EGLD / 100);
-    let (_, plain) = batch(&mut f, false, 50, ALICE, EGLD / 100);
-    assert_eq!(plain, MAX_BUILTIN_CALLS);
-    let (_, cancelable) = batch(&mut f, true, 33, ALICE, EGLD / 100);
-    assert_eq!(cancelable, MAX_BUILTIN_CALLS);
-    // Linear in the size: 2 per plain vesting, 3 + 1 per cancelable batch.
-    let (_, small_plain) = batch(&mut f, false, 7, BOB, EGLD / 100);
-    assert_eq!(small_plain, 14);
-    let (_, small_cancelable) = batch(&mut f, true, 7, BOB, EGLD / 100);
-    assert_eq!(small_cancelable, 22);
+    set_token_fee(&mut f, 100);
+    let (_, plain) = batch_of(&mut f, false, 49, ALICE, EGLD / 100, 10_000, 100);
+    assert_eq!(plain, 99);
+    let (_, cancelable) = batch_of(&mut f, true, 32, ALICE, EGLD / 100, 10_000, 100);
+    assert_eq!(cancelable, 98);
+    // Linear in the size: 2n + 1 plain, 3n + 2 cancelable.
+    let (_, small_plain) = batch_of(&mut f, false, 7, BOB, EGLD / 100, 10_000, 100);
+    assert_eq!(small_plain, 15);
+    let (_, small_cancelable) = batch_of(&mut f, true, 7, BOB, EGLD / 100, 10_000, 100);
+    assert_eq!(small_cancelable, 23);
+    // One more vesting adds 2 calls (plain) or 3 (cancelable): over the limit.
+    assert!(plain + 2 > MAX_BUILTIN_CALLS);
+    assert!(cancelable + 3 > MAX_BUILTIN_CALLS);
     f.check_invariant(Some(FOX));
+}
+
+/// SAFE: without a token fee (0, as after the upgrade until the owner sets
+/// one) nothing goes out, so the same batches make one call fewer.
+#[test]
+fn safe_no_token_fee_no_transfer() {
+    let mut f = Fixture::new();
+    let (_, plain) = batch(&mut f, false, 49, ALICE, 0);
+    assert_eq!(plain, 98);
+    let (_, cancelable) = batch(&mut f, true, 32, ALICE, 0);
+    assert_eq!(cancelable, 97);
+}
+
+/// `count` plain vestings of 10 FOX for `who`, in batches of at most 49.
+fn plain_vestings(f: &mut Fixture, count: u64, who: TestAddress) -> Vec<u64> {
+    let mut ids = Vec::new();
+    let mut left = count;
+    while left > 0 {
+        let size = left.min(49);
+        ids.extend(batch(f, false, size, who, 0).0);
+        left -= size;
+    }
+    ids
 }
 
 /// SAFE, and the dApp's cap: a claim makes one burn per finished key plus
@@ -142,15 +195,13 @@ fn safe_largest_batches_make_exactly_100_builtin_calls() {
 #[test]
 fn safe_claim_all_fits_99_keys_and_one_key_always_fits() {
     let mut f = Fixture::new();
-    let (mut ids, _) = batch(&mut f, false, 50, ALICE, 0);
-    ids.extend(batch(&mut f, false, 50, ALICE, 0).0);
+    let ids = plain_vestings(&mut f, 100, ALICE);
     // Plain vestings: claim key nonce = id.
     f.set_time(T0 + 2 * DAY);
     assert_eq!(claim_calls(&mut f, ALICE, &ids[..99]), 99 + 1);
     // What 100 finished keys would need, from a fresh copy of the same state.
     let mut g = Fixture::new();
-    let (mut more, _) = batch(&mut g, false, 50, ALICE, 0);
-    more.extend(batch(&mut g, false, 50, ALICE, 0).0);
+    let more = plain_vestings(&mut g, 100, ALICE);
     g.set_time(T0 + 2 * DAY);
     assert_eq!(claim_calls(&mut g, ALICE, &more), MAX_BUILTIN_CALLS + 1);
     // The last key of the first fixture, alone: burn + payout.
@@ -165,7 +216,7 @@ fn safe_claim_all_fits_99_keys_and_one_key_always_fits() {
 #[test]
 fn safe_claim_of_unfinished_keys_is_one_builtin_call() {
     let mut f = Fixture::new();
-    let (ids, _) = batch(&mut f, false, 50, ALICE, 0);
+    let ids = plain_vestings(&mut f, 50, ALICE);
     f.set_time(T0 + DAY / 2);
     assert_eq!(claim_calls(&mut f, ALICE, &ids), 1);
 }
@@ -176,8 +227,8 @@ fn safe_claim_of_unfinished_keys_is_one_builtin_call() {
 fn safe_cancel_all_fits_99_keys() {
     let mut f = Fixture::new();
     let mut ids = Vec::new();
-    for _ in 0..3 {
-        ids.extend(batch(&mut f, true, 33, ALICE, 0).0);
+    for size in [32, 32, 32, 3] {
+        ids.extend(batch(&mut f, true, size, ALICE, 0).0);
     }
     assert_eq!(ids.len(), 99);
     // Cancelable vestings created alone in their batches: cancel key nonce = id.

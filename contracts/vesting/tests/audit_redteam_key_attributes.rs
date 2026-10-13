@@ -29,9 +29,8 @@ mod common;
 
 use common::*;
 
-/// FAILS on the current code: the attributes carry no `cancelable` marker.
+/// Failed on the audited code (no `cancelable` marker); fixed in version 2.
 #[test]
-#[ignore = "RT3: passes once new keys carry the cancelable marker (next upgrade)"]
 fn a_cancelable_claim_key_says_so_in_its_attributes() {
     let mut f = Fixture::new();
     let id = f.create_fox(ALICE, 1_000, linear(T0, T0, 0, T0 + 1_000), true);

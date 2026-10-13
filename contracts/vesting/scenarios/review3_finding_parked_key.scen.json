@@ -102,7 +102,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0"
                 }
               ]
             }
@@ -259,7 +259,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0"
                 }
               ]
             }

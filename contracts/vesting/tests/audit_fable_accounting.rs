@@ -28,13 +28,18 @@ fn bounce_funds(f: &mut Fixture, amount: u128) {
         .whitebox(mvxvest::contract_obj, |_| {});
 }
 
-fn recover_surplus(f: &mut Fixture, to: TestAddress) -> Result<(), String> {
+/// `recoverSurplus(FOX, to, amount)`: all of the surplus when `amount` is None.
+fn recover_surplus(f: &mut Fixture, to: TestAddress, amount: Option<u128>) -> Result<(), String> {
+    let amount = match amount {
+        Some(amount) => OptionalValue::Some(big(amount)),
+        None => OptionalValue::None,
+    };
     f.world
         .tx()
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(FOX), to)
+        .recover_surplus(token(FOX), to, amount)
         .returns(ReturnsHandledOrError::new())
         .run()
         .map(|_| ())
@@ -49,8 +54,8 @@ fn recover_surplus(f: &mut Fixture, to: TestAddress) -> Result<(), String> {
 /// controls and split it by hand, outside the contract and its events.
 /// Fix: an `amount` argument (`amount <= surplus`), storage unchanged, so the
 /// upgrade is compatible with every existing vesting.
+/// Fixed in version 2: each holder gets its own payout back.
 #[test]
-#[ignore = "C1: passes once recoverSurplus takes an amount (next upgrade)"]
 fn finding_surplus_recovery_cannot_return_two_bounced_payouts_separately() {
     let mut f = Fixture::new();
     // Two holders, each claims 1,000 FOX at the end; both payouts bounce.
@@ -62,12 +67,14 @@ fn finding_surplus_recovery_cannot_return_two_bounced_payouts_separately() {
     bounce_funds(&mut f, 1_000);
     bounce_funds(&mut f, 1_000);
     // The owner returns each holder its own payout. On the audited code the
-    // first call sends 2,000 to Alice and the second fails.
-    recover_surplus(&mut f, ALICE).unwrap();
-    let second = recover_surplus(&mut f, BOB);
+    // first call sent 2,000 to Alice and the second failed.
+    recover_surplus(&mut f, ALICE, Some(1_000)).unwrap();
+    let second = recover_surplus(&mut f, BOB, Some(1_000));
     assert_eq!(second, Ok(()), "the second holder gets nothing back");
-    f.check_fox(ALICE, 1_000);
-    f.check_fox(BOB, 1_000);
+    // The test cannot make a claim really bounce: each holder kept its
+    // claimed 1,000 (the "bounce" came from the creator) and got 1,000 back.
+    f.check_fox(ALICE, 2_000);
+    f.check_fox(BOB, 2_000);
     f.check_invariant(Some(FOX));
 }
 
@@ -266,9 +273,9 @@ fn safe_surplus_stays_the_bounced_amount_through_claims_and_cancels() {
         .returns(ReturnsResult)
         .run();
     assert_eq!(surplus, big(400));
-    recover_surplus(&mut f, ALICE).unwrap();
+    recover_surplus(&mut f, ALICE, None).unwrap();
     assert_eq!(
-        recover_surplus(&mut f, OWNER),
+        recover_surplus(&mut f, OWNER, None),
         Err(ERR_NO_SURPLUS.to_string())
     );
     f.check_invariant(Some(FOX));

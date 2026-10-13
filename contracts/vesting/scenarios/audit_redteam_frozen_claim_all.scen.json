@@ -127,14 +127,14 @@
                   "balance": "1",
                   "creator": "sc:mvxvest",
                   "uri": [""],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0"
                 },
                 {
                   "nonce": "2",
                   "balance": "1",
                   "creator": "sc:mvxvest",
                   "uri": [""],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456;cancelable:0"
                 }
               ]
             }
@@ -195,14 +195,14 @@
                   "balance": "1",
                   "creator": "sc:mvxvest",
                   "uri": [""],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0"
                 },
                 {
                   "nonce": "2",
                   "balance": "1",
                   "creator": "sc:mvxvest",
                   "uri": [""],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456;cancelable:0"
                 }
               ]
             }

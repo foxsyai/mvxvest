@@ -119,6 +119,12 @@ pub trait StorageModule {
     #[storage_mapper("feePerVesting")]
     fn fee_per_vesting(&self) -> SingleValueMapper<BigUint>;
 
+    /// Share of each vesting's total charged on top of it, in its own token,
+    /// in basis points (100 = 1%), and sent to the owner when the vesting is
+    /// created. 0 until the owner sets it. Added in version 2.
+    #[storage_mapper("tokenFeeBps")]
+    fn token_fee_bps(&self) -> SingleValueMapper<u32>;
+
     /// EGLD fees received and not yet claimed by the owner.
     #[storage_mapper("feesAccrued")]
     fn fees_accrued(&self) -> SingleValueMapper<BigUint>;

@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           35
+// Endpoints:                           38
 // Async Callback:                       1
-// Total number of exported functions:  38
+// Total number of exported functions:  41
 
 #![no_std]
 
@@ -25,6 +25,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         disableKeyBurnByHolders => disable_key_burn_by_holders
         setKeyDisplay => set_key_display
         setFee => set_fee
+        setTokenFee => set_token_fee
         pauseCreation => pause_creation
         unpauseCreation => unpause_creation
         claimFees => claim_fees
@@ -49,6 +50,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         getVestingCount => get_vesting_count
         getFee => get_fee
         getMaxFee => get_max_fee
+        getTokenFee => get_token_fee
+        getMaxTokenFee => get_max_token_fee
         getFeesAccrued => get_fees_accrued
         isCreationPaused => is_creation_paused
         getClaimKeyCollection => get_claim_key_collection

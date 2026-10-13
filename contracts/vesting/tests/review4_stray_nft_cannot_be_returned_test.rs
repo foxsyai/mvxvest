@@ -35,7 +35,11 @@ fn a_stray_nft_that_is_not_a_key_cannot_be_returned() {
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(OTHER_NFT), CREATOR)
+        .recover_surplus(
+            token(OTHER_NFT),
+            CREATOR,
+            OptionalValue::<BigUint<StaticApi>>::None,
+        )
         .returns(ExpectError(4, ERR_NO_SURPLUS))
         .run();
 }

@@ -1,5 +1,5 @@
 {
-  "name": "review4: createBatch of 33 cancelable (the most the network allows) delivers 33 distinct cancel keys to the creator in one transfer, and they all cancel",
+  "name": "review4: createBatch of 32 cancelable (the most the network allows with the token fee) delivers 32 distinct cancel keys to the creator in one transfer, and they all cancel",
   "steps": [
     {
       "step": "setState",
@@ -77,7 +77,7 @@
     },
     {
       "step": "scCall",
-      "id": "batch-33-cancelable",
+      "id": "batch-32-cancelable",
       "tx": {
         "from": "address:creator",
         "to": "sc:mvxvest",
@@ -180,15 +180,12 @@
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:b3",
           "10",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
-          "address:b4",
-          "10",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
         ],
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "330"
+            "value": "320"
           }
         ],
         "gasLimit": "600,000,000",
@@ -227,8 +224,7 @@
           "29",
           "30",
           "31",
-          "32",
-          "33"
+          "32"
         ],
         "status": "0",
         "logs": "*",
@@ -244,7 +240,7 @@
           "nonce": "*",
           "balance": "*",
           "esdt": {
-            "str:FOX-a1b2c3": "99670",
+            "str:FOX-a1b2c3": "99680",
             "str:VESTCANCEL-123456": {
               "instances": [
                 {
@@ -374,10 +370,6 @@
                 {
                   "nonce": "132",
                   "balance": "1"
-                },
-                {
-                  "nonce": "133",
-                  "balance": "1"
                 }
               ]
             }
@@ -391,14 +383,14 @@
           "storage": "*",
           "code": "*",
           "esdt": {
-            "str:FOX-a1b2c3": "330",
+            "str:FOX-a1b2c3": "320",
             "str:VESTKEY-123456": {
               "instances": [],
               "roles": [
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "133"
+              "lastNonce": "132"
             },
             "str:VESTCANCEL-123456": {
               "instances": [],
@@ -406,7 +398,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "133"
+              "lastNonce": "132"
             }
           }
         },
@@ -559,10 +551,6 @@
                 {
                   "nonce": "126",
                   "balance": "1"
-                },
-                {
-                  "nonce": "133",
-                  "balance": "1"
                 }
               ]
             }
@@ -631,7 +619,7 @@
     },
     {
       "step": "scCall",
-      "id": "cancel-all-33",
+      "id": "cancel-all-32",
       "tx": {
         "from": "address:creator",
         "to": "sc:mvxvest",
@@ -797,11 +785,6 @@
             "tokenIdentifier": "str:VESTCANCEL-123456",
             "nonce": "132",
             "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTCANCEL-123456",
-            "nonce": "133",
-            "value": "1"
           }
         ],
         "gasLimit": "600,000,000",
@@ -817,7 +800,7 @@
     },
     {
       "step": "checkState",
-      "comment": "the 33 distinct cancel keys worked and are burned; everything refunded",
+      "comment": "the 32 distinct cancel keys worked and are burned; everything refunded",
       "accounts": {
         "address:creator": {
           "nonce": "*",
@@ -843,7 +826,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "133"
+              "lastNonce": "132"
             },
             "str:VESTCANCEL-123456": {
               "instances": [],
@@ -851,7 +834,7 @@
                 "ESDTRoleNFTCreate",
                 "ESDTRoleNFTBurn"
               ],
-              "lastNonce": "133"
+              "lastNonce": "132"
             }
           }
         },

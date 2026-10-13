@@ -170,6 +170,23 @@ where
             .original_result()
     }
 
+    /// Sets the token fee, in basis points of each vesting's total (100 = 
+    /// 1%), at most `MAX_TOKEN_FEE_BPS`. It is paid on top of the total, in 
+    /// the vested token, and goes to the owner at once. Like the EGLD fee, a 
+    /// creation must pay exactly the current one. 
+    pub fn set_token_fee<
+        Arg0: ProxyArg<u32>,
+    >(
+        self,
+        bps: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("setTokenFee")
+            .argument(&bps)
+            .original_result()
+    }
+
     /// Stops new vestings. Claims and cancels keep working. 
     pub fn pause_creation(
         self,
@@ -201,10 +218,11 @@ where
 
     /// Creates one vesting of `total` for `beneficiary`, and returns its id. 
     ///  
-    /// Pay exactly `total` of the vested token, plus the fee in EGLD when 
-    /// there is one. For an EGLD vesting, pay `total` plus the fee in EGLD. 
-    /// The total is explicit so that a fee change between preview and signing 
-    /// makes the transaction fail instead of changing the vesting. 
+    /// Pay exactly `total` plus the token fee (`getTokenFee`) of the vested 
+    /// token, and the EGLD fee (`getFee`) in EGLD. For an EGLD vesting, pay 
+    /// all three in EGLD. The total is explicit so that a fee change between 
+    /// preview and signing makes the transaction fail instead of changing the 
+    /// vesting. 
     pub fn create<
         Arg0: ProxyArg<ManagedAddress<Env::Api>>,
         Arg1: ProxyArg<BigUint<Env::Api>>,
@@ -230,8 +248,9 @@ where
     }
 
     /// Creates one vesting per entry, all of the same token, the same 
-    /// cancelability and the same label. Pay the sum of the totals, plus the 
-    /// fee for each vesting. Returns the ids, in the order of the entries. 
+    /// cancelability and the same label. Pay the sum of the totals plus the 
+    /// token fee of each vesting, and the EGLD fee for each vesting. Returns 
+    /// the ids, in the order of the entries. 
     pub fn create_batch<
         Arg0: ProxyArg<bool>,
         Arg1: ProxyArg<ManagedBuffer<Env::Api>>,
@@ -301,22 +320,27 @@ where
     }
 
     /// Owner only. Sends what the contract holds of `token` beyond what it 
-    /// owes (locked, claimable and fees). Such a surplus only appears when a 
-    /// payout bounced back; the events show whom it belongs to. Locked funds 
+    /// owes (locked, claimable and fees): `amount` of it, or all of it when no 
+    /// amount is given. Such a surplus only appears when a payout bounced 
+    /// back; the events show whom it belongs to, and the amount lets two 
+    /// bounced payouts go back to their two owners (audit C1). Locked funds 
     /// can never be moved this way. 
     pub fn recover_surplus<
         Arg0: ProxyArg<TokenId<Env::Api>>,
         Arg1: ProxyArg<ManagedAddress<Env::Api>>,
+        Arg2: ProxyArg<OptionalValue<BigUint<Env::Api>>>,
     >(
         self,
         token: Arg0,
         to: Arg1,
+        amount: Arg2,
     ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
         self.wrapped_tx
             .payment(NotPayable)
             .raw_call("recoverSurplus")
             .argument(&token)
             .argument(&to)
+            .argument(&amount)
             .original_result()
     }
 
@@ -529,6 +553,25 @@ where
         self.wrapped_tx
             .payment(NotPayable)
             .raw_call("getMaxFee")
+            .original_result()
+    }
+
+    /// The token fee, in basis points of each vesting's total (100 = 1%). 
+    pub fn get_token_fee(
+        self,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u32> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("getTokenFee")
+            .original_result()
+    }
+
+    pub fn get_max_token_fee(
+        self,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, u32> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("getMaxTokenFee")
             .original_result()
     }
 

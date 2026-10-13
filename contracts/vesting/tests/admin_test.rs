@@ -86,7 +86,7 @@ fn owner_collects_fees_and_nothing_else() {
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(native(), OWNER)
+        .recover_surplus(native(), OWNER, OptionalValue::<BigUint<StaticApi>>::None)
         .returns(ExpectError(4, ERR_NO_SURPLUS))
         .run();
     f.world
@@ -94,7 +94,7 @@ fn owner_collects_fees_and_nothing_else() {
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(FOX), OWNER)
+        .recover_surplus(token(FOX), OWNER, OptionalValue::<BigUint<StaticApi>>::None)
         .returns(ExpectError(4, ERR_NO_SURPLUS))
         .run();
 }
@@ -162,7 +162,7 @@ fn key_display_applies_to_new_keys() {
             CLAIM_KEY,
             1,
             1,
-            "tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;metadata:bafyexample/claim.json"
+            "tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;metadata:bafyexample/claim.json"
                 .as_bytes(),
         );
 }
@@ -192,7 +192,11 @@ fn surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot() {
         .from(MALLORY)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(FOX), MALLORY)
+        .recover_surplus(
+            token(FOX),
+            MALLORY,
+            OptionalValue::<BigUint<StaticApi>>::None,
+        )
         .returns(ExpectError(4, "Endpoint can only be called by owner"))
         .run();
     f.world
@@ -200,7 +204,7 @@ fn surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot() {
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(FOX), BOB)
+        .recover_surplus(token(FOX), BOB, OptionalValue::<BigUint<StaticApi>>::None)
         .run();
     f.check_fox(BOB, 40);
     // Exactly the locked 1000 remain.
@@ -210,7 +214,7 @@ fn surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot() {
         .from(OWNER)
         .to(SC)
         .typed(MvxvestProxy)
-        .recover_surplus(token(FOX), BOB)
+        .recover_surplus(token(FOX), BOB, OptionalValue::<BigUint<StaticApi>>::None)
         .returns(ExpectError(4, ERR_NO_SURPLUS))
         .run();
 }

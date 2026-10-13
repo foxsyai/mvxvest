@@ -61,16 +61,13 @@
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "33000000"
+            "value": "32000000"
           }
         ],
         "function": "createBatch",
         "arguments": [
           "true",
           "str:batch",
-          "address:holder",
-          "1000000",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
@@ -188,16 +185,13 @@
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "33000000"
+            "value": "32000000"
           }
         ],
         "function": "createBatch",
         "arguments": [
           "true",
           "str:batch",
-          "address:holder",
-          "1000000",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
@@ -315,16 +309,13 @@
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "33000000"
+            "value": "32000000"
           }
         ],
         "function": "createBatch",
         "arguments": [
           "true",
           "str:batch",
-          "address:holder",
-          "1000000",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
@@ -435,6 +426,43 @@
     },
     {
       "step": "scCall",
+      "id": "cancelable-4",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "3000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "true",
+          "str:batch",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
       "id": "plain-1",
       "tx": {
         "from": "address:creator",
@@ -442,16 +470,13 @@
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "50000000"
+            "value": "49000000"
           }
         ],
         "function": "createBatch",
         "arguments": [
           "false",
           "str:batch",
-          "address:holder",
-          "1000000",
-          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
@@ -620,7 +645,7 @@
         "esdtValue": [
           {
             "tokenIdentifier": "str:FOX-a1b2c3",
-            "value": "50000000"
+            "value": "49000000"
           }
         ],
         "function": "createBatch",
@@ -771,6 +796,37 @@
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",
+          "address:holder",
+          "1000000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "out": "*",
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "plain-3",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "2000000"
+          }
+        ],
+        "function": "createBatch",
+        "arguments": [
+          "false",
+          "str:batch",
           "address:holder",
           "1000000",
           "u64:1767225600|u64:1767225600|biguint:0|u64:1798761600|u8:0",

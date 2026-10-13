@@ -121,8 +121,19 @@ pub fn keys(kind: KeyKind, nonces: &[u64]) -> ManagedVec<StaticApi, Payment<Stat
     vec
 }
 
+/// The attributes of a key minted before version 2 (no `cancelable` marker).
 pub fn attributes(id: u64, token_id: &str) -> String {
     format!("tags:mvxvest,vesting;vesting:{id};token:{token_id}")
+}
+
+/// The attributes of a key minted from version 2 on: a cancel key always
+/// says `cancelable:1`, a claim key says whether its vesting can be cancelled.
+pub fn key_attributes(id: u64, token_id: &str, cancelable: bool) -> String {
+    format!(
+        "{};cancelable:{}",
+        attributes(id, token_id),
+        u8::from(cancelable)
+    )
 }
 
 pub struct Fixture {
@@ -408,13 +419,14 @@ impl Fixture {
             KeyKind::Claim => CLAIM_KEY,
             KeyKind::Cancel => CANCEL_KEY,
         };
+        let cancelable = kind == KeyKind::Cancel || self.view(id).vesting.cancelable;
         self.world
             .check_account(account)
             .esdt_nft_balance_and_attributes(
                 collection,
                 nonce,
                 1,
-                attributes(id, token_id).as_bytes(),
+                key_attributes(id, token_id, cancelable).as_bytes(),
             );
     }
 }

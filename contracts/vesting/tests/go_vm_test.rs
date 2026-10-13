@@ -48,9 +48,20 @@ fn lifecycle() {
     run_on_go_vm("lifecycle.scen.json");
 }
 
-/// The largest batches allowed (33 cancelable, 50 plain: the network's limit
-/// of about 100 built-in calls per transaction, measured on devnet) work.
+/// The largest batches allowed with the token fee set (32 cancelable, 49
+/// plain: the network's limit of 100 built-in calls per transaction, see
+/// review5_builtin_calls_test) work, and the owner gets 1% of each.
 #[test]
 fn batch_max() {
     run_on_go_vm("batch_max.scen.json");
+}
+
+/// The upgrade itself, on the validators' VM: from the live version 1 code
+/// (scenarios/v1/mvxvest-v1.wasm, code hash fd32f4e1..., the mainnet release)
+/// to this build. Old vestings claim and cancel, old keys keep their
+/// attributes, new keys carry the cancelable marker, and the token fee goes
+/// to the owner.
+#[test]
+fn v2_upgrade_from_v1() {
+    run_on_go_vm("v2_upgrade_from_v1.scen.json");
 }

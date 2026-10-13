@@ -1,6 +1,6 @@
 //! Owner endpoints. The owner (the multisig) can issue the key collections,
-//! set how new keys look, set the fee up to a hard cap, pause the creation of
-//! new vestings and collect fees. It can never pause claims or cancels, and
+//! set how new keys look, set the two fees up to hard caps, pause the
+//! creation of new vestings and collect fees. It can never pause claims or cancels, and
 //! never move locked funds.
 
 use multiversx_sc::imports::*;
@@ -13,6 +13,10 @@ use crate::{
 
 /// Highest fee per vesting the owner can ever set: 1 EGLD.
 pub const MAX_FEE_PER_VESTING: u64 = 1_000_000_000_000_000_000;
+/// Highest token fee the owner can ever set: 2% of each vesting's total.
+pub const MAX_TOKEN_FEE_BPS: u32 = 200;
+/// Basis points in one whole.
+pub const BPS: u32 = 10_000;
 
 #[multiversx_sc::module]
 pub trait AdminModule:
@@ -103,6 +107,18 @@ pub trait AdminModule:
         require!(fee_per_vesting <= MAX_FEE_PER_VESTING, ERR_FEE_ABOVE_CAP);
         self.fee_per_vesting().set(&fee_per_vesting);
         self.fee_set_event(&fee_per_vesting);
+    }
+
+    /// Sets the token fee, in basis points of each vesting's total (100 =
+    /// 1%), at most `MAX_TOKEN_FEE_BPS`. It is paid on top of the total, in
+    /// the vested token, and goes to the owner at once. Like the EGLD fee, a
+    /// creation must pay exactly the current one.
+    #[only_owner]
+    #[endpoint(setTokenFee)]
+    fn set_token_fee(&self, bps: u32) {
+        require!(bps <= MAX_TOKEN_FEE_BPS, ERR_TOKEN_FEE_ABOVE_CAP);
+        self.token_fee_bps().set(bps);
+        self.token_fee_set_event(bps);
     }
 
     /// Stops new vestings. Claims and cancels keep working.

@@ -504,10 +504,11 @@ fn batch(
 
 #[test]
 fn batch_size_is_bounded() {
-    // The network allows about 100 built-in calls per transaction: 50
-    // vestings, or 33 cancelable ones (devnet, docs/MEASUREMENTS.md).
+    // The network allows 100 built-in calls per transaction: 49 vestings,
+    // or 32 cancelable ones, with the token fee's transfer (version 2; 50
+    // and 33 before it; review5_builtin_calls_test counts them).
     let mut f = Fixture::new();
-    for (cancelable, count) in [(false, 0), (false, 51), (true, 34)] {
+    for (cancelable, count) in [(false, 0), (false, 50), (true, 33)] {
         let error = batch(&mut f, cancelable, count).unwrap_err();
         assert_eq!(
             error.message, ERR_BATCH_SIZE,
@@ -519,9 +520,9 @@ fn batch_size_is_bounded() {
 #[test]
 fn the_largest_batches_work() {
     let mut f = Fixture::new();
-    assert_eq!(batch(&mut f, false, 50).unwrap().len(), 50);
-    let ids = batch(&mut f, true, 33).unwrap();
-    assert_eq!(ids, (51..=83).collect::<Vec<u64>>());
-    f.check_holds_key(CREATOR, KeyKind::Cancel, 33, 83, FOX.as_str());
+    assert_eq!(batch(&mut f, false, 49).unwrap().len(), 49);
+    let ids = batch(&mut f, true, 32).unwrap();
+    assert_eq!(ids, (50..=81).collect::<Vec<u64>>());
+    f.check_holds_key(CREATOR, KeyKind::Cancel, 32, 81, FOX.as_str());
     f.check_invariant(Some(FOX));
 }

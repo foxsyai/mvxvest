@@ -37,6 +37,9 @@ pub const ERR_ALREADY_CANCELLED: &str = "already cancelled";
 
 // Owner and recovery
 pub const ERR_FEE_ABOVE_CAP: &str = "fee above the cap";
+pub const ERR_TOKEN_FEE_ABOVE_CAP: &str = "token fee above the cap";
+pub const ERR_ZERO_AMOUNT: &str = "amount must be more than zero";
+pub const ERR_ABOVE_SURPLUS: &str = "amount above the surplus";
 pub const ERR_NO_FEES: &str = "no fees to claim";
 pub const ERR_NO_SURPLUS: &str = "no surplus";
 pub const ERR_NO_HELD_KEY: &str = "the contract does not hold this key";

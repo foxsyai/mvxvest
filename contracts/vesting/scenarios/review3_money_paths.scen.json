@@ -360,7 +360,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "3",
@@ -369,7 +369,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "4",
@@ -378,7 +378,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000;cancelable:0"
                 },
                 {
                   "nonce": "5",
@@ -387,7 +387,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "6",
@@ -396,7 +396,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3;cancelable:0"
                 }
               ]
             }
@@ -417,7 +417,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "7",
@@ -426,7 +426,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000;cancelable:1"
                 }
               ]
             }
@@ -449,7 +449,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "2",
@@ -458,7 +458,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "3",
@@ -467,7 +467,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "4",
@@ -476,7 +476,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "5",
@@ -485,7 +485,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000;cancelable:1"
                 }
               ]
             }
@@ -733,7 +733,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "3",
@@ -742,7 +742,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "4",
@@ -751,7 +751,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000;cancelable:0"
                 },
                 {
                   "nonce": "5",
@@ -760,7 +760,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "6",
@@ -769,7 +769,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3;cancelable:0"
                 }
               ]
             }
@@ -791,7 +791,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:1"
                 },
                 {
                   "nonce": "7",
@@ -800,7 +800,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000;cancelable:1"
                 }
               ]
             }
@@ -1181,7 +1181,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:6;token:FOX-a1b2c3;cancelable:0"
                 }
               ]
             }
