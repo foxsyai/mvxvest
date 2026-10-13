@@ -91,6 +91,8 @@ A signer must be able to verify everything on that card without leaving the page
 
 ### Perform: the gas
 
+> **Superseded by mvxsafe's measurements, 13 Oct 2026.** The callback needs about 7M, not 5M. An upgrade needs about 300 gas a byte of the source (8.26M for mvxvest), so a perform is about 25M, not 118.5M. The figures below are kept as first written.
+
 The network **cannot simulate** a `performAction` whose call goes to another shard: it answers "no async context found". So the gas is a budget, not a simulation:
 
 ```

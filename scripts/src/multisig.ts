@@ -38,8 +38,8 @@ const [command, ...rest] = process.argv.slice(2);
 const CODE_METADATA = "0500";
 /**
  * What the call performAction makes needs on our contract, measured (devnet
- * rehearsal and the mainnet launch: pause 3.78M, setKeyDisplay 5.06M, a 26.5 KB
- * code upgrade ~88M) times ~1.2.
+ * rehearsal and the mainnet launch: pause 3.78M, setKeyDisplay 5.06M) times
+ * ~1.2. An upgrade's need depends on the source's size: see upgradeNeed.
  */
 const INNER_GAS: Record<string, bigint> = {
   pauseCreation: 4_600_000n,
@@ -49,15 +49,23 @@ const INNER_GAS: Record<string, bigint> = {
   setKeyDisplay: 6_100_000n,
   recoverBouncedKey: 10_000_000n,
   recoverSurplus: 10_000_000n,
-  upgrade: 106_000_000n,
 };
 /**
- * On a call to another shard the network holds back 4M of the forwarded gas
- * for the multisig's callback; without it the call itself runs out of gas
- * and the action is used up (devnet rehearsal: unpause with 8M forwarded
- * failed "not enough gas"). Plus a margin for the callback's own work.
+ * An upgrade from source compiles the new code in the contract's shard, at
+ * about 300 gas a byte, and runs its `upgrade` (which does nothing in
+ * mvxvest): measured by mvxsafe on devnet, 13 Oct 2026, 8,264,045 for the
+ * 26,540-byte release. Plus a fifth. (The 106M first assumed worked and was
+ * about ten times the need.)
  */
-const CALLBACK_GAS = 5_000_000n;
+const upgradeNeed = (codeBytes: number) => ((300n * BigInt(codeBytes) + 1_000_000n) * 12n) / 10n;
+/**
+ * Locked by the network for the multisig's callback when a call leaves its
+ * shard: callbacks came back with 6,458,200 on devnet, and a token transfer
+ * performed with only 5M for it ran out (mvxsafe's rehearsal, 13 Oct 2026).
+ * Without enough, the call fails and the action is used up (an unpause with
+ * 8M forwarded failed "not enough gas").
+ */
+const CALLBACK_GAS = 7_000_000n;
 /** performAction's own part: 5.9M measured in the devnet rehearsal, x1.27. */
 const PERFORM_OWN_GAS = BigInt(process.env.MVXVEST_PERFORM_OWN_GAS ?? "7500000");
 
@@ -76,7 +84,7 @@ async function innerCall(fn: string, args: unknown[]): Promise<string[]> {
   return Buffer.from(tx.data).toString().split("@");
 }
 
-async function proposal(): Promise<{ data: string; inner?: string }> {
+async function proposal(): Promise<{ data: string; perform?: { kind: string; need: bigint } }> {
   if (command === "propose") {
     const [action, ...a] = rest;
     const kind = (k: string) => {
@@ -97,7 +105,7 @@ async function proposal(): Promise<{ data: string; inner?: string }> {
     const [fn, args] = make();
     const [name, ...encoded] = await innerCall(fn, args);
     // proposeAsyncCall(to, egld_amount, function_and_arguments...)
-    return { data: ["proposeAsyncCall", contractAddress().toHex(), "", hex(name), ...encoded].join("@"), inner: fn };
+    return { data: ["proposeAsyncCall", contractAddress().toHex(), "", hex(name), ...encoded].join("@") };
   }
   if (command === "propose-upgrade") {
     const source = Address.newFromBech32(rest[0] ?? "");
@@ -108,7 +116,7 @@ async function proposal(): Promise<{ data: string; inner?: string }> {
   if (!Number.isInteger(id) || id < 1) throw new Error("Give the action id.");
   if (command === "sign") return { data: `sign@${u32(id)}` };
   if (command === "discard") return { data: `discardAction@${u32(id)}` };
-  if (command === "perform") return { data: `performAction@${u32(id)}`, inner: await actionKind(id) };
+  if (command === "perform") return { data: `performAction@${u32(id)}`, perform: await actionNeed(id) };
   throw new Error(`Unknown command ${command}`);
 }
 
@@ -122,19 +130,25 @@ const query = async (funcName: string, args: string[] = []) => {
 };
 const num = (b64?: string) => BigInt(`0x${Buffer.from(b64 ?? "", "base64").toString("hex") || "0"}`);
 
-/** Which owner call (or an upgrade) a pending action makes, for its gas. */
-async function actionKind(id: number): Promise<string> {
+/** What the call a pending action makes needs: an owner call, or an upgrade sized by its source. */
+async function actionNeed(id: number): Promise<{ kind: string; need: bigint }> {
   const [raw] = await query("getActionData", [u32(id).padStart(2, "0")]);
   const bytes = Buffer.from(raw ?? "", "base64");
   if (bytes.length === 0) throw new Error(`No pending action ${id}`);
   // The legacy multisig's Action enum (seen on chain in the devnet rehearsal):
   // 5 SendTransferExecute, 6 SendAsyncCall, 7 SCDeployFromSource,
-  // 8 SCUpgradeFromSource.
-  if (bytes[0] === 8) return "upgrade";
+  // 8 SCUpgradeFromSource (target, amount, source, metadata, arguments).
+  if (bytes[0] === 8) {
+    const amountLength = bytes.readUInt32BE(33);
+    const source = Address.newFromHex(bytes.subarray(37 + amountLength, 69 + amountLength).toString("hex"));
+    const account = (await (await fetch(`${api()}/accounts/${source.toBech32()}`)).json()) as { code?: string };
+    if (!account.code) throw new Error(`The upgrade's source ${source.toBech32()} holds no code.`);
+    return { kind: `upgrade from ${source.toBech32()}`, need: upgradeNeed(account.code.length / 2) };
+  }
   if (bytes[0] === 6) {
     const text = bytes.toString("latin1");
-    const known = Object.keys(INNER_GAS).find((fn) => fn !== "upgrade" && text.includes(fn));
-    if (known) return known;
+    const known = Object.keys(INNER_GAS).find((fn) => text.includes(fn));
+    if (known) return { kind: known, need: INNER_GAS[known] };
   }
   throw new Error(`Action ${id} is not an mvxvest owner call (kind ${bytes[0]}); perform it with an explicit gas limit.`);
 }
@@ -192,7 +206,7 @@ async function stage() {
 async function run() {
   if (command === "status") return status();
   if (command === "stage") return stage();
-  const { data, inner } = await proposal();
+  const { data, perform } = await proposal();
   const from = process.env.MVXVEST_SEND
     ? (await signer(process.env.MVXVEST_SEND)).address
     : process.env.MVXVEST_FROM
@@ -222,9 +236,9 @@ async function run() {
       // shard ("no async context found", devnet rehearsal): a measured budget
       // for the multisig's own part, plus what the call it makes needs (it is
       // forwarded whatever is left).
-      gasLimit = PERFORM_OWN_GAS + INNER_GAS[inner!] + CALLBACK_GAS;
+      gasLimit = PERFORM_OWN_GAS + perform!.need + CALLBACK_GAS;
       console.log(
-        `gas: ${PERFORM_OWN_GAS} performAction + ${INNER_GAS[inner!]} the call + ${CALLBACK_GAS} held for the callback`,
+        `gas: ${PERFORM_OWN_GAS} performAction + ${perform!.need} for ${perform!.kind} + ${CALLBACK_GAS} held for the callback`,
       );
     } else {
       const simulated = BigInt((await entrypoint().createNetworkProvider().estimateTransactionCost(tx)).gasLimit);

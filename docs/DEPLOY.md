@@ -109,10 +109,16 @@ What the devnet rehearsal established. The devnet contract is owned by a 2-of-2 
 | unpause, 14M | **failed, "not enough gas"; the action was used up** and had to be proposed again | 14M |
 | unpause, 17.1M | done | 7.5M + 4.6M + 5M |
 | setKeyDisplay | done | 7.5M + 6.1M + 5M |
-| upgrade from source | done: same code hash, still upgradeable, readable, not payable; 459 vestings intact | 7.5M + 106M + 5M |
+| upgrade from source | done: same code hash, still upgradeable, readable, not payable; 459 vestings intact | 7.5M + 106M + 5M (about 5 times too much: see below) |
+
+mvxsafe's own devnet rehearsal measured further on 13 Oct 2026 (its docs list the transactions):
+- **An upgrade from source** used 8,264,045 gas in the contract's shard for the 26,540-byte release, about 300 gas a byte, and performs of 23.3M and 25.3M worked.
+- **The callback** came back with 6,458,200 gas, and a perform with 5M for it ran out.
+
+`scripts/src/multisig.ts` now budgets 7M for the callback, and for an upgrade (300 × the source's bytes + 1M) × 1.2.
 
 Rules that follow from it:
-- **A failed `perform` uses up the action**, which must then be proposed and signed again. The tool's gas budget has three parts: the multisig's own share, the call's measured need times 1.2, and **5M for the callback**. On a call to another shard, the network holds back 4M of the forwarded gas for the callback.
+- **A failed `perform` uses up the action**, which must then be proposed and signed again. The tool's gas budget has three parts: the multisig's own share, the call's measured need times 1.2, and **7M for the callback**.
 - **The network cannot simulate `performAction`** when its call goes to another shard ("no async context found"). That is why `perform` uses the measured budget instead of a simulation. `propose` and `sign` are simulated (×1.2, plus 50,000 for a guarded wallet).
 - **An upgrade needs a source**: the new reproducible build, deployed in the **multisig's shard** (shard 1 on mainnet), because `performAction` reads the code there. Check that the source's code hash on chain equals the build's before proposing (`stage` does this on devnet). Then `proposeSCUpgradeFromSource@<contract>@@<source>@0500`. The metadata must be `0500` (upgradeable, readable, not payable): anything else changes the contract for good.
 - **Deploys are charged their whole gas limit** (devnet multisig 96M of 96M, source 105.5M of 105.5M, mainnet 150M of 150M). Simulate them, and keep the margin small.
