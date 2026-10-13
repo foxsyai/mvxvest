@@ -4,7 +4,7 @@
 // upgrades yet, so this builds them.
 //
 //   pnpm tsx src/multisig.ts status
-//   pnpm tsx src/multisig.ts propose pause | unpause | fee <egld> | claimfees
+//   pnpm tsx src/multisig.ts propose pause | unpause | fee <egld> | tokenfee <bps> | claimfees
 //                                   | display <Claim|Cancel> <png url> <svg url>
 //                                   | recover-bounced <id> <Claim|Cancel> <erd1 to>
 //                                   | recover-surplus <token> <erd1 to>
@@ -45,6 +45,7 @@ const INNER_GAS: Record<string, bigint> = {
   pauseCreation: 4_600_000n,
   unpauseCreation: 4_600_000n,
   setFee: 4_600_000n,
+  setTokenFee: 4_600_000n,
   claimFees: 6_000_000n,
   setKeyDisplay: 6_100_000n,
   recoverBouncedKey: 10_000_000n,
@@ -95,6 +96,8 @@ async function proposal(): Promise<{ data: string; perform?: { kind: string; nee
       pause: () => ["pauseCreation", []],
       unpause: () => ["unpauseCreation", []],
       fee: () => ["setFee", [BigInt(Math.round(Number(a[0]) * 1e6)) * 10n ** 12n]],
+      // Version 2: basis points of each vesting's total (100 = 1%, at most 200).
+      tokenfee: () => ["setTokenFee", [Number(a[0])]],
       claimfees: () => ["claimFees", []],
       display: () => ["setKeyDisplay", [kind(a[0]), "", a[1], a[2]]],
       "recover-bounced": () => ["recoverBouncedKey", [BigInt(a[0]), kind(a[1]), Address.newFromBech32(a[2])]],

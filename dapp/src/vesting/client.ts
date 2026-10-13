@@ -268,6 +268,12 @@ export class VestingClient {
     return big(value);
   }
 
+  /** EGLD fees received and not yet collected by the owner. */
+  async feesAccrued(): Promise<bigint> {
+    const [value] = await this.query('getFeesAccrued');
+    return big(value);
+  }
+
   /**
    * The token fee in basis points (100 = 1%). The contract has it from
    * version 2 on; version 1 answers that the function does not exist, which
