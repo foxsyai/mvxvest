@@ -1,0 +1,375 @@
+{
+ "name": "audit: a vesting of 120 tranches claims, cancels and reads within gas",
+ "traceGas": true,
+ "steps": [
+  {
+   "step": "setState",
+   "accounts": {
+    "address:owner": {
+     "nonce": "1",
+     "balance": "0"
+    },
+    "address:creator": {
+     "nonce": "1",
+     "balance": "0",
+     "esdt": {
+      "str:FOX-a1b2c3": "1000000"
+     }
+    },
+    "address:alice": {
+     "nonce": "0",
+     "balance": "0"
+    },
+    "sc:mvxvest": {
+     "nonce": "0",
+     "balance": "0",
+     "code": "mxsc:../output/mvxvest.mxsc.json",
+     "codeMetadata": "0x0500",
+     "owner": "address:owner",
+     "storage": {
+      "str:claimKey": "str:VESTKEY-123456",
+      "str:cancelKey": "str:VESTCANCEL-123456"
+     },
+     "esdt": {
+      "str:VESTKEY-123456": {
+       "roles": [
+        "ESDTRoleNFTCreate",
+        "ESDTRoleNFTBurn"
+       ],
+       "lastNonce": "0"
+      },
+      "str:VESTCANCEL-123456": {
+       "roles": [
+        "ESDTRoleNFTCreate",
+        "ESDTRoleNFTBurn"
+       ],
+       "lastNonce": "0"
+      }
+     }
+    }
+   },
+   "currentBlockInfo": {
+    "blockTimestamp": "1767225600"
+   }
+  },
+  {
+   "step": "scCall",
+   "id": "create-120-tranches-cancelable",
+   "tx": {
+    "from": "address:creator",
+    "to": "sc:mvxvest",
+    "function": "create",
+    "arguments": [
+     "address:alice",
+     "1000",
+     "u64:1767225600|u64:1767225600|biguint:0|u64:1767237600|u8:2|u32:120|u64:1767225700|biguint:1|u64:1767225800|biguint:1|u64:1767225900|biguint:1|u64:1767226000|biguint:1|u64:1767226100|biguint:1|u64:1767226200|biguint:1|u64:1767226300|biguint:1|u64:1767226400|biguint:1|u64:1767226500|biguint:1|u64:1767226600|biguint:1|u64:1767226700|biguint:1|u64:1767226800|biguint:1|u64:1767226900|biguint:1|u64:1767227000|biguint:1|u64:1767227100|biguint:1|u64:1767227200|biguint:1|u64:1767227300|biguint:1|u64:1767227400|biguint:1|u64:1767227500|biguint:1|u64:1767227600|biguint:1|u64:1767227700|biguint:1|u64:1767227800|biguint:1|u64:1767227900|biguint:1|u64:1767228000|biguint:1|u64:1767228100|biguint:1|u64:1767228200|biguint:1|u64:1767228300|biguint:1|u64:1767228400|biguint:1|u64:1767228500|biguint:1|u64:1767228600|biguint:1|u64:1767228700|biguint:1|u64:1767228800|biguint:1|u64:1767228900|biguint:1|u64:1767229000|biguint:1|u64:1767229100|biguint:1|u64:1767229200|biguint:1|u64:1767229300|biguint:1|u64:1767229400|biguint:1|u64:1767229500|biguint:1|u64:1767229600|biguint:1|u64:1767229700|biguint:1|u64:1767229800|biguint:1|u64:1767229900|biguint:1|u64:1767230000|biguint:1|u64:1767230100|biguint:1|u64:1767230200|biguint:1|u64:1767230300|biguint:1|u64:1767230400|biguint:1|u64:1767230500|biguint:1|u64:1767230600|biguint:1|u64:1767230700|biguint:1|u64:1767230800|biguint:1|u64:1767230900|biguint:1|u64:1767231000|biguint:1|u64:1767231100|biguint:1|u64:1767231200|biguint:1|u64:1767231300|biguint:1|u64:1767231400|biguint:1|u64:1767231500|biguint:1|u64:1767231600|biguint:1|u64:1767231700|biguint:1|u64:1767231800|biguint:1|u64:1767231900|biguint:1|u64:1767232000|biguint:1|u64:1767232100|biguint:1|u64:1767232200|biguint:1|u64:1767232300|biguint:1|u64:1767232400|biguint:1|u64:1767232500|biguint:1|u64:1767232600|biguint:1|u64:1767232700|biguint:1|u64:1767232800|biguint:1|u64:1767232900|biguint:1|u64:1767233000|biguint:1|u64:1767233100|biguint:1|u64:1767233200|biguint:1|u64:1767233300|biguint:1|u64:1767233400|biguint:1|u64:1767233500|biguint:1|u64:1767233600|biguint:1|u64:1767233700|biguint:1|u64:1767233800|biguint:1|u64:1767233900|biguint:1|u64:1767234000|biguint:1|u64:1767234100|biguint:1|u64:1767234200|biguint:1|u64:1767234300|biguint:1|u64:1767234400|biguint:1|u64:1767234500|biguint:1|u64:1767234600|biguint:1|u64:1767234700|biguint:1|u64:1767234800|biguint:1|u64:1767234900|biguint:1|u64:1767235000|biguint:1|u64:1767235100|biguint:1|u64:1767235200|biguint:1|u64:1767235300|biguint:1|u64:1767235400|biguint:1|u64:1767235500|biguint:1|u64:1767235600|biguint:1|u64:1767235700|biguint:1|u64:1767235800|biguint:1|u64:1767235900|biguint:1|u64:1767236000|biguint:1|u64:1767236100|biguint:1|u64:1767236200|biguint:1|u64:1767236300|biguint:1|u64:1767236400|biguint:1|u64:1767236500|biguint:1|u64:1767236600|biguint:1|u64:1767236700|biguint:1|u64:1767236800|biguint:1|u64:1767236900|biguint:1|u64:1767237000|biguint:1|u64:1767237100|biguint:1|u64:1767237200|biguint:1|u64:1767237300|biguint:1|u64:1767237400|biguint:1|u64:1767237500|biguint:1|u64:1767237600|biguint:881",
+     "true",
+     "str:t120"
+    ],
+    "gasLimit": "600,000,000",
+    "gasPrice": "0",
+    "esdtValue": [
+     {
+      "tokenIdentifier": "str:FOX-a1b2c3",
+      "value": "1000"
+     }
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "logs": "*",
+    "gas": "*",
+    "refund": "*",
+    "out": [
+     "1"
+    ]
+   }
+  },
+  {
+   "step": "scCall",
+   "id": "create-120-tranches-plain",
+   "tx": {
+    "from": "address:creator",
+    "to": "sc:mvxvest",
+    "function": "create",
+    "arguments": [
+     "address:alice",
+     "1000",
+     "u64:1767225600|u64:1767225600|biguint:0|u64:1767237600|u8:2|u32:120|u64:1767225700|biguint:1|u64:1767225800|biguint:1|u64:1767225900|biguint:1|u64:1767226000|biguint:1|u64:1767226100|biguint:1|u64:1767226200|biguint:1|u64:1767226300|biguint:1|u64:1767226400|biguint:1|u64:1767226500|biguint:1|u64:1767226600|biguint:1|u64:1767226700|biguint:1|u64:1767226800|biguint:1|u64:1767226900|biguint:1|u64:1767227000|biguint:1|u64:1767227100|biguint:1|u64:1767227200|biguint:1|u64:1767227300|biguint:1|u64:1767227400|biguint:1|u64:1767227500|biguint:1|u64:1767227600|biguint:1|u64:1767227700|biguint:1|u64:1767227800|biguint:1|u64:1767227900|biguint:1|u64:1767228000|biguint:1|u64:1767228100|biguint:1|u64:1767228200|biguint:1|u64:1767228300|biguint:1|u64:1767228400|biguint:1|u64:1767228500|biguint:1|u64:1767228600|biguint:1|u64:1767228700|biguint:1|u64:1767228800|biguint:1|u64:1767228900|biguint:1|u64:1767229000|biguint:1|u64:1767229100|biguint:1|u64:1767229200|biguint:1|u64:1767229300|biguint:1|u64:1767229400|biguint:1|u64:1767229500|biguint:1|u64:1767229600|biguint:1|u64:1767229700|biguint:1|u64:1767229800|biguint:1|u64:1767229900|biguint:1|u64:1767230000|biguint:1|u64:1767230100|biguint:1|u64:1767230200|biguint:1|u64:1767230300|biguint:1|u64:1767230400|biguint:1|u64:1767230500|biguint:1|u64:1767230600|biguint:1|u64:1767230700|biguint:1|u64:1767230800|biguint:1|u64:1767230900|biguint:1|u64:1767231000|biguint:1|u64:1767231100|biguint:1|u64:1767231200|biguint:1|u64:1767231300|biguint:1|u64:1767231400|biguint:1|u64:1767231500|biguint:1|u64:1767231600|biguint:1|u64:1767231700|biguint:1|u64:1767231800|biguint:1|u64:1767231900|biguint:1|u64:1767232000|biguint:1|u64:1767232100|biguint:1|u64:1767232200|biguint:1|u64:1767232300|biguint:1|u64:1767232400|biguint:1|u64:1767232500|biguint:1|u64:1767232600|biguint:1|u64:1767232700|biguint:1|u64:1767232800|biguint:1|u64:1767232900|biguint:1|u64:1767233000|biguint:1|u64:1767233100|biguint:1|u64:1767233200|biguint:1|u64:1767233300|biguint:1|u64:1767233400|biguint:1|u64:1767233500|biguint:1|u64:1767233600|biguint:1|u64:1767233700|biguint:1|u64:1767233800|biguint:1|u64:1767233900|biguint:1|u64:1767234000|biguint:1|u64:1767234100|biguint:1|u64:1767234200|biguint:1|u64:1767234300|biguint:1|u64:1767234400|biguint:1|u64:1767234500|biguint:1|u64:1767234600|biguint:1|u64:1767234700|biguint:1|u64:1767234800|biguint:1|u64:1767234900|biguint:1|u64:1767235000|biguint:1|u64:1767235100|biguint:1|u64:1767235200|biguint:1|u64:1767235300|biguint:1|u64:1767235400|biguint:1|u64:1767235500|biguint:1|u64:1767235600|biguint:1|u64:1767235700|biguint:1|u64:1767235800|biguint:1|u64:1767235900|biguint:1|u64:1767236000|biguint:1|u64:1767236100|biguint:1|u64:1767236200|biguint:1|u64:1767236300|biguint:1|u64:1767236400|biguint:1|u64:1767236500|biguint:1|u64:1767236600|biguint:1|u64:1767236700|biguint:1|u64:1767236800|biguint:1|u64:1767236900|biguint:1|u64:1767237000|biguint:1|u64:1767237100|biguint:1|u64:1767237200|biguint:1|u64:1767237300|biguint:1|u64:1767237400|biguint:1|u64:1767237500|biguint:1|u64:1767237600|biguint:881",
+     "false",
+     "str:t120"
+    ],
+    "gasLimit": "600,000,000",
+    "gasPrice": "0",
+    "esdtValue": [
+     {
+      "tokenIdentifier": "str:FOX-a1b2c3",
+      "value": "1000"
+     }
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "logs": "*",
+    "gas": "*",
+    "refund": "*",
+    "out": [
+     "2"
+    ]
+   }
+  },
+  {
+   "step": "setState",
+   "currentBlockInfo": {
+    "blockTimestamp": "1767231600"
+   }
+  },
+  {
+   "step": "scCall",
+   "id": "claim-midway-120-tranches",
+   "tx": {
+    "from": "address:alice",
+    "to": "sc:mvxvest",
+    "function": "claim",
+    "arguments": [],
+    "gasLimit": "600,000,000",
+    "gasPrice": "0",
+    "esdtValue": [
+     {
+      "tokenIdentifier": "str:VESTKEY-123456",
+      "nonce": "1",
+      "value": "1"
+     }
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "logs": "*",
+    "gas": "*",
+    "refund": "*"
+   }
+  },
+  {
+   "step": "scCall",
+   "id": "cancel-midway-120-tranches",
+   "tx": {
+    "from": "address:creator",
+    "to": "sc:mvxvest",
+    "function": "cancel",
+    "arguments": [],
+    "gasLimit": "600,000,000",
+    "gasPrice": "0",
+    "esdtValue": [
+     {
+      "tokenIdentifier": "str:VESTCANCEL-123456",
+      "nonce": "1",
+      "value": "1"
+     }
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "logs": "*",
+    "gas": "*",
+    "refund": "*"
+   }
+  },
+  {
+   "step": "scQuery",
+   "id": "view-120-tranches",
+   "tx": {
+    "to": "sc:mvxvest",
+    "function": "getVesting",
+    "arguments": [
+     "1"
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "out": "*"
+   }
+  },
+  {
+   "step": "scQuery",
+   "id": "view-100-x-120-tranches",
+   "tx": {
+    "to": "sc:mvxvest",
+    "function": "getVestings",
+    "arguments": [
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2",
+     "2"
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "out": "*"
+   }
+  },
+  {
+   "step": "setState",
+   "currentBlockInfo": {
+    "blockTimestamp": "1767237600"
+   }
+  },
+  {
+   "step": "scCall",
+   "id": "final-claim-burns-120-tranches",
+   "tx": {
+    "from": "address:alice",
+    "to": "sc:mvxvest",
+    "function": "claim",
+    "arguments": [],
+    "gasLimit": "600,000,000",
+    "gasPrice": "0",
+    "esdtValue": [
+     {
+      "tokenIdentifier": "str:VESTKEY-123456",
+      "nonce": "2",
+      "value": "1"
+     }
+    ]
+   },
+   "expect": {
+    "status": "0",
+    "logs": "*",
+    "gas": "*",
+    "refund": "*"
+   }
+  },
+  {
+   "step": "checkState",
+   "accounts": {
+    "address:alice": {
+     "nonce": "*",
+     "balance": "0",
+     "storage": "*",
+     "code": "*",
+     "esdt": {
+      "str:FOX-a1b2c3": "1060",
+      "str:VESTKEY-123456": {
+       "instances": [
+        {
+         "nonce": "1",
+         "balance": "1",
+         "creator": "sc:mvxvest",
+         "uri": [
+          ""
+         ],
+         "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+        }
+       ]
+      }
+     }
+    },
+    "address:creator": {
+     "nonce": "*",
+     "balance": "0",
+     "storage": "*",
+     "code": "*",
+     "esdt": {
+      "str:FOX-a1b2c3": "998940"
+     }
+    },
+    "+": ""
+   }
+  }
+ ]
+}
