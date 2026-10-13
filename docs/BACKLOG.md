@@ -6,8 +6,9 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 1. ~~**In-house mainnet test.**~~ Done and passed on 13 Oct 2026; see [MAINNET.md](MAINNET.md#milestone-4-the-in-house-test-13-october-2026).
 2. **Big audit by Claude Fable 5.1 at max effort.** It covers the contract, the dApp, the deployment and the funds, and tries every malicious action: stealing or locking funds, corrupting state, edge cases. Each finding is proven by a failing test, then fixed. A contract fix is an upgrade, voted by the multisig.
-3. **Public launch:** remove the beta password from mvxvest.io (`scripts/server/nginx-mvxvest.io.conf`). Ask Sebastian first.
-4. **Two or three more clean audit rounds**, around the week of 19 Oct 2026. Then **make the repo public**, after asking Sebastian.
+3. ~~**Public launch:** remove the beta password from mvxvest.io.~~ Done on 13 Oct 2026, after the big audit's dApp fixes.
+4. **The contract upgrade:** the audit's two contract fixes (C1 `recoverSurplus` with an amount, RT3 the cancelable marker) and the platform fee of [DECISIONS.md](DECISIONS.md) #10 (1% in the token to the multisig, plus 0.1 EGLD per vesting). The site shows the fee before signing. It is staged and voted by the multisig after the audit rounds have reviewed it.
+5. **Two or three more clean audit rounds**, around the week of 19 Oct 2026. Then **make the repo public**, after asking Sebastian.
 
 ## Product
 

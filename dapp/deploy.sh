@@ -77,13 +77,13 @@ esac
 echo "Shipping to $REMOTE:$DIR ..."
 rsync -a --delete build/ "$REMOTE:$DIR/"
 
-# During the private beta mvxvest.io asks for a password: pass it as
-# MVXVEST_BETA_AUTH=user:password to check the live build.
+# If the site is ever behind a password again (it was during the private
+# beta, 12 to 13 Oct 2026), pass it as MVXVEST_BETA_AUTH=user:password.
 AUTH=()
 [ -n "${MVXVEST_BETA_AUTH:-}" ] && AUTH=(-u "$MVXVEST_BETA_AUTH")
 code=$(curl -s "${AUTH[@]}" -o /dev/null -w '%{http_code}' "$URL")
 echo "$URL -> HTTP $code"
-[ "$code" = "200" ] || { echo "The site did not answer 200 (behind the beta password? set MVXVEST_BETA_AUTH)."; exit 1; }
+[ "$code" = "200" ] || { echo "The site did not answer 200 (behind a password? set MVXVEST_BETA_AUTH)."; exit 1; }
 
 # A 200 says nothing about WHICH build answered; the version file does.
 live="$(curl -s "${AUTH[@]}" "${URL}version.txt")"

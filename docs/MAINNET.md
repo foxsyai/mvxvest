@@ -1,6 +1,6 @@
 # mvxvest on mainnet
 
-Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet.ts), one checked step at a time, each step approved by Sebastian. The site is https://mvxvest.io, behind a password during the private beta.
+Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet.ts), one checked step at a time, each step approved by Sebastian. The site is https://mvxvest.io: a private beta behind a password from 12 Oct 2026, public since 13 Oct 2026.
 
 | | |
 |---|---|
