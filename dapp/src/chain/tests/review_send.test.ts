@@ -130,3 +130,25 @@ describe('review: send() with several transactions', () => {
     expect(outcome).toContain('aa'.repeat(32));
   });
 });
+
+describe('a guarded account (mainnet test, 13 Oct 2026)', () => {
+  it('is simulated with its guardian named, or the network refuses to check it', async () => {
+    apiMock.mockResolvedValue({
+      isGuarded: true,
+      activeGuardianAddress: GUARDIAN
+    });
+    const seen: { guardian: string; options: number }[] = [];
+    estimateMock.mockImplementation(async (tx: Transaction) => {
+      seen.push({ guardian: tx.guardian.toBech32(), options: tx.options });
+      return { gasLimit: 10_000_000 };
+    });
+    const { transactions, problems } = await prepare(SENDER, [createTx()]);
+    expect(problems).toEqual([null]);
+    expect(seen).toEqual([{ guardian: GUARDIAN, options: 2 }]);
+    // Still guarded when signed, with the guardian's extra gas.
+    expect(transactions[0].guardian.toBech32()).toBe(GUARDIAN);
+    expect(String(transactions[0].gasLimit)).toBe(
+      String(12_000_000n + 50_000n)
+    );
+  });
+});

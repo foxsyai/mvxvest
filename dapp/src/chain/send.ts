@@ -86,6 +86,11 @@ export const prepare = async (
     // batch stands on its own.
     transaction.nonce = accountNonce;
     transaction.gasLimit = MAX_GAS;
+    // A guarded account's transaction must name its guardian before it is
+    // simulated too: the network refuses to even check one that does not
+    // ("not allowed to bypass guardian", Sebastian's mainnet test).
+    if (guardian)
+      computer.applyGuardian(transaction, Address.newFromBech32(guardian));
     try {
       const cost = BigInt(
         (await networkProvider.estimateTransactionCost(transaction)).gasLimit
@@ -104,10 +109,7 @@ export const prepare = async (
       problems.push(simulationReason(failure));
     }
     transaction.nonce = startNonce + BigInt(index);
-    if (guardian) {
-      computer.applyGuardian(transaction, Address.newFromBech32(guardian));
-      transaction.gasLimit += GUARDED_EXTRA_GAS;
-    }
+    if (guardian) transaction.gasLimit += GUARDED_EXTRA_GAS;
   }
   return { transactions, problems };
 };
