@@ -162,8 +162,35 @@ export const VestingPage = () => {
           claimed={v.claimed}
           refunded={v.refunded}
         />
+        {/* The arithmetic, so the figures below add up at a glance:
+            claimed is part of vested, not added to it (Sebastian, mainnet
+            test). */}
+        <p className='text-xs text-muted'>
+          <Amount units={v.vested} decimals={token.decimals} digits={4} />{' '}
+          vested ={' '}
+          <Amount units={v.claimed} decimals={token.decimals} digits={4} />{' '}
+          claimed +{' '}
+          <Amount units={v.claimable} decimals={token.decimals} digits={4} />{' '}
+          claimable ·{' '}
+          {v.cancelledAt ? (
+            <>
+              <Amount units={v.refunded} decimals={token.decimals} digits={4} />{' '}
+              returned on cancel
+            </>
+          ) : (
+            <>
+              <Amount
+                units={v.total - v.vested}
+                decimals={token.decimals}
+                digits={4}
+              />{' '}
+              not vested yet
+            </>
+          )}{' '}
+          ({ticker})
+        </p>
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
-          <Fact label='Vested'>
+          <Fact label='Vested so far'>
             <Amount
               digits={4}
               units={v.vested}

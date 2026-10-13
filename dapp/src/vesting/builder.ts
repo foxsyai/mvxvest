@@ -273,6 +273,8 @@ export interface Release {
  * year by month, four years by quarter).
  */
 const CHECKPOINT_STEPS: { seconds?: number; months?: number }[] = [
+  { seconds: 300 },
+  { seconds: 900 },
   { seconds: 3_600 },
   { seconds: 6 * 3_600 },
   { seconds: DAY },

@@ -66,7 +66,7 @@ export const VestingCard = ({
       />
       <dl className='grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4'>
         <div>
-          <dt className='text-xs text-muted'>Vested</dt>
+          <dt className='text-xs text-muted'>Vested so far</dt>
           <dd>
             <Amount units={vesting.vested} decimals={token.decimals} />
           </dd>
