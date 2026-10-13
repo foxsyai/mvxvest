@@ -14,6 +14,12 @@ Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet
 
 Both collections are owned by the contract. They cannot be frozen, wiped or paused, and the NFT create role cannot be transferred. Holders cannot burn keys.
 
+The roles, as read on 13 Oct 2026 (audit L4):
+- **The contract holds every NFT role on both collections**, because `issue_and_set_all_roles` gives them all: NFTCreate, NFTBurn, NFTUpdateAttributes, NFTAddURI, NFTRecreate, ModifyCreator, ModifyRoyalties, SetNewURI and NFTUpdate.
+- **Its code uses only NFTCreate and NFTBurn.** The others could be used only by new code, which means an upgrade voted by the multisig.
+- **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, and again only through new code.
+- **One useful case:** the planned upgrade can use NFTUpdateAttributes to give existing keys the cancelable marker (RT3), not only new ones.
+
 ## Transactions
 
 | Step | Transaction |

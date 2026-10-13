@@ -36,8 +36,11 @@ Deploy only `output-docker/mvxvest/mvxvest.wasm`. Record the code hash.
 ## 2. Deploy, then pause creation
 
 Deploy with code metadata **upgradeable, readable, not payable, not payable
-by smart contracts** (`scripts/src/deploy.ts`). On mainnet the deployer is the
-multisig, which becomes the owner. Check on the explorer or API that the
+by smart contracts** (`scripts/src/deploy.ts` on devnet, `scripts/src/mainnet.ts`
+on mainnet). On mainnet a single-purpose deployer wallet deploys and sets the
+contract up, then hands ownership to the multisig and is swept (DECISIONS #9,
+MAINNET.md). The deploy's gas is simulated: a deploy is charged its whole limit.
+Check on the explorer or API that the
 account's code hash is the one recorded and that `isPayable` and
 `isPayableBySmartContract` are false.
 
@@ -48,27 +51,33 @@ collections are fully set up (step 4).
 
 `issueClaimKey("MvxVestClaimKey", "VESTKEY")` and
 `issueCancelKey("MvxVestCancelKey", "VESTCANCEL")`, each paying 0.05 EGLD,
-with 100M gas (asynchronous call to the metachain). Check
+with 75M gas (an asynchronous call to the metachain, which charges a fixed 50M;
+the mainnet launch used 100M and was charged all of it). Check
 `getClaimKeyCollection` and `getCancelKeyCollection` return the new ids, and
 that the contract holds `ESDTRoleNFTCreate` and `ESDTRoleNFTBurn` on both.
 
 ## 4. Stop holders from burning keys
 
 `disableKeyBurnByHolders(Claim)` and `disableKeyBurnByHolders(Cancel)`, each
-with **100M gas** (60M fails: the system contract charges 50M and then notifies
+with **75M gas** (60M fails: the system contract charges 50M and then notifies
 every shard). Each transaction must show the system contract's
 `ESDTUnSetBurnRoleForAll` event for the collection; the API's collection roles
 can lag behind, so do not rely on them. Calling it twice fails harmlessly.
 
 ## 5. Key images
 
-Pin the final images (PNG first, SVG second) and the metadata JSON on IPFS:
-the API only trusts whitelisted storage, and wallets may hide other images.
-`setKeyDisplay(Claim, metadata, png, svg)` and the same for `Cancel`.
+The images live in `dapp/public/nft/` and are served from
+https://mvxvest.io/nft/, without a password and cached for a day
+(`scripts/server/nginx-mvxvest.io.conf`). The API marks that storage as not
+whitelisted, but it still lists the images and makes thumbnails of the PNG, and
+the explorer shows them. Call `setKeyDisplay(Claim, metadata, png, svg)` and the
+same for `Cancel`, PNG first. A new image gets a new file name (as
+`claim-key-2.png` did), because wallets cache by URL.
 
 ## 6. Fee, then open
 
-`setFee` (0 for the beta; at most 1 EGLD), then `unpauseCreation`. Run the
+`setFee` (at most 1 EGLD; see DECISIONS #10 for the fee agreed for after the
+next upgrade; until then creating is free), then `unpauseCreation`. Run the
 acceptance flow with small amounts before announcing anything.
 
 ## Owner actions through the multisig (rehearsed on devnet, 13 Oct 2026)

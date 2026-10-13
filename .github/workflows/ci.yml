@@ -48,6 +48,23 @@ jobs:
         run: |
           ls -l contracts/vesting/output/mvxvest.wasm
           sha256sum contracts/vesting/output/mvxvest.wasm
+      # main must still build, in the pinned image, to code the mainnet site
+      # knows: its contractCodeHashes (which also drive the site's red banner)
+      # list the deployed hash and, before an upgrade, the next one (audit M3).
+      - name: Reproducible build matches a known mainnet code hash
+        if: github.ref == 'refs/heads/main'
+        run: |
+          sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+            --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
+          python3 - <<'PY'
+          import re
+          built = open('output-docker/mvxvest/mvxvest.codehash.txt').read().strip()
+          config = open('dapp/src/config/config.mainnet.ts').read()
+          listed = re.search(r'contractCodeHashes = \[([^\]]*)\]', config).group(1)
+          known = re.findall(r'[0-9a-f]{64}', listed)
+          print('built', built, 'known', known)
+          assert built in known, f'code hash {built} is not in contractCodeHashes of config.mainnet.ts'
+          PY
 
   dapp:
     runs-on: ubuntu-24.04

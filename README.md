@@ -9,11 +9,15 @@ or a buyer. A cancelable vesting also gives its creator a **cancel key**:
 sending it back stops the vesting, refunds what has not vested and leaves what
 has vested claimable. Anyone can read every vesting without signing anything.
 
-Status: **milestone 1 done**: the contract runs on devnet
-(`erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp`), after five
-internal reviews. Next: the dApp (milestone 2). Private until audited. The
-brief is in [docs/BRIEF.md](docs/BRIEF.md); deploying is in
-[docs/DEPLOY.md](docs/DEPLOY.md), costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
+Status: **live on mainnet** since 12 Oct 2026 and **public** at
+[mvxvest.io](https://mvxvest.io) since 13 Oct 2026. Contract
+`erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`, owned by a
+2-of-3 mvxsafe multisig. A big adversarial audit by Claude Fable 5.1 is done
+([its findings](docs/reviews/2026-10-13-fable-audit.md)); the repo stays private
+until two or three more clean rounds. The brief is in
+[docs/BRIEF.md](docs/BRIEF.md); the mainnet record in
+[docs/MAINNET.md](docs/MAINNET.md); deploying in [docs/DEPLOY.md](docs/DEPLOY.md);
+costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
 
 ## Repository
 
@@ -22,7 +26,7 @@ brief is in [docs/BRIEF.md](docs/BRIEF.md); deploying is in
 | [contracts/vesting/](contracts/vesting/) | The contract (Rust, `multiversx-sc` 0.66.2) and its tests |
 | [scripts/](scripts/) | Deploy and interaction scripts for devnet, testnet and mainnet |
 | [docs/](docs/) | Brief, contract spec, decisions, test map, measurements |
-| `dapp/` | The web app (milestone 2) |
+| [dapp/](dapp/) | The web app, live at https://mvxvest.io (devnet build at https://devnet.mvxvest.io) |
 
 ## The contract in one page
 
