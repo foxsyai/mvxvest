@@ -38,11 +38,14 @@ const sections: [string, string][] = [
 const Fact = ({
   label,
   path,
+  small = false,
   children
 }: {
   label: string;
   /** On the explorer. */
   path?: string;
+  /** A long value (the 64-digit code hash) fits one line a size smaller. */
+  small?: boolean;
   children: ReactNode;
 }) => (
   <div>
@@ -55,7 +58,11 @@ const Fact = ({
         </>
       )}
     </dt>
-    <dd className='mt-0.5 font-mono text-sm break-all'>{children}</dd>
+    <dd
+      className={`mt-0.5 font-mono break-all ${small ? 'text-xs' : 'text-sm'}`}
+    >
+      {children}
+    </dd>
   </div>
 );
 
@@ -71,7 +78,7 @@ const Verify = () =>
         <Fact label='Contract' path={`/accounts/${contractAddress}`}>
           {contractAddress}
         </Fact>
-        <Fact label='Code hash (reproducible build)'>
+        <Fact label='Code hash (reproducible build)' small>
           {contractCodeHashes.join(', ')}
         </Fact>
         <Fact label='Claim keys' path={`/collections/${keyCollections.claim}`}>
