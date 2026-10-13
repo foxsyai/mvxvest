@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { balancesOf, createdIdsOf, TxOutcome } from 'chain/reads';
 import type { Sent } from 'chain/send';
 import { vesting as client } from 'chain/vesting';
+import { LeaveGuard } from 'components/shell/LeaveGuard';
 import { TxPanel } from 'components/tx/TxPanel';
 import {
   Amount,
@@ -517,17 +518,18 @@ export const Create = () => {
     }
   }, [review, formKey, address]);
 
-  // Leaving the page with transactions half done loses this record.
+  // Leaving the page with transactions half done loses this record: a reload
+  // or a closed tab asks the browser's question, an in-app link LeaveGuard's.
+  const halfDone = Boolean(
+    review &&
+    (review.busy || (anySent && (toSign.length > 0 || lost.length > 0)))
+  );
   useEffect(() => {
-    if (
-      !review ||
-      !(review.busy || (anySent && (toSign.length > 0 || lost.length > 0)))
-    )
-      return;
+    if (!halfDone) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [review, anySent, toSign.length, lost.length]);
+  }, [halfDone]);
 
   /** Applies `change` to the review `id` only, never to a later one. */
   const update = (id: number, change: (current: Review) => Review | null) =>
@@ -655,9 +657,17 @@ export const Create = () => {
 
   // ------------------------------------------------------------- render
 
+  const leaveGuard = (
+    <LeaveGuard
+      when={halfDone}
+      message='Transactions of this creation are not all done. Leaving this page loses its record of what was sent and what is left to sign. Leave anyway?'
+    />
+  );
+
   if (!isLoggedIn) {
     return (
       <div>
+        {leaveGuard}
         <PageTitle
           title='Create vestings'
           info='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel.'
@@ -675,6 +685,7 @@ export const Create = () => {
 
   return (
     <div className='space-y-6'>
+      {leaveGuard}
       <PageTitle
         title='Create vestings'
         info='Lock a token for one or many beneficiaries. Each gets a claim key NFT; you choose the schedule and whether you can cancel. Nothing is sent until you sign at the end.'
