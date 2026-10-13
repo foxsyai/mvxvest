@@ -18,7 +18,7 @@ The roles, as read on 13 Oct 2026 (audit L4):
 - **The contract holds every NFT role on both collections**, because `issue_and_set_all_roles` gives them all: NFTCreate, NFTBurn, NFTUpdateAttributes, NFTAddURI, NFTRecreate, ModifyCreator, ModifyRoyalties, SetNewURI and NFTUpdate.
 - **Its code uses only NFTCreate and NFTBurn.** The others could be used only by new code, which means an upgrade voted by the multisig.
 - **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, and again only through new code.
-- **One useful case:** the planned upgrade can use NFTUpdateAttributes to give existing keys the cancelable marker (RT3), not only new ones.
+- **What these roles cannot do:** updating attributes acts on the caller's own NFT. The contract therefore cannot add the cancelable marker (RT3) to keys its holders own, so version 2 marks new keys only.
 
 ## Transactions
 

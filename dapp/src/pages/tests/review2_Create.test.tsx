@@ -92,6 +92,7 @@ jest.mock('chain/reads', () => ({
 jest.mock('chain/vesting', () => ({
   vesting: {
     fee: async () => 0n,
+    tokenFee: async () => 0,
     creationPaused: async () => false,
     // One vesting per transaction: two lines make two transactions.
     limits: async () => ({

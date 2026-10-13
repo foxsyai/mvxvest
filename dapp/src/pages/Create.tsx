@@ -31,6 +31,7 @@ import {
   parseBeneficiaries,
   toCsv
 } from 'vesting/csv';
+import { percentOf, tokenFeeOfAll } from 'vesting/fees';
 import { formatAmount, plainAmount } from 'vesting/format';
 import { validateSchedule } from 'vesting/schedule';
 
@@ -124,6 +125,8 @@ interface Review {
   cancelable: boolean;
   label: string;
   fee: bigint;
+  /** The token fee in basis points, 0 before version 2 of the contract. */
+  tokenFeeBps: number;
   decimals: number;
   ticker: string;
   /** Per transaction: the hash it was sent with. */
@@ -164,6 +167,7 @@ export const Create = () => {
   const settings = useAsync(
     async () => ({
       fee: await client.fee(),
+      tokenFeeBps: await client.tokenFee(),
       paused: await client.creationPaused(),
       limits: await client.limits()
     }),
@@ -361,6 +365,12 @@ export const Create = () => {
   const sum = beneficiaries.list.reduce((total, b) => total + b.amount, 0n);
   const fee = settings.data?.fee ?? 0n;
   const feeTotal = fee * BigInt(beneficiaries.list.length);
+  const tokenFeeBps = settings.data?.tokenFeeBps ?? 0;
+  // Per vesting and rounded down, as the contract charges it.
+  const tokenFeeTotal = tokenFeeOfAll(
+    beneficiaries.list.map((b) => b.amount),
+    tokenFeeBps
+  );
   const tranchesEach = entries.reduce(
     (most, entry) =>
       Math.max(
@@ -380,8 +390,8 @@ export const Create = () => {
     0n;
   const tooMuch = token
     ? tokenId === EGLD
-      ? sum + feeTotal > token.balance
-      : sum > token.balance
+      ? sum + tokenFeeTotal + feeTotal > token.balance
+      : sum + tokenFeeTotal > token.balance
     : false;
   const noFeeMoney = tokenId !== EGLD && feeTotal > egld;
   const labelBytes = new TextEncoder().encode(label).length;
@@ -411,11 +421,12 @@ export const Create = () => {
           cancelable,
           label,
           fee,
+          tokenFeeBps,
           batches: batches.map((batch) => batch.length)
         },
         (_, value) => (typeof value === 'bigint' ? value.toString() : value)
       ),
-    [tokenId, entries, cancelable, label, fee, batches]
+    [tokenId, entries, cancelable, label, fee, tokenFeeBps, batches]
   );
 
   // A build per attempt, made once: TxPanel checks again only for a new one.
@@ -435,7 +446,8 @@ export const Create = () => {
                   batch[0],
                   r.cancelable,
                   r.label,
-                  r.fee
+                  r.fee,
+                  r.tokenFeeBps
                 )
               : client.createBatch(
                   r.account,
@@ -443,7 +455,8 @@ export const Create = () => {
                   batch,
                   r.cancelable,
                   r.label,
-                  r.fee
+                  r.fee,
+                  r.tokenFeeBps
                 );
           })
         );
@@ -469,6 +482,7 @@ export const Create = () => {
       cancelable: cancelable === true,
       label,
       fee,
+      tokenFeeBps,
       decimals,
       ticker: token?.ticker ?? '',
       hashes: batches.map(() => undefined),
@@ -1246,19 +1260,55 @@ export const Create = () => {
               </dd>
             </div>
             <div>
-              <dt className='text-muted'>Contract fee</dt>
+              <dt className='text-muted'>
+                Fees
+                <Info label='About the fees'>
+                  Set by the contract&apos;s owner multisig and paid by you, on
+                  top of the vestings: each beneficiary receives the full
+                  amount. The share of each vesting goes to the multisig in the
+                  same transaction. Claiming and cancelling pay no fee, only the
+                  network&apos;s.
+                </Info>
+              </dt>
               <dd>
-                {fee === 0n ? (
+                {fee === 0n && tokenFeeTotal === 0n ? (
                   'none'
                 ) : (
-                  <>
-                    <Amount units={feeTotal} decimals={18} ticker='EGLD' /> (
-                    <Amount units={fee} decimals={18} /> per vesting, paid by
-                    you, never by beneficiaries)
-                  </>
+                  <ul className='space-y-0.5'>
+                    {tokenFeeTotal > 0n && (
+                      <li>
+                        <Amount
+                          units={tokenFeeTotal}
+                          decimals={decimals}
+                          ticker={ticker}
+                        />{' '}
+                        ({percentOf(tokenFeeBps)} of each vesting)
+                      </li>
+                    )}
+                    {fee > 0n && (
+                      <li>
+                        <Amount units={feeTotal} decimals={18} ticker='EGLD' />{' '}
+                        (<Amount units={fee} decimals={18} /> per vesting)
+                      </li>
+                    )}
+                  </ul>
                 )}
               </dd>
             </div>
+            {tokenFeeTotal > 0n && (
+              <div>
+                <dt className='text-muted'>You pay in {ticker}</dt>
+                <dd className='font-semibold'>
+                  <Amount
+                    units={
+                      sum + tokenFeeTotal + (tokenId === EGLD ? feeTotal : 0n)
+                    }
+                    decimals={decimals}
+                    ticker={ticker}
+                  />
+                </dd>
+              </div>
+            )}
             <div>
               <dt className='text-muted'>Transactions to sign</dt>
               <dd>
@@ -1279,7 +1329,7 @@ export const Create = () => {
         {tooMuch && (
           <Notice tone='danger'>
             This wallet does not hold enough {ticker} for these vestings
-            {tokenId === EGLD ? ' and the fee' : ''}.
+            {tokenFeeTotal > 0n || tokenId === EGLD ? ' and the fees' : ''}.
           </Notice>
         )}
         {noFeeMoney && (

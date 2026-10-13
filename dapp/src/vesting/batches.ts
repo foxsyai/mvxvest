@@ -14,9 +14,11 @@ export interface Limits {
 }
 
 /** The contract's limits, used until getLimits has answered. */
+// Used only when the contract's own limits cannot be read: version 2's,
+// which version 1 accepts too (it allowed 50 and 33).
 export const DEFAULT_LIMITS: Limits = {
-  maxBatch: 50,
-  maxBatchCancelable: 33,
+  maxBatch: 49,
+  maxBatchCancelable: 32,
   maxTranches: 120,
   maxLabelLen: 64,
   maxHorizon: 30 * 365 * 86_400,

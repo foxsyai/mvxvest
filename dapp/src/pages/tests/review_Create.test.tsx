@@ -85,6 +85,7 @@ jest.mock('chain/reads', () => ({
 jest.mock('chain/vesting', () => ({
   vesting: {
     fee: async () => 0n,
+    tokenFee: async () => 0,
     creationPaused: async () => false,
     limits: async () => ({
       maxBatch: 50,

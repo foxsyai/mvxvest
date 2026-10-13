@@ -25,7 +25,7 @@ const sections: [string, string][] = [
   ],
   [
     'What the contract owner can and cannot do',
-    'The owner, a multisig, can set a small fee per vesting (capped at 1 EGLD in the code, paid by the creator, never by beneficiaries), pause the creation of new vestings and return keys or tokens that bounced back from a smart contract. In the code as it stands, it cannot pause claims or cancels and has no way to move locked tokens. The contract can be upgraded by the multisig, so a serious bug can be fixed, and an upgrade replaces the code: every promise on this page holds for the code as it is, and the rest is trust in the multisig and its signers. Each version is a reproducible build whose code hash anyone can check against the source.'
+    'The owner, a multisig, can set the fees on new vestings (capped in the code, paid by the creator, never by beneficiaries), pause the creation of new vestings and return keys or tokens that bounced back from a smart contract. In the code as it stands, it cannot pause claims or cancels and has no way to move locked tokens. The contract can be upgraded by the multisig, so a serious bug can be fixed, and an upgrade replaces the code: every promise on this page holds for the code as it is, and the rest is trust in the multisig and its signers. Each version is a reproducible build whose code hash anyone can check against the source.'
   ],
   [
     'Before you create',
@@ -33,7 +33,7 @@ const sections: [string, string][] = [
   ],
   [
     'Fees',
-    'Each transaction pays the network fee, a fraction of a cent. Creating a vesting may also pay the contract fee, shown before you sign. Claiming and cancelling pay only the network fee.'
+    'Each transaction pays the network fee, a fraction of a cent. Creating a vesting can also pay two fees set by the owner multisig, both shown before you sign and both paid on top, so every beneficiary receives the full amount: a share of each vesting in its own token (at most 2% in the code), sent to the multisig at once, and a flat amount of EGLD per vesting (at most 1 EGLD). Claiming and cancelling pay only the network fee.'
   ]
 ];
 

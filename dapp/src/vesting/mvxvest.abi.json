@@ -142,6 +142,25 @@
         },
         {
             "docs": [
+                "Sets the token fee, in basis points of each vesting's total (100 =",
+                "1%), at most `MAX_TOKEN_FEE_BPS`. It is paid on top of the total, in",
+                "the vested token, and goes to the owner at once. Like the EGLD fee, a",
+                "creation must pay exactly the current one."
+            ],
+            "name": "setTokenFee",
+            "rustMethodName": "set_token_fee",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "bps",
+                    "type": "u32"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
                 "Stops new vestings. Claims and cancels keep working."
             ],
             "name": "pauseCreation",
@@ -174,10 +193,11 @@
             "docs": [
                 "Creates one vesting of `total` for `beneficiary`, and returns its id.",
                 "",
-                "Pay exactly `total` of the vested token, plus the fee in EGLD when",
-                "there is one. For an EGLD vesting, pay `total` plus the fee in EGLD.",
-                "The total is explicit so that a fee change between preview and signing",
-                "makes the transaction fail instead of changing the vesting."
+                "Pay exactly `total` plus the token fee (`getTokenFee`) of the vested",
+                "token, and the EGLD fee (`getFee`) in EGLD. For an EGLD vesting, pay",
+                "all three in EGLD. The total is explicit so that a fee change between",
+                "preview and signing makes the transaction fail instead of changing the",
+                "vesting."
             ],
             "name": "create",
             "mutability": "mutable",
@@ -215,8 +235,9 @@
         {
             "docs": [
                 "Creates one vesting per entry, all of the same token, the same",
-                "cancelability and the same label. Pay the sum of the totals, plus the",
-                "fee for each vesting. Returns the ids, in the order of the entries."
+                "cancelability and the same label. Pay the sum of the totals plus the",
+                "token fee of each vesting, and the EGLD fee for each vesting. Returns",
+                "the ids, in the order of the entries."
             ],
             "name": "createBatch",
             "rustMethodName": "create_batch",
@@ -309,8 +330,10 @@
         {
             "docs": [
                 "Owner only. Sends what the contract holds of `token` beyond what it",
-                "owes (locked, claimable and fees). Such a surplus only appears when a",
-                "payout bounced back; the events show whom it belongs to. Locked funds",
+                "owes (locked, claimable and fees): `amount` of it, or all of it when no",
+                "amount is given. Such a surplus only appears when a payout bounced",
+                "back; the events show whom it belongs to, and the amount lets two",
+                "bounced payouts go back to their two owners (audit C1). Locked funds",
                 "can never be moved this way."
             ],
             "name": "recoverSurplus",
@@ -325,6 +348,11 @@
                 {
                     "name": "to",
                     "type": "Address"
+                },
+                {
+                    "name": "amount",
+                    "type": "optional<BigUint>",
+                    "multi_arg": true
                 }
             ],
             "outputs": []
@@ -612,6 +640,31 @@
             ]
         },
         {
+            "docs": [
+                "The token fee, in basis points of each vesting's total (100 = 1%)."
+            ],
+            "name": "getTokenFee",
+            "rustMethodName": "get_token_fee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
+            "name": "getMaxTokenFee",
+            "rustMethodName": "get_max_token_fee",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "u32"
+                }
+            ]
+        },
+        {
             "name": "getFeesAccrued",
             "rustMethodName": "get_fees_accrued",
             "mutability": "readonly",
@@ -777,6 +830,38 @@
                     "name": "fee_per_vesting",
                     "type": "BigUint",
                     "indexed": true
+                }
+            ]
+        },
+        {
+            "identifier": "tokenFeeSet",
+            "inputs": [
+                {
+                    "name": "bps",
+                    "type": "u32",
+                    "indexed": true
+                }
+            ]
+        },
+        {
+            "docs": [
+                "The token fee of one creation, sent to the owner."
+            ],
+            "identifier": "tokenFeePaid",
+            "inputs": [
+                {
+                    "name": "token",
+                    "type": "TokenId",
+                    "indexed": true
+                },
+                {
+                    "name": "to",
+                    "type": "Address",
+                    "indexed": true
+                },
+                {
+                    "name": "amount",
+                    "type": "BigUint"
                 }
             ]
         },

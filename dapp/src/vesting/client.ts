@@ -17,6 +17,7 @@ import {
   TransactionsFactoryConfig
 } from '@multiversx/sdk-core';
 import { DEFAULT_LIMITS, Limits } from './batches';
+import { tokenFeeOf, tokenFeeOfAll } from './fees';
 import abiJson from './mvxvest.abi.json';
 import { Curve, Schedule } from './schedule';
 
@@ -267,6 +268,27 @@ export class VestingClient {
     return big(value);
   }
 
+  /**
+   * The token fee in basis points (100 = 1%). The contract has it from
+   * version 2 on; version 1 answers that the function does not exist, which
+   * means no token fee. Any other failure is thrown: guessing 0 would build a
+   * payment the contract refuses.
+   */
+  async tokenFee(): Promise<number> {
+    try {
+      const [value] = await this.query('getTokenFee');
+      return num(value);
+    } catch (failure) {
+      if (
+        /function not found|invalid function|getTokenFee/i.test(
+          String((failure as any)?.message ?? failure)
+        )
+      )
+        return 0;
+      throw failure;
+    }
+  }
+
   async creationPaused(): Promise<boolean> {
     const [value] = await this.query('isCreationPaused');
     return Boolean(value);
@@ -298,30 +320,38 @@ export class VestingClient {
 
   // --------------------------------------------------------- transactions
 
-  private payment(token: string, total: bigint, fee: bigint) {
+  /**
+   * What a creation pays: the totals plus the token fee in the vested token,
+   * and the EGLD fee in EGLD (all of it in EGLD for an EGLD vesting).
+   */
+  private payment(token: string, total: bigint, tokenFee: bigint, fee: bigint) {
     if (token === EGLD)
       return {
-        nativeTransferAmount: total + fee,
+        nativeTransferAmount: total + tokenFee + fee,
         tokenTransfers: [] as TokenTransfer[]
       };
     const transfers = [
       new TokenTransfer({
         token: new Token({ identifier: token }),
-        amount: total
+        amount: total + tokenFee
       })
     ];
     if (fee > 0n) transfers.push(TokenTransfer.newFromNativeAmount(fee));
     return { tokenTransfers: transfers };
   }
 
-  /** One vesting. Pays `total` of the token plus the fee in EGLD. */
+  /**
+   * One vesting. Pays `total` plus its token fee (`tokenFeeBps`) of the
+   * token, and the EGLD fee.
+   */
   create(
     sender: string,
     token: string,
     entry: NewVesting,
     cancelable: boolean,
     label: string,
-    fee: bigint
+    fee: bigint,
+    tokenFeeBps = 0
   ): Promise<Transaction> {
     return this.factory.createTransactionForExecute(
       Address.newFromBech32(sender),
@@ -336,7 +366,12 @@ export class VestingClient {
           label
         ],
         gasLimit: 0n,
-        ...this.payment(token, entry.total, fee)
+        ...this.payment(
+          token,
+          entry.total,
+          tokenFeeOf(entry.total, tokenFeeBps),
+          fee
+        )
       }
     );
   }
@@ -348,9 +383,14 @@ export class VestingClient {
     entries: NewVesting[],
     cancelable: boolean,
     label: string,
-    feePerVesting: bigint
+    feePerVesting: bigint,
+    tokenFeeBps = 0
   ): Promise<Transaction> {
     const sum = entries.reduce((total, entry) => total + entry.total, 0n);
+    const tokenFee = tokenFeeOfAll(
+      entries.map((entry) => entry.total),
+      tokenFeeBps
+    );
     const args: any[] = [cancelable, label];
     for (const entry of entries) {
       args.push([
@@ -366,7 +406,12 @@ export class VestingClient {
         function: 'createBatch',
         arguments: args,
         gasLimit: 0n,
-        ...this.payment(token, sum, feePerVesting * BigInt(entries.length))
+        ...this.payment(
+          token,
+          sum,
+          tokenFee,
+          feePerVesting * BigInt(entries.length)
+        )
       }
     );
   }

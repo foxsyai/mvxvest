@@ -9,13 +9,16 @@ describe('batches', () => {
     expect(batches.map((batch) => batch.length)).toEqual([30, 30, 30, 30]);
     expect(batches.flat()).toEqual(Array.from({ length: 120 }, (_, i) => i));
   });
-  it('uses 50 when not cancelable', () => {
+  it('uses 49 when not cancelable (the fallback when the contract cannot be read)', () => {
     expect(
       splitIntoBatches(Array.from({ length: 120 }), false).map((b) => b.length)
     ).toEqual([40, 40, 40]);
     expect(
+      splitIntoBatches(Array.from({ length: 49 }), false).map((b) => b.length)
+    ).toEqual([49]);
+    expect(
       splitIntoBatches(Array.from({ length: 50 }), false).map((b) => b.length)
-    ).toEqual([50]);
+    ).toEqual([25, 25]);
     expect(splitIntoBatches([], false)).toEqual([]);
   });
   it('keys per call', () => {
@@ -27,12 +30,12 @@ describe('batches', () => {
 
 describe('batches of vestings with many tranches', () => {
   it('carries fewer per transaction as tranches grow', () => {
-    expect(maxPerBatch(true, 0)).toBe(33);
-    expect(maxPerBatch(true, 12)).toBe(33);
+    expect(maxPerBatch(true, 0)).toBe(32);
+    expect(maxPerBatch(true, 12)).toBe(32);
     // One cancelable create of 120 tranches measured 132M on devnet.
     expect(maxPerBatch(true, 120)).toBe(3);
     expect(maxPerBatch(false, 120)).toBe(3);
-    expect(maxPerBatch(false, 0)).toBe(50);
+    expect(maxPerBatch(false, 0)).toBe(49);
   });
   it('splits 120 vestings of 120 tranches into transactions of at most 3', () => {
     const batches = splitIntoBatches(

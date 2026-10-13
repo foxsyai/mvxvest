@@ -1,6 +1,12 @@
 # Contract specification
 
-The rules the vesting contract implements. The code is in
+The rules the vesting contract implements. This is **version 2** (branch
+`upgrade-v2`, not deployed yet). It differs from version 1, which runs on
+mainnet, in four places: the token fee, the batch limits (49 and 32 instead of
+50 and 33), `recoverSurplus`'s amount and the `cancelable` marker in the key
+attributes.
+
+The code is in
 [contracts/vesting/src](../contracts/vesting/src); each rule is checked by the
 tests listed in [TESTS.md](TESTS.md). Timestamps are block timestamps in
 seconds. Amounts are integers in the token's smallest unit.
@@ -55,35 +61,50 @@ burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
 - A key keeps its nonce for life. The contract maps nonce to vesting id in its
   own storage and never reads the NFT's attributes.
 - Name: `Vesting #<id> claim key` / `Vesting #<id> cancel key`. Attributes:
-  `tags:mvxvest,vesting;vesting:<id>;token:<token>`, plus `;metadata:<value>`
-  when the owner has set one. URIs: as set by the owner with `setKeyDisplay`
+  `tags:mvxvest,vesting;vesting:<id>;token:<token>;cancelable:<0|1>`, plus
+  `;metadata:<value>` when the owner has set one. `cancelable:1` on a claim
+  key warns a buyer that whoever holds the cancel key can stop the vesting; a
+  cancel key always says `cancelable:1`. Keys minted by version 1 have no
+  `cancelable` part, and the contract cannot rewrite them: updating
+  attributes acts on the caller's own NFT, and the holders own the keys. URIs: as set by the owner with `setKeyDisplay`
   for keys minted from then on.
 
 ## 3. Endpoints
 
 ### `create(beneficiary, total, schedule, cancelable, label) -> id`
 
-Payable. Pay exactly `total` of the token, plus the fee in EGLD when the fee
-is not zero. For an EGLD vesting, pay `total` plus the fee in EGLD (as plain
-value or as `EGLD-000000` in a multi-transfer; both work). The total is an
-argument, not inferred from the payment, so a fee change between the preview
-and the signature makes the transaction fail instead of changing the vesting.
+Payable. Pay exactly `total` plus the token fee of the token, and the EGLD
+fee in EGLD when it is not zero. For an EGLD vesting, pay all three in EGLD (as
+plain value or as `EGLD-000000` in a multi-transfer; both work). The total is
+an argument, not inferred from the payment, so a fee change between the
+preview and the signature makes the transaction fail instead of changing the
+vesting.
+
+The two fees, both set by the owner under hard caps and both 0 until set:
+- **The token fee** (`setTokenFee`): `total × bps / 10,000`, rounded down,
+  in the vested token, at most 2% (200 bps). It is paid on top of the total
+  and sent to the owner in the same transaction (`tokenFeePaid`). It never
+  enters the contract's books, so the beneficiary gets exactly `total`.
+- **The EGLD fee** (`setFee`): a flat amount per vesting, at most 1 EGLD. It
+  is kept in the contract until the owner collects it with `claimFees`.
 
 Refused when: creation is paused; the claim key collection (or the cancel key
 collection, for a cancelable vesting) is not issued; nothing is paid; a
 payment is not fungible; two different ESDTs are paid; the EGLD does not equal
-the fee exactly, or the payment is not exactly the total plus the fee; the
+the EGLD fee exactly, or the payment is not exactly the total plus the fees; the
 beneficiary is the zero address or the contract; the label
 is longer than 64 bytes; the schedule is invalid (section 1); the schedule ends
 more than 30 years ahead.
 
 ### `createBatch(cancelable, label, entries) -> ids`
 
-Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 50 of
-them (1 to 33 when cancelable: the network allows about 100 built-in calls
-per transaction, and each vesting mints and sends one or two keys), all of
-the payment's token, all sharing `cancelable` and `label`. Pay the sum of the
-totals exactly, plus the fee times the number of entries. The same
+Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 49 of
+them (1 to 32 when cancelable: the network allows 100 built-in calls per
+transaction, each vesting mints and sends one or two keys, and the token fee
+is one more transfer), all of the payment's token, all sharing `cancelable`
+and `label`. Pay the sum of the totals plus each entry's token fee (rounded
+down per entry, so a batch pays what single creations would), and the EGLD
+fee times the number of entries. The same
 checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
 to the creator in one transfer.
 
@@ -118,9 +139,10 @@ cannot be stopped.
 | `disableKeyBurnByHolders(kind)` | Remove the protocol's default `ESDTRoleBurnForAll` from a key collection, so a holder cannot burn a key (a burned claim key would lock its vesting forever). Once per collection, after issuing |
 | `setKeyDisplay(kind, metadata, uris...)` | How keys minted from now on look |
 | `setFee(fee)` | Flat EGLD fee per vesting, at most 1 EGLD (`MAX_FEE_PER_VESTING`) |
+| `setTokenFee(bps)` | Token fee, in basis points of each vesting's total, at most 200 (2%, `MAX_TOKEN_FEE_BPS`) |
 | `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |
 | `claimFees()` | Send the accrued EGLD fees to the owner |
-| `recoverSurplus(token, to)` | Send what the contract holds of `token` beyond what it owes (see section 5) |
+| `recoverSurplus(token, to, [amount])` | Send `amount` of what the contract holds of `token` beyond what it owes, or all of it without an amount (see section 5) |
 | `recoverBouncedKey(id, kind, to)` | Send on a key the contract holds after a bounce (below) |
 | `upgrade` | The multisig can upgrade the contract; storage is kept |
 
@@ -153,7 +175,8 @@ key with that nonce was minted; the answer stays after the key is burned),
 `getVestingsByCreator(address, from, count)`, `getVestingCountByCreator`,
 `getVestingsByToken(token, from, count)`, `getVestingCountByToken`,
 `getTokenTotals(token)` (deposited, claimed, refunded), `getVestingCount`,
-`getFee`, `getMaxFee`, `getFeesAccrued`, `isCreationPaused`,
+`getFee`, `getMaxFee`, `getTokenFee`, `getMaxTokenFee`, `getFeesAccrued`,
+`isCreationPaused`,
 `getClaimKeyCollection`, `getCancelKeyCollection` (empty until issued),
 `getSurplus(token)` and `getLimits`. Pages hold at most 100 ids.
 
@@ -175,8 +198,8 @@ key with that nonce was minted; the answer stays after the key is burned),
 - **Tokens with special roles:** ESDT has no transfer fees, so the amount
   received is the amount sent. A token whose issuer can freeze, wipe or pause
   it, or that has a transfer role, can still be blocked by its issuer; the
-  contract cannot detect this synchronously, so the dApp warns before
-  creating such a vesting.
+  contract cannot detect this synchronously, so the dApp shows the issuer's
+  powers on the vesting, token and create pages.
 - **Code metadata:** deploy and upgrade the contract neither payable nor
   payable by smart contracts (`scripts/src/deploy.ts` does), so stray transfers
   without a call bounce. The contract cannot check this in `init` or `upgrade`
@@ -188,8 +211,8 @@ key with that nonce was minted; the answer stays after the key is burned),
 - **Undelivered claim keys:** if the beneficiary cannot receive its key (a
   smart contract in another shard that is not payable by smart contracts), the
   key bounces back and the owner returns it to whom the creator and
-  beneficiary agree. The dApp checks smart contract beneficiaries before
-  creating, so this should not happen through it.
+  beneficiary agree. The dApp warns about smart contract beneficiaries before
+  creating.
 - **Smart contract holders:** a smart contract that holds a key must accept
   tokens from other contracts (`payableBySC`), or the payout bounces (see
   "No dead ends"). The dApp warns when a beneficiary is a smart contract.
@@ -199,6 +222,7 @@ key with that nonce was minted; the answer stays after the key is burned),
 `vestingCreated(id, creator, beneficiary, token; total, schedule, cancelable,
 claim_nonce, cancel_nonce, label)`, `vestingClaimed(id, caller, token; amount,
 claimed_total, finished)`, `vestingCancelled(id, caller, token; refund,
-vested)`, `feeSet`, `creationPaused`, `feesClaimed`, `keyRecovered(id, kind,
-caller, to)`, `surplusRecovered`. Indexed topics come before the semicolon. Together they
+vested)`, `feeSet`, `tokenFeeSet(bps)`, `tokenFeePaid(token, to; amount)`,
+`creationPaused`, `feesClaimed`, `keyRecovered(id, kind, caller, to)`,
+`surplusRecovered`. Indexed topics come before the semicolon. Together they
 are enough to rebuild the full history without reading storage.
