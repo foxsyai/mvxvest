@@ -157,6 +157,20 @@ type ShapeChoice = 'linear' | 'days' | 'months' | 'tranches';
 
 // -------------------------------------------------------------------- page
 
+/**
+ * The ids a successful creation logged. Across shards the API can call the
+ * transaction a success before it has the result's logs: an empty answer is
+ * read again (a creation always logs at least one id), for up to 30 seconds.
+ */
+const createdIdsSoon = async (hash: string): Promise<number[]> => {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const ids = await createdIdsOf(hash).catch(() => []);
+    if (ids.length > 0) return ids;
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+  }
+  return [];
+};
+
 export const Create = () => {
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
@@ -415,12 +429,17 @@ export const Create = () => {
   const egld =
     balances.data?.find((balance) => balance.identifier === EGLD)?.balance ??
     0n;
-  const tooMuch = token
-    ? tokenId === EGLD
-      ? sum + tokenFeeTotal + feeTotal > token.balance
-      : sum + tokenFeeTotal > token.balance
-    : false;
-  const noFeeMoney = tokenId !== EGLD && feeTotal > egld;
+  // Once a review has sent something, the balance has paid for it: judging
+  // the same form against it again would say the wallet cannot afford what
+  // it just created.
+  const sentSome = !!review?.hashes.some(Boolean);
+  const tooMuch =
+    token && !sentSome
+      ? tokenId === EGLD
+        ? sum + tokenFeeTotal + feeTotal > token.balance
+        : sum + tokenFeeTotal > token.balance
+      : false;
+  const noFeeMoney = !sentSome && tokenId !== EGLD && feeTotal > egld;
   const labelBytes = new TextEncoder().encode(label).length;
 
   const ready =
@@ -638,7 +657,7 @@ export const Create = () => {
           outcomes[k].status === 'success' && !idsRead.current.has(hash)
       );
       fresh.forEach((hash) => idsRead.current.add(hash));
-      const ids = (await Promise.all(fresh.map(createdIdsOf))).flat();
+      const ids = (await Promise.all(fresh.map(createdIdsSoon))).flat();
       // Read while another review may have started: not that one's.
       if (reviewId.current !== id) return;
       setCreated((previous) =>
