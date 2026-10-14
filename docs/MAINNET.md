@@ -63,3 +63,17 @@ The test found two problems, both fixed and live the same day:
 - **7a0114d:** a guarded wallet (2FA) could not create anything. The network refuses even to simulate a guarded account's transaction that does not name its guardian, and the page only named the guardian after the simulation.
 
 The page also explains its figures now (d4ce0d7): "vested = claimed + claimable · not vested yet".
+
+## The first owner vote (14 October 2026)
+
+The first vote of the owner multisig on mainnet, through mvxsafe.io (commit 7fda7bb), sent from wallets with guardians. It was `setFee 0`, harmless because the fee was already 0. It proved the board can propose, sign and carry out a call on the contract, and measured mainnet's gas for it.
+
+| Step | By | Transaction | Gas |
+|---|---|---|---|
+| Propose (safe action #1) | `erd1u05m…gw5esx` | `5b79069670bc80bf8dda77e7f5995e90b614e27ad88ec2529848fcdce3ce9f6c` | 6.0M |
+| Sign | `erd1q83m…r3s7j4` | `fe2a82328e73013108a23a224c3c947cfe462da42df366213a8fbfc2962a8d8d` | 5.2M |
+| Carry out | `erd1q83m…r3s7j4` | `88019b1a43688bdb913e7317d232986b99b6f6e98c5803e674a9592feca3bd9b` | 19.25M |
+
+The call reached the contract with 13.2M and answered `@00`; the callback came back with 9.45M. `getFee` reads 0.
+
+Until a mainnet upgrade has been measured, upgrades are carried out with at least 118.5M gas, in mvxsafe and in `scripts/src/multisig.ts` alike.
