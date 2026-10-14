@@ -142,11 +142,16 @@ const shot = async (name, section) => {
   if (!wanted(number)) return;
   if (section) {
     await page.evaluate((start) => {
-      const target = [
-        ...document.querySelectorAll('h1, h2, h3, dt, p, div')
-      ].find(
-        (el) => el.children.length < 4 && el.innerText.trim().startsWith(start)
-      );
+      // Headings first; a step's heading starts with its number.
+      const text = (el) => el.innerText.trim().replace(/^\d+\s*/, '');
+      const target =
+        [...document.querySelectorAll('h1, h2, h3')].find((el) =>
+          text(el).startsWith(start)
+        ) ||
+        [...document.querySelectorAll('dt, p, div')].find(
+          (el) =>
+            el.children.length < 4 && el.innerText.trim().startsWith(start)
+        );
       if (target)
         window.scrollTo(
           0,
@@ -158,6 +163,12 @@ const shot = async (name, section) => {
   // A resting pointer opens tooltips: park it on the page margin first.
   await page.mouse.move(6, 450);
   await hideStrip();
+  // The wallet's toasts ("... done") belong to the moment, not the page.
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('*')) {
+      if (el.tagName.toLowerCase().includes('toast')) el.style.display = 'none';
+    }
+  });
   await page.evaluate(() => {
     const bar = document.getElementById('shot-bar');
     if (bar) bar.style.display = 'none';
@@ -173,7 +184,16 @@ const go = async (path, site = SITE) => {
   await drawBanner();
 };
 const button = (name) => page.getByRole('button', { name, exact: true });
-const field = (label) => page.getByLabel(label, { exact: true });
+// A form field by the label the site gives it (a hidden text inside its
+// <label>): an accessible name would include the field's current value.
+const field = (label) =>
+  page
+    .locator('label')
+    .filter({
+      has: page.locator('span.sr-only').getByText(label, { exact: true })
+    })
+    .locator('select, input, textarea')
+    .first();
 
 /** A date for the form's datetime-local fields, `days` from now. */
 const localDate = (days) => {
@@ -256,7 +276,8 @@ if (phase(6, 14)) {
       .fill(address);
     await page.locator('input[placeholder^="Amount"]').nth(index).fill(amount);
   }
-  await page.getByText('Beneficiaries', { exact: true }).first().click();
+  // Leaving the last row (a click on its step's heading) has it checked.
+  await page.locator('h2', { hasText: 'Beneficiaries' }).first().click();
   await page.waitForTimeout(800);
   await shot('07-create-rows', 'Beneficiaries');
 
@@ -319,21 +340,24 @@ if (phase(15, 16)) {
   await field('Label (optional)').fill('Community 2026');
   await page.waitForTimeout(1500);
   await shot('15-csv', 'Beneficiaries');
+  if (!wanted(16)) await go('/');
 
-  await button('Check and sign').click();
-  await until(
-    hasText,
-    'transactions would go through',
-    'the network check',
-    300000
-  );
-  await page.waitForTimeout(800);
-  await shot('16-csv-checked', 'Review and sign');
-  await say(
-    'Press "Sign in your wallet" and approve in xPortal (60 vestings, two transactions, one approval).'
-  );
-  await until(matches, 'Created 60 vestings', 'the creation');
-  await page.waitForTimeout(1500);
+  if (wanted(16)) {
+    await button('Check and sign').click();
+    await until(
+      hasText,
+      'transactions would go through',
+      'the network check',
+      300000
+    );
+    await page.waitForTimeout(800);
+    await shot('16-csv-checked', 'Review and sign');
+    await say(
+      'Press "Sign in your wallet" and approve in xPortal (60 vestings, two transactions, one approval).'
+    );
+    await until(matches, 'Created 60 vestings', 'the creation');
+    await page.waitForTimeout(1500);
+  }
 }
 
 // --- 4. My vestings and Claim all (pictures 17 and 18) ------------------------------
@@ -348,7 +372,7 @@ if (phase(17, 18)) {
   ).click();
   await until(hasText, 'would go through', 'the network check', 300000);
   await say('Press "Sign in your wallet" and approve in xPortal (Claim all).');
-  await until(hasText, 'done', 'the claim');
+  await until(matches, 'Transaction 1:\\s*done', 'the claim');
   await page.waitForTimeout(4000);
   await shot('18-claimed');
 }
@@ -362,20 +386,30 @@ if (phase(19, 21)) {
   await shot('19-created');
   // The advisor's vesting of "Team 2027": its card is the one with 3,000.
   const card = page
-    .locator('div', { hasText: 'Team 2027' })
-    .filter({ hasText: '3,000' })
-    .last();
+    .locator('div.relative.flex.h-full', { hasText: 'Team 2027' })
+    .filter({ hasText: process.env.CANCEL_AMOUNT || '3,000' })
+    .first();
+  const id = (
+    (await card.locator('a[href^="/v/"]').first().getAttribute('href')) || ''
+  ).replace('/v/', '');
   await card.getByRole('button', { name: 'Cancel', exact: true }).click();
   await until(hasText, 'would go through', 'the network check', 180000);
   await page.waitForTimeout(800);
+  // The panel opens above the list.
+  await page.evaluate(() => window.scrollTo(0, 0));
   await shot('20-cancel');
-  const id = await page.evaluate(
-    () => (document.body.innerText.match(/Cancel vesting #(\d+)/) || [])[1]
-  );
-  await say('Press "Sign in your wallet" and approve in xPortal (the cancel).');
-  await until(hasText, 'done', 'the cancel');
-  await page.waitForTimeout(4000);
-  if (id) {
+  if (!wanted(21)) {
+    // A picture of the panel only: nothing is signed.
+    await button('Not now').click();
+  }
+  if (wanted(21)) {
+    await say(
+      'Press "Sign in your wallet" and approve in xPortal (the cancel).'
+    );
+    await until(matches, 'Transaction 1:\\s*done', 'the cancel');
+    await page.waitForTimeout(4000);
+  }
+  if (id && wanted(21)) {
     await go(`/v/${id}`);
     await until(hasText, 'Cancelled on', 'the cancelled vesting', 120000);
     await page.waitForTimeout(1500);

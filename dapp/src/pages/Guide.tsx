@@ -298,7 +298,7 @@ export const Guide = () => (
       />
       <Shot
         src='14-created'
-        caption='Created: each vesting with its number, its claim key on its way.'
+        caption='Created, as #541 to #543: the claim keys went to the beneficiaries and the cancel keys to you. The note in the corner comes from the wallet.'
       />
     </Step>
 
@@ -311,7 +311,7 @@ export const Guide = () => (
       </p>
       <Shot
         src='17-mine'
-        caption='My vestings, with Claim on each card and Claim all.'
+        caption='My vestings: a filter by token, Claim all and Claim on each card.'
       />
       <Shot src='18-claimed' caption='After Claim all.' />
     </Step>
