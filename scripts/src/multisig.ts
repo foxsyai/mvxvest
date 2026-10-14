@@ -76,12 +76,10 @@ const upgradeNeed = (codeBytes: number) => ((300n * BigInt(codeBytes) + 1_000_00
  * 8M forwarded failed "not enough gas").
  */
 const CALLBACK_GAS = 7_000_000n;
-/**
- * On mainnet an upgrade is performed with at least this much until mainnet's
- * own figure has been measured (Sebastian, 14 Oct 2026; mvxsafe has the same
- * floor). Mainnet's async calls differ from devnet's, where 25.5M was enough.
- */
-const MAINNET_UPGRADE_FLOOR = 118_500_000n;
+// Mainnet was performed with a 118.5M floor for an upgrade until one had been
+// measured there (Sebastian, 14 Oct 2026). The version 2 upgrade measured the
+// same as devnet (upgrade 8.50M, callback 3.39M: MAINNET.md), so the budget
+// below applies on mainnet too.
 /** performAction's own part: 5.9M measured in the devnet rehearsal, x1.27. */
 const PERFORM_OWN_GAS = BigInt(process.env.MVXVEST_PERFORM_OWN_GAS ?? "7500000");
 
@@ -458,10 +456,6 @@ async function run() {
       console.log(
         `gas: ${PERFORM_OWN_GAS} performAction + ${perform!.need} for ${perform!.kind} + ${CALLBACK_GAS} held for the callback`,
       );
-      if (network() === "mainnet" && perform!.kind.startsWith("upgrade") && gasLimit < MAINNET_UPGRADE_FLOOR) {
-        gasLimit = MAINNET_UPGRADE_FLOOR;
-        console.log(`gas: raised to ${MAINNET_UPGRADE_FLOOR}, the mainnet floor for an upgrade until one is measured there`);
-      }
     } else {
       const simulated = BigInt((await entrypoint().createNetworkProvider().estimateTransactionCost(tx)).gasLimit);
       gasLimit = (simulated * 12n) / 10n;

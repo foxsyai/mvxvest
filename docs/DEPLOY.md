@@ -196,7 +196,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
    - the source is not upgradeable and is in shard 1.
 
    An upgrade only ever comes as an `SCUpgradeFromSource` action. A plain call to `upgradeContract` or `ChangeOwnerAddress` is refused. `multisig.ts sign` and `perform` decode the action, say it in words and refuse anything else.
-5. **Perform** with at least 118.5M gas: the mainnet floor until an upgrade has been measured there. If the perform fails, the action is used up: propose and sign it again.
+5. **Perform.** Version 2's upgrade used 118.5M, the mainnet floor until an upgrade had been measured there. It measured the same as devnet, so later upgrades get the measured budget (about 25M for this size). If the perform fails, the action is used up: propose and sign it again.
 6. **Verify on chain:**
    - the contract's code hash is the release hash;
    - the metadata is 0500 and the owner is still the multisig;
