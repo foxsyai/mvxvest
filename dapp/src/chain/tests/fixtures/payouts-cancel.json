@@ -4,7 +4,7 @@
  "logs": {
   "events": [
    {
-    "address": "erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85",
+    "address": "erd1fq3f4acpxxqt0rygskhdsp6l3z0787jjmdehphpfc4458jre54uq3ds5d6",
     "identifier": "ESDTNFTTransfer",
     "topics": [
      "VkVTVENBTkNFTC1iZDczMWQ=",
@@ -21,7 +21,7 @@
    "logs": {
     "events": [
      {
-      "address": "erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85",
+      "address": "erd1fq3f4acpxxqt0rygskhdsp6l3z0787jjmdehphpfc4458jre54uq3ds5d6",
       "identifier": "ESDTNFTTransfer",
       "topics": [
        "VkVTVENBTkNFTC1iZDczMWQ=",
@@ -47,7 +47,7 @@
       "topics": [
        "dmVzdGluZ0NhbmNlbGxlZA==",
        "Ah8=",
-       "yg8CXME+X0jQVzsmQoq+SrMErUvb9v7R37tRnJ3Gid8=",
+       "SCKa9wExgLeMiIWu2AdfiJ/j+lLbc3DcKcVrQ8h5pXg=",
        "VEZPWC1kNjFiMDk="
       ],
       "data": "AAAACaKhXQlRm+AAAAAAAAA="
@@ -59,7 +59,7 @@
        "VEZPWC1kNjFiMDk=",
        "",
        "oqFdCVGb4AAA",
-       "yg8CXME+X0jQVzsmQoq+SrMErUvb9v7R37tRnJ3Gid8="
+       "SCKa9wExgLeMiIWu2AdfiJ/j+lLbc3DcKcVrQ8h5pXg="
       ],
       "data": "RGlyZWN0Q2FsbA=="
      }
@@ -81,12 +81,12 @@
        "VEZPWC1kNjFiMDk=",
        "",
        "oqFdCVGb4AAA",
-       "yg8CXME+X0jQVzsmQoq+SrMErUvb9v7R37tRnJ3Gid8="
+       "SCKa9wExgLeMiIWu2AdfiJ/j+lLbc3DcKcVrQ8h5pXg="
       ],
       "data": null
      },
      {
-      "address": "erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85",
+      "address": "erd1fq3f4acpxxqt0rygskhdsp6l3z0787jjmdehphpfc4458jre54uq3ds5d6",
       "identifier": "writeLog",
       "topics": [
        "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
@@ -94,7 +94,7 @@
       "data": "QDZmNmI="
      },
      {
-      "address": "erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85",
+      "address": "erd1fq3f4acpxxqt0rygskhdsp6l3z0787jjmdehphpfc4458jre54uq3ds5d6",
       "identifier": "completedTxEvent",
       "topics": [
        "YYYncH5A++b/snbLWPYC6nQcNg0MJTkQ+US+lFtHCVE="
@@ -108,7 +108,7 @@
    "logs": {
     "events": [
      {
-      "address": "erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85",
+      "address": "erd1fq3f4acpxxqt0rygskhdsp6l3z0787jjmdehphpfc4458jre54uq3ds5d6",
       "identifier": "completedTxEvent",
       "topics": [
        "YYYncH5A++b/snbLWPYC6nQcNg0MJTkQ+US+lFtHCVE="

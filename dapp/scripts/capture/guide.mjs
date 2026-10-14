@@ -12,17 +12,32 @@
 // wallet; the test network's strip is hidden in the pictures, and the guide
 // says the pictures come from the test network.
 //
-// The guide is public: the wallets are named only by their shortened address.
+// The guide is public, and its pictures show addresses in full: the creator is
+// a fresh devnet-only wallet made for these pictures (WALLET=erd1...), never
+// one with a history or a herotag, and the other beneficiaries are addresses
+// nobody holds.
 //
 // NOTHING IS SIGNED BY THIS SCRIPT. It fills forms, waits and photographs.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const SITE = process.env.SITE || 'https://devnet.mvxvest.io';
+const DEVNET = 'https://devnet.mvxvest.io';
+const SITE = process.env.SITE || DEVNET;
+// The wallet phases ask for real approvals, and an address is the same on
+// every network: anything but the devnet site (or a local devnet build) could
+// ask for a real claim or cancel. Checked again on the page before each
+// wallet phase (the test network's strip).
+if (SITE !== DEVNET && !/^http:\/\/localhost:\d+$/.test(SITE)) {
+  console.error(`Refusing SITE=${SITE}: the pictures are taken on ${DEVNET}.`);
+  process.exit(1);
+}
 /** The real FOXSY token page, for the issuer's powers: mainnet, read only. */
 const MAINNET = 'https://mvxvest.io';
-const OUT = process.env.OUT || 'public/shots/';
+const OUT =
+  process.env.OUT ||
+  fileURLToPath(new URL('../../public/shots/', import.meta.url));
 const PROFILE = `${homedir()}/.mvxvest-shots-profile`;
 const LAST = 23;
 const ONLY = process.env.ONLY
@@ -36,13 +51,22 @@ const phase = (first, last) => {
   for (let n = first; n <= last; n++) if (wanted(n)) return true;
   return false;
 };
-/** The creator: the devnet xPortal wallet it connects with. */
-const YOU = 'erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85';
+/** The creator: a fresh devnet-only xPortal wallet, made for the pictures. */
+const YOU = process.env.WALLET ?? '';
+if (phase(5, 21) && !/^erd1[02-9ac-hj-np-z]{58}$/.test(YOU)) {
+  console.error(
+    'Set WALLET=erd1... to the fresh devnet wallet that will connect (pictures 5 to 21).'
+  );
+  process.exit(1);
+}
+// Two addresses nobody holds (random, no key): shown in full in pictures 7
+// and 15.
 const TEAMMATE =
-  'erd16pe79ay2m6g7ap9vpshvvqaqc3ayplwuqw0rkwj2gqvv0egn0wjsyzvjwd';
+  'erd1z5pcfwjrl97y8dyrw4d77g27mp2kweryjkm79n56fvcr5lyl6x6sdd0sdp';
 const ADVISOR =
-  'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl';
+  'erd1efp4xjux8v58nzxk3te03dhqcmdm7xynqrz28ds8dyd9ddwlvj4s48wqhu';
 const TOKEN = 'TFOX-d61b09';
+const short = (address) => `${address.slice(0, 8)}…${address.slice(-5)}`;
 
 mkdirSync(OUT, { recursive: true });
 
@@ -181,7 +205,18 @@ const shot = async (name, section) => {
 
 const go = async (path, site = SITE) => {
   await page.goto(`${site}${path}`, { waitUntil: 'networkidle' });
+  if (site === SITE) await onTestNetwork();
   await drawBanner();
+};
+/** Stops the script unless the page shows the test network's strip. */
+const onTestNetwork = async () => {
+  const strip = await page.evaluate(() =>
+    document.body.textContent.includes('test network, no real money')
+  );
+  if (!strip) {
+    console.error('This page is not on the test network: stopping.');
+    process.exit(1);
+  }
 };
 const button = (name) => page.getByRole('button', { name, exact: true });
 // A form field by the label the site gives it (a hidden text inside its
@@ -223,7 +258,7 @@ if (phase(5, 21)) {
       );
     }
     await say(
-      'Press Connect, then WAIT a second before choosing xPortal, so the chooser can be photographed. Connect your DEVNET wallet erd1eg8s…kje85.'
+      `Press Connect, then WAIT a second before choosing xPortal, so the chooser can be photographed. Connect the DEVNET wallet ${short(YOU)}.`
     );
     await until(
       (needle) => {
@@ -247,7 +282,7 @@ if (phase(5, 21)) {
       await shot('05-connect');
     }
     await say(
-      'Connect your devnet wallet erd1eg8s…kje85 with xPortal. I am waiting.'
+      `Connect the devnet wallet ${short(YOU)} with xPortal. I am waiting.`
     );
     await until(connectedAs, YOU, 'the wallet to connect');
   }
@@ -381,10 +416,17 @@ if (phase(17, 18)) {
     (await page.getByRole('button', { name: /^Claim all/ }).innerText()).trim()
   ).click();
   await until(hasText, 'would go through', 'the network check', 300000);
-  await say('Press "Sign in your wallet" and approve in xPortal (Claim all).');
-  await until(matches, 'Transaction 1:\\s*done', 'the claim');
-  await page.waitForTimeout(4000);
-  await shot('18-claimed');
+  // Picture 18 alone needs the claim.
+  if (wanted(18)) {
+    await say(
+      'Press "Sign in your wallet" and approve in xPortal (Claim all).'
+    );
+    await until(matches, 'Transaction 1:\\s*done', 'the claim');
+    await page.waitForTimeout(4000);
+    await shot('18-claimed');
+  } else {
+    await button('Not now').click();
+  }
 }
 
 // --- 5. Created by me and a cancel (pictures 19 to 21) ------------------------------

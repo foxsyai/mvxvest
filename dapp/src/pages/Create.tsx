@@ -1353,8 +1353,8 @@ export const Create = () => {
                 {batches.length > 1 && (
                   <Info>
                     At most {Math.max(...batches.map((batch) => batch.length))}{' '}
-                    vestings per transaction. Your wallet asks once for all of
-                    them.
+                    vestings per transaction. Your wallet asks for all of them
+                    together (a Ledger confirms each one on the device).
                   </Info>
                 )}
               </dd>

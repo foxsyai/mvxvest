@@ -289,12 +289,31 @@ export const VestingPage = () => {
               ticker={ticker}
             />{' '}
             went back to whoever cancelled;{' '}
-            <Amount
-              units={v.finalAmount}
-              decimals={token.decimals}
-              ticker={ticker}
-            />{' '}
-            had vested and stays claimable.
+            {v.finalAmount === 0n ? (
+              'nothing had vested by then.'
+            ) : (
+              <>
+                <Amount
+                  units={v.finalAmount}
+                  decimals={token.decimals}
+                  ticker={ticker}
+                />{' '}
+                had vested by then
+                {v.finalAmount > v.claimed ? (
+                  <>
+                    , of which{' '}
+                    <Amount
+                      units={v.finalAmount - v.claimed}
+                      decimals={token.decimals}
+                      ticker={ticker}
+                    />{' '}
+                    is still claimable.
+                  </>
+                ) : (
+                  ' and has been claimed.'
+                )}
+              </>
+            )}
           </Notice>
         )}
         {token.known && <IssuerPowers token={token} />}
@@ -339,13 +358,27 @@ export const VestingPage = () => {
             summary={
               <Notice tone='warn'>
                 Stops vesting #{v.id} at the moment the transaction runs. This
-                cannot be undone. What has vested by then (about{' '}
+                cannot be undone. What has vested by then stays the
+                beneficiary&apos;s: about{' '}
                 <Amount
-                  units={v.vested}
+                  units={v.claimable}
                   decimals={token.decimals}
                   ticker={ticker}
                 />{' '}
-                now) stays claimable with the claim key; the rest (about{' '}
+                now is still claimable with the claim key
+                {v.claimed > 0n && (
+                  <>
+                    {' '}
+                    (and{' '}
+                    <Amount
+                      units={v.claimed}
+                      decimals={token.decimals}
+                      ticker={ticker}
+                    />{' '}
+                    was claimed before)
+                  </>
+                )}
+                . The rest (about{' '}
                 <Amount
                   units={v.total - v.vested}
                   decimals={token.decimals}

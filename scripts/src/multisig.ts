@@ -256,6 +256,10 @@ async function sourceProblems(f: SourceFacts): Promise<string[]> {
   const problems: string[] = [];
   const expected = (process.env.MVXVEST_EXPECT_HASH ?? "").toLowerCase();
   if (!f.hash) problems.push(`the source ${f.address} holds no code`);
+  // The upgrade's gas is budgeted from the code's size: without the code the
+  // budget would silently fall to about 15.7M and the perform could fail,
+  // using the action up (third audit, C3).
+  else if (f.bytes === 0) problems.push(`the API did not return the source's code, so its size (and the upgrade's gas) is unknown; try again`);
   if (!/^[0-9a-f]{64}$/.test(expected)) {
     problems.push("MVXVEST_EXPECT_HASH is not set to the release's code hash (64 hex characters), so the source cannot be checked");
   } else if (f.hash !== expected) {

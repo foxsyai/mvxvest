@@ -2,9 +2,9 @@
 // code hash in `contractCodeHashes`; the devnet config lists version 1 and
 // the rehearsed version 2 build (a7acbf22…), so the banner stays silent on
 // both sides of the upgrade, and shouts for any other code. (The mainnet
-// config lists version 1 only; DEPLOY.md adds version 2's hash before the
-// upgrade, and CI refuses a main that builds to a hash the config does not
-// list.)
+// config listed version 1 only until DEPLOY.md's step 1 added version 2's
+// hash; since the upgrade it lists version 2 only. CI refuses a main that
+// builds to a hash the config does not list, or whose live hash it lacks.)
 
 import { act, render, screen } from '@testing-library/react';
 import { contractAddress, contractCodeHashes, ownerMultisig } from 'config';

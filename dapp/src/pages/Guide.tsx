@@ -173,12 +173,13 @@ export const Guide = () => (
       vested, so the right to claim can move to another wallet, a multisig or a
       buyer. A vesting the creator may stop also gives the creator a{' '}
       <b className='text-ink'>cancel key</b>: sending it back stops the vesting
-      at that moment. What has vested stays claimable; the rest returns.
+      at that moment. What has vested stays the beneficiary&apos;s; the rest
+      returns.
     </p>
     <p className='mt-3 text-sm text-muted'>
       The pictures come from the test network, with test tokens (which have no
-      registered logo, so the site marks them unverified). The real site works
-      the same.
+      registered logo, so the site marks them unverified); the last one shows
+      the real FOXSY token. The real site works the same.
     </p>
 
     <h2 className='mt-10 text-xl font-bold'>Step by step</h2>
@@ -191,7 +192,7 @@ export const Guide = () => (
       <Shot src='01-home' caption='The start page: one box for anything.' />
       <Shot
         src='02-vesting'
-        caption='A vesting: what has vested and been claimed, the next release, the whole schedule, who holds each key and the history.'
+        caption='A vesting: what has vested and been claimed, the next release and the whole schedule. Further down: who holds each key and the history.'
       />
       <Shot
         src='03-token'
@@ -199,7 +200,7 @@ export const Guide = () => (
       />
       <Shot
         src='04-address'
-        caption='An address: the claim keys it holds and the vestings it created.'
+        caption='An address: the claim keys it holds. The vestings it created follow further down.'
       />
     </Step>
 
@@ -231,16 +232,18 @@ export const Guide = () => (
     <Step n={4} title='Add the beneficiaries'>
       <p>
         Type them one by one (an address and an amount per line) or load a CSV
-        file of any length. Each line becomes its own vesting. A line is checked
-        when you leave it; a smart contract as beneficiary gets a warning.
+        file of up to 5,000 lines. Each line becomes its own vesting. Check
+        every address: a vesting cannot be redirected (with the one exception
+        under Worth knowing). A line is checked when you leave it; a smart
+        contract as beneficiary gets a warning.
       </p>
       <Shot
         src='07-create-rows'
-        caption='Three beneficiaries typed one by one.'
+        caption='Three beneficiaries typed one by one (their addresses are blurred in this picture).'
       />
       <Shot
         src='15-csv'
-        caption='Sixty lines from a CSV: the page splits them into transactions the network accepts.'
+        caption='Sixty lines from a CSV (blurred here): the page splits them into transactions the network accepts.'
       />
     </Step>
 
@@ -281,8 +284,8 @@ export const Guide = () => (
       <p>
         The review sums it all up, fees included. Check and sign asks the
         network to try every transaction first: a transaction it would refuse is
-        never sent to your wallet. Several transactions are approved with one
-        prompt.
+        never sent to your wallet. In xPortal several transactions are approved
+        with one prompt; a Ledger confirms each one on the device.
       </p>
       <Shot
         src='12-review'
@@ -294,7 +297,7 @@ export const Guide = () => (
       />
       <Shot
         src='16-csv-checked'
-        caption='Sixty vestings in two transactions, one approval in the wallet.'
+        caption='Sixty vestings in two transactions, one approval in xPortal.'
       />
       <Shot
         src='14-created'
@@ -331,11 +334,11 @@ export const Guide = () => (
         beneficiary has got, with Export to CSV. Cancel appears wherever you
         hold the cancel key, also for one created elsewhere and sent to you.
         Cancelling stops the vesting at once and cannot be undone: what has
-        vested stays claimable by the beneficiary; the rest comes back to you.
+        vested stays the beneficiary&apos;s; the rest comes back to you.
       </p>
       <Shot
         src='19-created'
-        caption='Created by me: the progress of every beneficiary, Cancel where you hold the key.'
+        caption='Created by me: how far every beneficiary has got. A cancelable vesting shows Cancel while you hold its cancel key.'
       />
       <Shot
         src='20-cancel'
@@ -343,7 +346,7 @@ export const Guide = () => (
       />
       <Shot
         src='21-cancelled'
-        caption='The vesting afterwards: cancelled, with what was returned and what stays claimable.'
+        caption='A cancelled vesting: what was returned and what the beneficiary keeps.'
       />
     </Step>
 
@@ -363,10 +366,13 @@ export const Guide = () => (
         <b className='text-ink'>What the owner can and cannot do.</b> The owner,
         a multisig, can set the fees on new vestings, pause the creation of new
         vestings and return keys or tokens that bounced back from a smart
-        contract. It cannot pause claims or cancels and has no way to move
-        locked tokens. It can upgrade the contract, so a serious bug can be
-        fixed; every upgrade is a vote. Each version is a reproducible build
-        whose code hash anyone can check (below).
+        contract. In the code as it stands, it cannot pause claims or cancels
+        and has no way to move locked tokens. It can upgrade the contract, so a
+        serious bug can be fixed. An upgrade is a vote of the multisig and
+        replaces the code: every promise on this page holds for the code as it
+        is; beyond it, you trust the multisig and its signers (named below).
+        Each version is a reproducible build whose code hash anyone can check
+        (below).
       </li>
       <li>
         <b className='text-ink'>Smart contracts as beneficiaries.</b> A smart

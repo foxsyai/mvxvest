@@ -30,17 +30,19 @@ if [ "$NETWORK" = mainnet ] && ! tr -d ' \n' < src/config/config.mainnet.ts | gr
   echo "REFUSING: no mainnet contract address in src/config/config.mainnet.ts."; exit 1
 fi
 
-# What goes live on mainnet must be what is on GitHub: no uncommitted changes,
-# and a commit that origin/main already contains.
-if [ "$NETWORK" = mainnet ]; then
-  git diff --quiet HEAD -- || { echo "REFUSING: uncommitted changes. Commit and push first."; exit 1; }
-  git fetch -q origin main
-  git merge-base --is-ancestor HEAD origin/main ||
-    { echo "REFUSING: $(git rev-parse --short HEAD) is not on origin/main. Push it first."; exit 1; }
-fi
+# What goes live must be what is on GitHub, on every network (the guide's
+# pictures come from devnet, and both sites show their commit): no changed or
+# untracked file in dapp/ (Vite copies all of public/ into the build), and a
+# commit that origin/main already contains.
+[ -z "$(git status --porcelain --untracked-files=all -- .)" ] || { echo "REFUSING: uncommitted changes. Commit and push first."; git status --short -- .; exit 1; }
+git fetch -q origin main
+git merge-base --is-ancestor HEAD origin/main ||
+  { echo "REFUSING: $(git rev-parse --short HEAD) is not on origin/main. Push it first."; exit 1; }
 
-# Exactly the locked dependencies, and nothing ships that fails its tests.
+# Exactly the locked dependencies, and nothing ships that fails its tests, run
+# against the network's own config.
 pnpm install --frozen-lockfile
+pnpm -s "copy-$NETWORK-config"
 pnpm -s exec jest --bail=0 --silent
 
 echo "Building for $NETWORK..."

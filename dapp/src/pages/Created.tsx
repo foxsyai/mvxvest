@@ -150,9 +150,9 @@ export const Created = () => {
           summary={
             <Notice tone='warn'>
               Stops vesting #{cancelling.id} when the transaction runs. This
-              cannot be undone. What has vested by then stays claimable with the
-              claim key; the rest comes back to this wallet. The cancel key is
-              burned.
+              cannot be undone. What has vested by then stays the
+              beneficiary&apos;s (claimable with the claim key until claimed);
+              the rest comes back to this wallet. The cancel key is burned.
             </Notice>
           }
           build={build}

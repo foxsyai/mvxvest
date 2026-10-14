@@ -14,9 +14,10 @@ Status:
   The contract is `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`,
   owned by a 2-of-3 mvxsafe multisig.
 - **Version 2** since 14 Oct 2026.
-- **Audited twice** by Claude Fable 5.1, in adversarial reviews:
+- **Audited three times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
-  [second audit](docs/reviews/2026-10-14-fable-audit-v2.md).
+  [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),
+  [third audit](docs/reviews/2026-10-14-fable-audit-3.md) (what changed after the second).
 - **Not yet announced.** The source has been public since 14 Oct 2026.
   More audit rounds come before the announcement.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
@@ -46,13 +47,10 @@ costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
 - **Keys:** one claim key per vesting, one cancel key per cancelable vesting.
   Both keep the same nonce for life; the contract finds the vesting from the
   nonce and never trusts NFT attributes.
-- **Endpoints:** `create`, `createBatch` (up to 50 per transaction, 33 when cancelable), `claim`
+- **Endpoints:** `create`, `createBatch` (up to 49 per transaction, 32 when cancelable), `claim`
   (one or many keys), `cancel` (one or many keys).
 - **Owner (a multisig):** issue the key collections, set how new keys look,
-  set a flat EGLD fee per vesting (capped at 1 EGLD in code), pause creation
-  (never claims or cancels), collect fees and return keys or funds that
-  bounced back. It can never move locked funds. The contract is upgradeable by
-  the multisig.
+  set the fees on new vestings (a share of each vesting in its own token, capped at 2% and sent to the multisig, plus a flat EGLD fee per vesting, capped at 1 EGLD), pause creation (never claims or cancels), collect fees and return keys or funds that bounced back. In the code as it stands it can never move locked funds. The contract is upgradeable by the multisig: an upgrade replaces the code.
 
 ## Build and test
 

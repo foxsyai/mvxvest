@@ -10,14 +10,9 @@
 
 import { historyOf } from '../reads';
 
-jest.mock(
-  'config',
-  () => ({
-    contractAddress:
-      'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp'
-  }),
-  { virtual: true }
-);
+// A virtual mock does not always reach chain/reads (third audit, C6): the
+// devnet config is loaded for real instead.
+jest.mock('config', () => jest.requireActual('config/config.devnet'));
 
 const hex = (text: string) => Buffer.from(text).toString('hex');
 const CREATOR =

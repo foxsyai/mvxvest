@@ -36,7 +36,7 @@
     "copy-devnet-config": "cp ./src/config/config.devnet.ts ./src/config/index.ts",
     "copy-testnet-config": "cp ./src/config/config.testnet.ts ./src/config/index.ts",
     "copy-mainnet-config": "cp ./src/config/config.mainnet.ts ./src/config/index.ts",
-    "test": "jest",
+    "test": "test -f src/config/index.ts || npm run copy-devnet-config; jest",
     "typecheck": "npm run copy-devnet-config && tsc --noEmit",
     "sync-abi": "cp ../contracts/vesting/output/mvxvest.abi.json src/vesting/mvxvest.abi.json"
   },

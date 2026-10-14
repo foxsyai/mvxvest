@@ -293,8 +293,14 @@ export interface Payout {
   claimed: bigint;
   /** Paid back by cancels: the part not vested at the cancel. */
   refunded: bigint;
-  /** Vested at a cancel: stays claimable with the claim key. */
-  staysClaimable: bigint;
+  /**
+   * Vested at a cancel: the beneficiary's, claimed or not (CancelledEvent.vested
+   * counts what was claimed before the cancel too). What is still claimable
+   * needs the vesting's own read (`cancelledIds`).
+   */
+  vestedAtCancel: bigint;
+  /** The vestings these transactions cancelled. */
+  cancelledIds: number[];
 }
 
 const bytesOf = (base64: string) =>
@@ -325,9 +331,16 @@ const nestedAmounts = (data: Uint8Array): bigint[] => {
 /**
  * What a set of finished transactions paid out, per token, from mvxvest's own
  * vestingClaimed and vestingCancelled events. Only events logged by the
- * contract count, each vesting once per transaction.
+ * contract count, each vesting once per transaction, and with `caller` only
+ * those whose caller topic is that address (the one that was paid).
  */
-export const payoutsOf = async (hashes: string[]): Promise<Payout[]> => {
+export const payoutsOf = async (
+  hashes: string[],
+  caller?: string
+): Promise<Payout[]> => {
+  const callerKey = caller
+    ? String.fromCharCode(...Address.newFromBech32(caller).getPublicKey())
+    : undefined;
   const byToken = new Map<string, Payout>();
   const seen = new Set<string>();
   for (const hash of hashes) {
@@ -342,26 +355,31 @@ export const payoutsOf = async (hashes: string[]): Promise<Payout[]> => {
     ];
     for (const event of events) {
       if (event.address !== contractAddress) continue;
-      const [name, id, , token] = (event.topics ?? []).map((topic: string) =>
-        atob(topic)
+      const [name, id, paid, token] = (event.topics ?? []).map(
+        (topic: string) => atob(topic)
       );
       if (name !== 'vestingClaimed' && name !== 'vestingCancelled') continue;
       if (id === undefined || !token || typeof event.data !== 'string')
         continue;
+      if (callerKey !== undefined && paid !== callerKey) continue;
       const key = `${hash}:${name}:${id}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const [first = 0n, second = 0n] = nestedAmounts(bytesOf(event.data));
-      const payout = byToken.get(token) ?? {
+      const payout: Payout = byToken.get(token) ?? {
         token,
         claimed: 0n,
         refunded: 0n,
-        staysClaimable: 0n
+        vestedAtCancel: 0n,
+        cancelledIds: []
       };
       if (name === 'vestingClaimed') payout.claimed += first;
       else {
         payout.refunded += first;
-        payout.staysClaimable += second;
+        payout.vestedAtCancel += second;
+        let value = 0;
+        for (const char of id) value = value * 256 + char.charCodeAt(0);
+        payout.cancelledIds.push(value);
       }
       byToken.set(token, payout);
     }

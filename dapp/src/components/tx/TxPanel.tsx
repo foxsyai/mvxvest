@@ -269,7 +269,7 @@ export const TxPanel = ({
             <Notice>
               {phase.transactions.length === 1
                 ? 'Checked with the network: it would go through.'
-                : `Checked with the network: all ${phase.transactions.length} transactions would go through. Your wallet asks once for all of them.`}{' '}
+                : `Checked with the network: all ${phase.transactions.length} transactions would go through. Your wallet asks for all of them together (a Ledger confirms each one on the device).`}{' '}
               Network fee, at most{' '}
               <Amount
                 units={phase.transactions.reduce(
@@ -362,6 +362,7 @@ export const TxPanel = ({
               (hash) => outcomes[hash].status === 'success'
             ) && (
               <Payouts
+                sender={sender}
                 hashes={phase.sent.hashes.filter(
                   (hash) => outcomes[hash].status === 'success'
                 )}

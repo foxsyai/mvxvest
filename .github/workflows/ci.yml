@@ -48,22 +48,37 @@ jobs:
         run: |
           ls -l contracts/vesting/output/mvxvest.wasm
           sha256sum contracts/vesting/output/mvxvest.wasm
-      # main must still build, in the pinned image, to code the mainnet site
-      # knows: its contractCodeHashes (which also drive the site's red banner)
-      # list the deployed hash and, before an upgrade, the next one (audit M3).
+      # main (and every pull request into it) must still build, in the pinned
+      # image, to code the mainnet site knows: its contractCodeHashes (which
+      # also drive the site's red banner) list the deployed hash and, before an
+      # upgrade, the next one (audit M3). The hash mainnet runs must be listed
+      # too, read from the chain (third audit, C4).
       - name: Reproducible build matches a known mainnet code hash
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         run: |
           sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
             --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
           python3 - <<'PY'
-          import re
+          import base64, json, re, time, urllib.request
           built = open('output-docker/mvxvest/mvxvest.codehash.txt').read().strip()
           config = open('dapp/src/config/config.mainnet.ts').read()
           listed = re.search(r'contractCodeHashes = \[([^\]]*)\]', config).group(1)
+          # A hash commented out inside the array is not listed.
+          listed = re.sub(r'//[^\n]*|/\*.*?\*/', '', listed, flags=re.S)
           known = re.findall(r'[0-9a-f]{64}', listed)
-          print('built', built, 'known', known)
+          contract = re.search(r"contractAddress =\s*'(erd1[0-9a-z]{58})'", config).group(1)
+          for attempt in range(3):
+              try:
+                  with urllib.request.urlopen(f'https://api.multiversx.com/accounts/{contract}?fields=codeHash', timeout=30) as answer:
+                      live = base64.b64decode(json.load(answer)['codeHash']).hex()
+                  break
+              except Exception:
+                  if attempt == 2:
+                      raise
+                  time.sleep(10)
+          print('built', built, 'live', live, 'known', known)
           assert built in known, f'code hash {built} is not in contractCodeHashes of config.mainnet.ts'
+          assert live in known, f'mainnet runs {live}, which is not in contractCodeHashes of config.mainnet.ts'
           PY
 
   dapp:

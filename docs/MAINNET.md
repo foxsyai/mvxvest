@@ -76,7 +76,7 @@ The first vote of the owner multisig on mainnet, through mvxsafe.io (commit 7fda
 
 The call reached the contract with 13.2M and answered `@00`; the callback came back with 9.45M. `getFee` reads 0.
 
-Until a mainnet upgrade has been measured, upgrades are carried out with at least 118.5M gas, in mvxsafe and in `scripts/src/multisig.ts` alike.
+Until a mainnet upgrade had been measured, upgrades were carried out with at least 118.5M gas, in mvxsafe and in `scripts/src/multisig.ts` alike. Version 2's upgrade then measured the same as devnet (below), so the floor was dropped (254a3e5).
 
 ## Version 2 (14 October 2026)
 

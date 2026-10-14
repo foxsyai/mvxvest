@@ -1,8 +1,9 @@
 // What a finished claim or cancel paid, read from the contract's events.
 // The fixtures are two real devnet transactions of the guide's captures
 // (14 Oct 2026), trimmed to their logs: a Claim all of 33 vestings in TFOX
-// and TUSD, and a cancel. The expected sums were computed separately from the
-// same raw data.
+// and TUSD, and a cancel. The caller's address was replaced by one nobody
+// holds (the third audit's O1); the contract's events are untouched. The
+// expected sums were computed separately from the same raw data.
 
 import { payoutsOf } from '../reads';
 import cancelTx from './fixtures/payouts-cancel.json';
@@ -32,7 +33,8 @@ const shown = (payouts: Awaited<ReturnType<typeof payoutsOf>>) =>
     token: payout.token,
     claimed: String(payout.claimed),
     refunded: String(payout.refunded),
-    staysClaimable: String(payout.staysClaimable)
+    vestedAtCancel: String(payout.vestedAtCancel),
+    cancelledIds: payout.cancelledIds
   }));
 
 beforeEach(() => {
@@ -49,13 +51,15 @@ describe('payoutsOf', () => {
           token: 'TFOX-d61b09',
           claimed: '2055895995566669082637',
           refunded: '0',
-          staysClaimable: '0'
+          vestedAtCancel: '0',
+          cancelledIds: []
         },
         {
           token: 'TUSD-8e71cb',
           claimed: '1000000000',
           refunded: '0',
-          staysClaimable: '0'
+          vestedAtCancel: '0',
+          cancelledIds: []
         }
       ])
     );
@@ -67,7 +71,8 @@ describe('payoutsOf', () => {
         token: 'TFOX-d61b09',
         claimed: '0',
         refunded: '3000000000000000000000',
-        staysClaimable: '0'
+        vestedAtCancel: '0',
+        cancelledIds: [543]
       }
     ]);
   });
@@ -79,7 +84,8 @@ describe('payoutsOf', () => {
       token: 'TFOX-d61b09',
       claimed: '2055895995566669082637',
       refunded: '3000000000000000000000',
-      staysClaimable: '0'
+      vestedAtCancel: '0',
+      cancelledIds: [543]
     });
   });
 
@@ -115,7 +121,8 @@ describe('payoutsOf', () => {
         token: 'FOXSY-5d5f3e',
         claimed: '0',
         refunded: '600',
-        staysClaimable: '400'
+        vestedAtCancel: '400',
+        cancelledIds: [7]
       }
     ]);
   });
@@ -149,9 +156,29 @@ describe('payoutsOf', () => {
         token: 'TFOX-d61b09',
         claimed: '50',
         refunded: '0',
-        staysClaimable: '0'
+        vestedAtCancel: '0',
+        cancelledIds: []
       }
     ]);
+  });
+
+  it('with a caller, counts only what was paid to that caller', async () => {
+    // The real Claim all was the creator's (its address replaced in the
+    // fixture): with another wallet as the caller, nothing counts.
+    expect(
+      await payoutsOf(
+        [claimTx.txHash],
+        'erd1z5pcfwjrl97y8dyrw4d77g27mp2kweryjkm79n56fvcr5lyl6x6sdd0sdp'
+      )
+    ).toEqual([]);
+    const caller = claimTx.logs.events.find(
+      (event) => event.identifier === 'MultiESDTNFTTransfer'
+    )!.address;
+    expect(
+      shown(await payoutsOf([claimTx.txHash], caller)).map(
+        (payout) => payout.claimed
+      )
+    ).toEqual(['2055895995566669082637', '1000000000']);
   });
 
   it('fails rather than report nothing when a transaction cannot be read', async () => {
