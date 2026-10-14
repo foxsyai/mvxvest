@@ -11,14 +11,8 @@ import claimTx from './fixtures/payouts-claim.json';
 const CONTRACT =
   'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp';
 
-jest.mock(
-  'config',
-  () => ({
-    contractAddress:
-      'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp'
-  }),
-  { virtual: true }
-);
+// The fixtures come from the devnet contract.
+jest.mock('config', () => jest.requireActual('config/config.devnet'));
 
 const transactions: Record<string, unknown> = {};
 jest.mock('../network', () => ({
@@ -32,6 +26,15 @@ jest.mock('../network', () => ({
 const b64 = (bytes: Uint8Array | string) =>
   Buffer.from(bytes as any).toString('base64');
 
+/** Amounts as strings: a failing BigInt comparison cannot be reported by Jest's workers. */
+const shown = (payouts: Awaited<ReturnType<typeof payoutsOf>>) =>
+  payouts.map((payout) => ({
+    token: payout.token,
+    claimed: String(payout.claimed),
+    refunded: String(payout.refunded),
+    staysClaimable: String(payout.staysClaimable)
+  }));
+
 beforeEach(() => {
   for (const key of Object.keys(transactions)) delete transactions[key];
   transactions[claimTx.txHash] = claimTx;
@@ -40,43 +43,43 @@ beforeEach(() => {
 
 describe('payoutsOf', () => {
   it('sums a Claim all per token', async () => {
-    expect(await payoutsOf([claimTx.txHash])).toEqual(
+    expect(shown(await payoutsOf([claimTx.txHash]))).toEqual(
       expect.arrayContaining([
         {
           token: 'TFOX-d61b09',
-          claimed: 2055895995566669082637n,
-          refunded: 0n,
-          staysClaimable: 0n
+          claimed: '2055895995566669082637',
+          refunded: '0',
+          staysClaimable: '0'
         },
         {
           token: 'TUSD-8e71cb',
-          claimed: 1000000000n,
-          refunded: 0n,
-          staysClaimable: 0n
+          claimed: '1000000000',
+          refunded: '0',
+          staysClaimable: '0'
         }
       ])
     );
   });
 
   it('reads a cancel: refunded, and an empty vested part as 0', async () => {
-    expect(await payoutsOf([cancelTx.txHash])).toEqual([
+    expect(shown(await payoutsOf([cancelTx.txHash]))).toEqual([
       {
         token: 'TFOX-d61b09',
-        claimed: 0n,
-        refunded: 3000000000000000000000n,
-        staysClaimable: 0n
+        claimed: '0',
+        refunded: '3000000000000000000000',
+        staysClaimable: '0'
       }
     ]);
   });
 
   it('adds several transactions together', async () => {
-    const payouts = await payoutsOf([claimTx.txHash, cancelTx.txHash]);
+    const payouts = shown(await payoutsOf([claimTx.txHash, cancelTx.txHash]));
     const tfox = payouts.find((payout) => payout.token === 'TFOX-d61b09');
     expect(tfox).toEqual({
       token: 'TFOX-d61b09',
-      claimed: 2055895995566669082637n,
-      refunded: 3000000000000000000000n,
-      staysClaimable: 0n
+      claimed: '2055895995566669082637',
+      refunded: '3000000000000000000000',
+      staysClaimable: '0'
     });
   });
 
@@ -107,12 +110,12 @@ describe('payoutsOf', () => {
         }
       ]
     };
-    expect(await payoutsOf(['made'])).toEqual([
+    expect(shown(await payoutsOf(['made']))).toEqual([
       {
         token: 'FOXSY-5d5f3e',
-        claimed: 0n,
-        refunded: 600n,
-        staysClaimable: 400n
+        claimed: '0',
+        refunded: '600',
+        staysClaimable: '400'
       }
     ]);
   });
@@ -141,8 +144,13 @@ describe('payoutsOf', () => {
       // The same event again in a result's logs counts once.
       results: [{ logs: { events: [event(CONTRACT)] } }]
     };
-    expect(await payoutsOf(['forged'])).toEqual([
-      { token: 'TFOX-d61b09', claimed: 50n, refunded: 0n, staysClaimable: 0n }
+    expect(shown(await payoutsOf(['forged']))).toEqual([
+      {
+        token: 'TFOX-d61b09',
+        claimed: '50',
+        refunded: '0',
+        staysClaimable: '0'
+      }
     ]);
   });
 
