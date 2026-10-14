@@ -172,6 +172,10 @@ mvxsafe's docs/upgrade-and-calls.md lists those transactions.
 
 Every step is a mainnet action and needs Sebastian's go. Done so far: the first harmless owner vote, `setFee 0`, on 14 Oct 2026 (MAINNET.md). It proved the guarded signers and mainnet's gas for a call.
 
+Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and deploy need Sebastian's go):
+- built-in calls such as `upgradeContract` or `ChangeOwnerAddress` are shown in red and refused;
+- an upgrade of the safe itself is red.
+
 **The release.** Its code hash comes from the reproducible build of the merged commit: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0`. CI's "Reproducible build matches a known mainnet code hash" job prints it too. A plain `sc-meta all build` gives another hash: never use that one.
 
 - Version 2 as audited: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, 27,332 bytes.
