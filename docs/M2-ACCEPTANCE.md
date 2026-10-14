@@ -2,10 +2,7 @@
 
 Tested by Sebastian on 12 October 2026 at https://devnet.mvxvest.io, with real wallets. Every result below was checked on chain afterwards, not taken from the page.
 
-| Wallet | Address |
-|---|---|
-| MultiversX DeFi Wallet (browser extension) | erd16pe79ay2m6g7ap9vpshvvqaqc3ayplwuqw0rkwj2gqvv0egn0wjsyzvjwd |
-| xPortal (WalletConnect, Reown project "mvxvest.io") | erd1eg8syhxp8e0535zh8vny9z47f2esft2tm0m0a5wlhdgee8wx380s9kje85 |
+Two of Sebastian's own wallets were used: one in the MultiversX DeFi Wallet browser extension, one in xPortal (WalletConnect, Reown project "mvxvest.io"). Their addresses are left out of this public record.
 
 Both wallets were set up with `scripts/src/tester.ts`: test tokens, plus four vestings covering every state a beneficiary meets.
 
