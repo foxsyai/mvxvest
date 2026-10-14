@@ -323,7 +323,7 @@ export const TxPanel = ({
               A transaction below has not been seen on the network for 2
               minutes. Do not sign it again: it may still turn up. Before
               signing anything else, disconnect and connect your wallet again
-              (your wallet session still counts it, and would queue the next
+              (your wallet session still counts it and would queue the next
               transaction behind it).
             </Notice>
           )}

@@ -52,7 +52,7 @@ export const amountProblem = (
     const whole = clean.replace(/\./g, '');
     return clean.split('.').length > 2
       ? `${clean} groups thousands with points: write ${whole}`
-      : `${clean} could mean ${whole}: write ${whole} for that, or ${clean}0 if you mean ${clean}`;
+      : `${clean} could mean ${whole}: write ${whole} for that. If you mean ${clean}, write ${clean}0`;
   }
   let plain = clean;
   if (clean.includes(',')) {

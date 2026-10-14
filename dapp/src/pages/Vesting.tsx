@@ -43,9 +43,9 @@ const Bounced = () => (
     returns it
     <Info label='About a returned key'>
       The address it was sent to is a smart contract that could not receive it,
-      so it came back. Nothing is lost: the tokens stay in the contract, and
-      only the owner multisig can send the key on, by a vote
-      (recoverBouncedKey). Ask the creator or the owner to have it returned.
+      so it came back. Nothing is lost: the tokens stay in the contract. Only
+      the owner multisig can send the key on, by a vote (recoverBouncedKey). Ask
+      the creator or the owner to have it returned.
     </Info>
   </span>
 );
@@ -320,7 +320,7 @@ export const VestingPage = () => {
                   decimals={token.decimals}
                   ticker={ticker}
                 />{' '}
-                now, to this wallet. The claim key comes back to you, or is
+                now, to this wallet. The claim key comes back to you or is
                 burned if this is the last of it.
               </p>
             }
@@ -336,7 +336,7 @@ export const VestingPage = () => {
             label={`Cancel vesting #${v.id}`}
             summary={
               <Notice tone='warn'>
-                Stops vesting #{v.id} at the moment the transaction runs, and
+                Stops vesting #{v.id} at the moment the transaction runs. This
                 cannot be undone. What has vested by then (about{' '}
                 <Amount
                   units={v.vested}

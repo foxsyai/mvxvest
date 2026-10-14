@@ -311,12 +311,17 @@ if (phase(6, 14)) {
   await page.waitForTimeout(800);
   await shot('13-checked', 'Review and sign');
 
-  await say(
-    'Press "Sign in your wallet" and approve in xPortal (one creation of 3 vestings).'
-  );
-  await until(matches, 'Created 3 vestings', 'the creation');
-  await page.waitForTimeout(1500);
-  await shot('14-created', 'Review and sign');
+  // Picture 14 alone needs the creation; 12 and 13 can be retaken unsigned.
+  if (wanted(14)) {
+    await say(
+      'Press "Sign in your wallet" and approve in xPortal (one creation of 3 vestings).'
+    );
+    await until(matches, 'Created 3 vestings', 'the creation');
+    await page.waitForTimeout(1500);
+    await shot('14-created', 'Review and sign');
+  } else {
+    await button('Not now').click();
+  }
 }
 
 // --- 3. From a CSV (pictures 15 and 16) -------------------------------------------
@@ -352,11 +357,16 @@ if (phase(15, 16)) {
     );
     await page.waitForTimeout(800);
     await shot('16-csv-checked', 'Review and sign');
-    await say(
-      'Press "Sign in your wallet" and approve in xPortal (60 vestings, two transactions, one approval).'
-    );
-    await until(matches, 'Created 60 vestings', 'the creation');
-    await page.waitForTimeout(1500);
+    // The 60 vestings are only needed by My vestings (17 and 18).
+    if (phase(17, 18)) {
+      await say(
+        'Press "Sign in your wallet" and approve in xPortal (60 vestings, two transactions, one approval).'
+      );
+      await until(matches, 'Created 60 vestings', 'the creation');
+      await page.waitForTimeout(1500);
+    } else {
+      await button('Not now').click();
+    }
   }
 }
 

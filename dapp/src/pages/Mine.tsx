@@ -12,7 +12,7 @@ import {
 } from 'components/vesting/VestingList';
 import { useAsync, useSigningRecord } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
-import { splitKeys } from 'vesting/batches';
+import { MAX_KEYS_PER_CALL, splitKeys } from 'vesting/batches';
 import type { Vesting } from 'vesting/client';
 import { spent, worthClaiming } from 'vesting/describe';
 
@@ -126,11 +126,11 @@ export const Mine = () => {
                     ? `vesting #${claiming[0].id}`
                     : `${claiming.length} vestings`}{' '}
                   to this wallet
-                  {claiming.length > 50
-                    ? `, in ${Math.ceil(claiming.length / 50)} transactions of at most 50 keys`
+                  {claiming.length > MAX_KEYS_PER_CALL
+                    ? `, in ${Math.ceil(claiming.length / MAX_KEYS_PER_CALL)} transactions of at most ${MAX_KEYS_PER_CALL} keys`
                     : ''}
-                  . Each key comes back to you, or is burned when its vesting
-                  has nothing more to pay.
+                  . Each key comes back to you or is burned when its vesting has
+                  nothing more to pay.
                 </p>
               }
               build={build}

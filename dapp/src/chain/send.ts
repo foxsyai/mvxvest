@@ -67,12 +67,12 @@ export const prepare = async (
   const lost = await lostSend(sender, accountNonce);
   if (lost?.missing) {
     throw new Error(
-      `transaction ${lost.hash.slice(0, 10)}… was not seen on the network, and your wallet session still counts it: anything signed now would wait behind it. Disconnect and connect your wallet again, then check again`
+      `transaction ${lost.hash.slice(0, 10)}… was not seen on the network. Your wallet session still counts it: anything signed now would wait behind it. Disconnect and connect your wallet again, then check again`
     );
   }
   if (lost) {
     throw new Error(
-      `transaction ${lost.hash.slice(0, 10)}… is not seen on the network yet, and anything signed now would wait behind it. Wait a minute, then check again`
+      `transaction ${lost.hash.slice(0, 10)}… is not seen on the network yet: anything signed now would wait behind it. Wait a minute, then check again`
     );
   }
   const startNonce =

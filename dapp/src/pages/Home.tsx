@@ -95,7 +95,7 @@ export const Home = () => {
           <p className='mt-2 text-sm text-muted'>
             Every vesting has one NFT, sent to its beneficiary. Whoever holds it
             claims what has vested, so it can move to a new wallet, a multisig
-            or a buyer, and the claim right moves with it. It keeps the same
+            or a buyer, taking the claim right with it. It keeps the same
             identity for its whole life.
           </p>
         </Card>

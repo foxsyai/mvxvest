@@ -83,11 +83,11 @@ export const IssuerPowers = ({
           )}{' '}
           can {join(powers)}.
           <Info label='What the issuer can do'>
-            These are settings of the token itself, not of mvxvest, and the
-            contract cannot prevent them. While a token is paused, claims and
-            cancels of it wait. A frozen balance cannot move, and a wiped one is
-            gone. A transfer role limits who may move the token. Many large
-            tokens keep some of these powers: what matters is who holds them.
+            These are settings of the token itself, not of mvxvest: the contract
+            cannot prevent them. While a token is paused, claims and cancels of
+            it wait. A frozen balance cannot move; a wiped one is gone. A
+            transfer role limits who may move the token. Many large tokens keep
+            some of these powers: what matters is who holds them.
           </Info>
         </p>
       )}

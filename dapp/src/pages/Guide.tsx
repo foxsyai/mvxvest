@@ -167,8 +167,8 @@ export const Guide = () => (
     <PageTitle title='How it works' />
     <p className='text-muted'>
       A vesting locks tokens in the mvxvest contract and releases them to one
-      beneficiary over time. One contract holds every vesting; each has a
-      number, and anyone can read it. The beneficiary receives an NFT, the{' '}
+      beneficiary over time. One contract holds every vesting; each has a number
+      and anyone can read it. The beneficiary receives an NFT, the{' '}
       <b className='text-ink'>claim key</b>: whoever holds it claims what has
       vested, so the right to claim can move to another wallet, a multisig or a
       buyer. A vesting the creator may stop also gives the creator a{' '}
@@ -230,9 +230,9 @@ export const Guide = () => (
 
     <Step n={4} title='Add the beneficiaries'>
       <p>
-        One by one, an address and an amount per line, or from a CSV file of any
-        length. Each line becomes its own vesting. A line is checked when you
-        leave it; a smart contract as beneficiary gets a warning.
+        Type them one by one (an address and an amount per line) or load a CSV
+        file of any length. Each line becomes its own vesting. A line is checked
+        when you leave it; a smart contract as beneficiary gets a warning.
       </p>
       <Shot
         src='07-create-rows'
@@ -246,7 +246,7 @@ export const Guide = () => (
 
     <Step n={5} title='Choose the schedule'>
       <p>
-        An optional cliff (nothing before it, or a share unlocked at it), then
+        An optional cliff (nothing before it or a share unlocked at it), then
         the rest released every second, every N days, on the same day every N
         months or on dates you choose. The start may be in the past: what has
         vested since is claimable at once. The last release absorbs any
@@ -270,9 +270,9 @@ export const Guide = () => (
     <Step n={6} title='Cancelable or not'>
       <p>
         A vesting that cannot be cancelled is the strongest promise: no key can
-        stop it. A cancelable one gives you a cancel key per vesting, and
-        everyone can see that it is cancelable, its claim key included. A label
-        helps you find it later.
+        stop it. A cancelable one gives you a cancel key per vesting. Everyone
+        can see that it is cancelable, even on its claim key. A label helps you
+        find it later.
       </p>
       <Shot src='11-options' caption='Cancelable, labelled Team 2027.' />
     </Step>
@@ -305,9 +305,9 @@ export const Guide = () => (
     <Step n={8} title='Claim'>
       <p>
         My vestings lists every vesting whose claim key is in your wallet. A
-        linear vesting grows every second; Claim takes what has vested, and
-        Claim all takes it from every key at once. The key comes back to you, or
-        is burned once there is nothing left to pay.
+        linear vesting grows every second. Claim takes what has vested; Claim
+        all takes it from every key at once. The key comes back to you or is
+        burned once there is nothing left to pay.
       </p>
       <Shot
         src='17-mine'
@@ -319,19 +319,19 @@ export const Guide = () => (
     <Step n={9} title='Move a claim key'>
       <p>
         The claim key is an ordinary NFT: send it from your wallet to another
-        address, and the right to claim goes with it. Whoever holds it now
+        address and the right to claim goes with it. Whoever holds it now
         claims; nothing else changes. Before buying a claim key, look the
         vesting up here: it says whether someone holds a cancel key.
       </p>
     </Step>
 
-    <Step n={10} title='Created by me, and cancelling'>
+    <Step n={10} title='Follow and cancel your vestings'>
       <p>
         Created by me lists every vesting you created and how far each
         beneficiary has got, with Export to CSV. Cancel appears wherever you
         hold the cancel key, also for one created elsewhere and sent to you.
         Cancelling stops the vesting at once and cannot be undone: what has
-        vested stays claimable by the beneficiary, the rest comes back to you.
+        vested stays claimable by the beneficiary; the rest comes back to you.
       </p>
       <Shot
         src='19-created'
@@ -350,12 +350,13 @@ export const Guide = () => (
     <h2 className='mt-12 text-xl font-bold'>Worth knowing</h2>
     <ul className='mt-3 list-disc space-y-3 pl-5 text-sm leading-relaxed text-muted'>
       <li>
-        <b className='text-ink'>Fees.</b> Every transaction pays the network
-        fee, a fraction of a cent. Creating also pays two fees set by the owner
-        multisig, both shown before you sign and both paid on top, so every
-        beneficiary receives the full amount: a share of each vesting in its own
-        token (at most 2% in the code), sent to the multisig at once, and a flat
-        amount of EGLD per vesting (at most 1 EGLD).
+        <b className='text-ink'>Fees.</b> Every transaction pays the network fee
+        in EGLD, small and shown before you sign. Creating also pays two fees
+        set by the owner multisig, both shown before you sign and both paid on
+        top, so every beneficiary receives the full amount. One is a share of
+        each vesting in its own token (at most 2% in the code), sent to the
+        multisig at once. The other is a flat amount of EGLD per vesting (at
+        most 1 EGLD).
         <Fees /> Claiming and cancelling pay only the network fee.
       </li>
       <li>
@@ -364,14 +365,14 @@ export const Guide = () => (
         vestings and return keys or tokens that bounced back from a smart
         contract. It cannot pause claims or cancels and has no way to move
         locked tokens. It can upgrade the contract, so a serious bug can be
-        fixed; every upgrade is a vote, and each version is a reproducible build
+        fixed; every upgrade is a vote. Each version is a reproducible build
         whose code hash anyone can check (below).
       </li>
       <li>
         <b className='text-ink'>Smart contracts as beneficiaries.</b> A smart
         contract must accept tokens from other contracts and be able to send the
-        key on. If it cannot, its key comes back to the vesting contract, and
-        the owner multisig sends it on: the one case in which a vesting can be
+        key on. If it cannot, its key comes back to the vesting contract and the
+        owner multisig sends it on: the one case in which a vesting can be
         redirected.
       </li>
       <li>
@@ -402,7 +403,7 @@ export const Guide = () => (
         >
           public
         </a>
-        , and the contract runs without this site:{' '}
+        . The contract runs without this site:{' '}
         <Link to='/' className='text-accent hover:underline'>
           anyone can look it up
         </Link>

@@ -991,9 +991,9 @@ export const Create = () => {
                       ', '
                     )}${contracts.length > 10 ? ' and more' : ''} are smart contracts`}
               . It must accept tokens from other contracts and be able to send
-              the claim key on; if it cannot, the key comes back to the vesting
-              contract until the owner returns it, or stays stuck. A wallet
-              address is safer unless you know the contract can.
+              the claim key on; if it cannot, the key either stays stuck in it
+              or comes back to the vesting contract until the owner returns it.
+              A wallet address is safer unless you know the contract can.
             </Notice>
           )}
           {beneficiaries.list.length > 0 && token && (
@@ -1419,7 +1419,7 @@ export const Create = () => {
                 </Link>
                 {last !== first && (
                   <>
-                    {last === first + 1 ? ', ' : '–'}
+                    {last === first + 1 ? ', ' : ' to '}
                     <Link
                       to={`/v/${last}`}
                       className='text-accent hover:underline'
