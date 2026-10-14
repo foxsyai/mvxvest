@@ -155,13 +155,24 @@ After the upgrade:
 - the same source, upgrade performed with 25.6M; the upgrade used 8.50M;
 - then `setTokenFee@64` voted and carried out.
 
+**From a wallet with a guardian (14 Oct 2026, mvxsafe):** wallet `erd1wdqwnz…7fspw` (shard 1), with a guardian, ran the whole path on the same copy, every transaction co-signed by the guardian:
+- deploy a source;
+- propose and perform `pauseCreation`;
+- sign and perform `unpauseCreation`;
+- propose and perform the version 2 upgrade (25.65M);
+- propose, unsign and discard a `setFee`.
+
+Every simulation was accepted with the guardian applied first. Two of the three mainnet signers have guardians.
+
+The simulation of a guarded transaction already counts the guardian's 50,000 gas. The site and `scripts/src/multisig.ts` add another 50,000 after it, which is redundant but a harmless margin.
+
 mvxsafe's docs/upgrade-and-calls.md lists those transactions.
 
 **Before the mainnet upgrade:**
 1. The audit rounds review this code. If they change it, the hash changes and this rehearsal is repeated.
 2. Add the new hash to `contractCodeHashes` in `config.mainnet.ts` and deploy the site.
 3. Deploy the source in shard 1.
-4. A first harmless mainnet vote (`setFee 0`) shows how mainnet's callback gas compares with devnet's. Until then the mainnet perform keeps a generous budget.
+4. A first harmless mainnet vote (`setFee 0`) proves the guarded signers on mainnet and shows how mainnet's callback gas compares with devnet's. Until then the mainnet perform keeps a generous budget.
 5. Then propose, sign and perform the upgrade.
 6. Then vote the fees: `setTokenFee 100` and `setFee 0.1`.
 
