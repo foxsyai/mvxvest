@@ -7,7 +7,7 @@ than anything else here.
 
 Please report privately, never in a public issue: use **Report a
 vulnerability** on this repository's Security tab (GitHub's private
-vulnerability reporting). Include what an attacker can do, and the steps or a
+vulnerability reporting). Include what an attacker can do and the steps or a
 test that shows it. We answer within a few days and credit you if you wish.
 
 ## What is in scope

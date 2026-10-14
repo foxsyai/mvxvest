@@ -1,10 +1,10 @@
-# Handoff to mvxsafe.io: upgrade a contract the safe owns, and call it
+# Handoff to mvxsafe.io: upgrade a contract the safe owns and call it
 
 From the mvxvest side, 13 October 2026. For the agent working on `~/FOXSY/mvxsafe/app`.
 
 ## Why
 
-mvxvest's contract on mainnet is owned by an mvxsafe safe. Every owner action, an upgrade included, is a vote of that safe. Today mvxsafe can show a pending upgrade (`describe.ts` decodes `SCUpgradeFromSource`) but cannot propose one, and it performs every action with a flat 60M gas, which is too little for an upgrade. A failed perform uses the action up, so the board would have to propose and sign it all over again.
+mvxvest's contract on mainnet is owned by an mvxsafe safe. Every owner action, an upgrade included, is a vote of that safe. Today mvxsafe can show a pending upgrade (`describe.ts` decodes `SCUpgradeFromSource`) but cannot propose one. It performs every action with a flat 60M gas, which is too little for an upgrade. A failed perform uses the action up, so the board would have to propose and sign it all over again.
 
 We may need an upgrade soon (two contract fixes are queued for the next audit rounds), so mvxsafe should be able to do the whole flow from the board members' wallets, guardians included.
 
@@ -32,7 +32,7 @@ Hex of the two addresses, for reading raw data:
 - safe: `00000000000000000500cfa5b23936bfab8eecfc04d7ed2b14a8b8040743d03f`;
 - mvxvest: `00000000000000000500f882d8136db7846cdb650b16134bb5424da58ddfe614`.
 
-The safe and the contract are in **different shards**. Every perform is therefore a cross-shard async call, and that drives the gas rules below.
+The safe and the contract are in **different shards**. Every perform is therefore a cross-shard async call; that drives the gas rules below.
 
 ## 1. Upgrade from source
 
@@ -70,8 +70,8 @@ proposeSCUpgradeFromSource@<contract hex>@@<source hex>@0500
 The proposer picks the target (a contract the safe owns, so check `ownerAddress === safe`) and the source.
 
 **The source:**
-- **It must be in the safe's shard.** `performAction` reads the source's code in its own shard. A source in another shard fails at perform, after the signatures, and uses the action up. Refuse it.
-- **Its code hash:** the API's `codeHash` is base64; show it as hex. Show it next to the target's current code hash, and next to a field "expected code hash" where the signer pastes the hash from the release. Green when they match, red when they do not.
+- **It must be in the safe's shard.** `performAction` reads the source's code in its own shard. A source in another shard fails at perform (after the signatures) and uses the action up. Refuse it.
+- **Its code hash:** the API's `codeHash` is base64; show it as hex. Show it next to the target's current code hash and next to a field "expected code hash" where the signer pastes the hash from the release. Green when they match, red when they do not.
 - The source must be a contract with code (`codeHash` present).
 
 **The code metadata**, in words, defaulting to the target's current flags (`isUpgradeable`, `isReadable`, `isPayable`, `isPayableBySmartContract` from `/accounts/<target>`). The encoding is two bytes:
@@ -101,7 +101,7 @@ perform gas = 7.5M (the multisig's own part)
             + 5M (callback)
 ```
 
-The callback part exists because on a cross-shard call the network holds back 4M of the forwarded gas for the multisig's callback. Without it, the call runs out and the action is used up. Devnet proved this: `ebc77b1cec8f4f3978f761881fbcc074ea8e9837b6d09514b2dad779155f4b16`, an unpause performed with 14M, failed with "not enough gas", and the action had to be proposed and signed again.
+The callback part exists because on a cross-shard call the network holds back 4M of the forwarded gas for the multisig's callback. Without it, the call runs out and the action is used up. Devnet proved this: `ebc77b1cec8f4f3978f761881fbcc074ea8e9837b6d09514b2dad779155f4b16`, an unpause performed with 14M, failed with "not enough gas". The action had to be proposed and signed again.
 
 Measured on devnet, same contracts, same shard layout:
 
@@ -129,7 +129,7 @@ For an upgrade of other code, the need grows with the wasm size; 26.5 KB needed 
 
 Someone has to deploy the new build in the safe's shard (shard 1 on mainnet). mvxsafe already deploys safes from a wasm, so add a small "Deploy a source" panel:
 
-- **Pick a `.wasm` file** and compute its code hash in the browser: **blake2b-256** of the bytes. That is MultiversX's code hash; `@noble/hashes` has blake2b. Show it, and the expected hash field again.
+- **Pick a `.wasm` file** and compute its code hash in the browser: **blake2b-256** of the bytes. That is MultiversX's code hash; `@noble/hashes` has blake2b. Show it and the expected hash field again.
 - **Check the connected wallet's shard** equals the safe's shard. If it does not, say which shard is needed.
 - **Deploy it.** Not upgradeable, readable, not payable; no arguments, because mvxvest's constructor takes none.
 - **Gas:** simulate it, times 1.2. A deploy is charged its whole limit: the devnet source cost 105.5M of 105.5M.
@@ -141,7 +141,7 @@ If this panel is not ready in time, a board member or a fresh shard-1 wallet can
 
 `proposeAsyncCall(to, egld_amount, function_and_arguments...)`. The function name is the first item of the variadic list, not its own argument, as in `buildProposeToken`. The arguments are top-encoded hex, as the target's ABI encodes them. This is the same multisig as yours, with no gas-limit argument.
 
-mvxvest's owner endpoints. Its ABI is at `~/FOXSY/mvxvest/output-docker/mvxvest/mvxvest.abi.json`, and `KeyKind` is `Claim` = 0, `Cancel` = 1:
+mvxvest's owner endpoints. Its ABI is at `~/FOXSY/mvxvest/output-docker/mvxvest/mvxvest.abi.json`; `KeyKind` is `Claim` = 0, `Cancel` = 1:
 
 | Endpoint | Arguments |
 |---|---|
@@ -157,7 +157,7 @@ The fee vote we need, 0.01 EGLD = 10^16 = `2386f26fc10000`:
 proposeAsyncCall@00000000000000000500f882d8136db7846cdb650b16134bb5424da58ddfe614@@736574466565@2386f26fc10000
 ```
 
-A generic form (endpoint name plus typed arguments, or an ABI the proposer loads) fits mvxsafe better than mvxvest-specific buttons. Either way, the pending-action card must show the call in words: "Call setFee(0.01 EGLD) on erd1…gmllsu".
+A generic form (either endpoint name plus typed arguments or an ABI the proposer loads) fits mvxsafe better than mvxvest-specific buttons. Either way, the pending-action card must show the call in words: "Call setFee(0.01 EGLD) on erd1…gmllsu".
 
 ## How to rehearse it on devnet
 
@@ -172,7 +172,7 @@ mvxvest's own devnet copy is owned by a 2-of-2 safe whose keys live in mvxvest's
    - the code hash is unchanged (same wasm);
    - the metadata is still `0500`;
    - `getFee` still answers.
-5. **Show the failure paths:** a source in the wrong shard, metadata without "upgradeable", and a mismatched expected hash are all refused or shown in red before signing.
+5. **Show the failure paths:** a source in the wrong shard, metadata without "upgradeable" and a mismatched expected hash are all refused or shown in red before signing.
 
 Ask the mvxvest side if you would rather use its devnet contract `erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp`. It can be handed to your safe by a vote of its current safe.
 
@@ -181,12 +181,12 @@ Ask the mvxvest side if you would rather use its devnet contract `erd1qqqqqqqqqq
 - A board member can:
   - propose an upgrade from source;
   - see the source's and target's code hashes, the shard check and the metadata in words;
-  - sign it, and perform it with a gas budget that works.
+  - sign it and perform it with a gas budget that works.
 
   All of this from a wallet with a guardian too.
 - `setFee` and the other calls can be proposed and read back in words.
 - Every limit follows the 1.5x rule; no flat 60M or 250M limits remain on these paths.
-- The devnet rehearsal above passes, and its transaction hashes are written down in mvxsafe's docs.
+- The devnet rehearsal above passes and its transaction hashes are written down in mvxsafe's docs.
 - Tests prove:
   - the encoding (the two data strings in this file, byte for byte);
   - the wrong-shard and non-upgradeable refusals.

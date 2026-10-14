@@ -7,7 +7,7 @@ scripts in [scripts/](../scripts/) do it with a local key.
 setup with [scripts/src/mainnet.ts](../scripts/src/mainnet.ts). The script runs
 one step per invocation and checks each on chain. It then hands ownership to
 the mvxsafe multisig and keeps no power; every later owner action is a
-multisig proposal. Nothing on mainnet runs before Sebastian says so, and each
+multisig proposal. Nothing on mainnet runs before Sebastian says so. Each
 step is shown to him first. Without `MVXVEST_MAINNET_GO=yes` a step only says
 what it would do.
 
@@ -52,8 +52,8 @@ collections are fully set up (step 4).
 `issueClaimKey("MvxVestClaimKey", "VESTKEY")` and
 `issueCancelKey("MvxVestCancelKey", "VESTCANCEL")`, each paying 0.05 EGLD,
 with 75M gas (an asynchronous call to the metachain, which charges a fixed 50M;
-the mainnet launch used 100M and was charged all of it). Check
-`getClaimKeyCollection` and `getCancelKeyCollection` return the new ids, and
+the mainnet launch used 100M and was charged all of it). Check that
+`getClaimKeyCollection` and `getCancelKeyCollection` return the new ids and
 that the contract holds `ESDTRoleNFTCreate` and `ESDTRoleNFTBurn` on both.
 
 ## 4. Stop holders from burning keys
@@ -69,8 +69,8 @@ can lag behind, so do not rely on them. Calling it twice fails harmlessly.
 The images live in `dapp/public/nft/` and are served from
 https://mvxvest.io/nft/, without a password and cached for a day
 (`scripts/server/nginx-mvxvest.io.conf`). The API marks that storage as not
-whitelisted, but it still lists the images and makes thumbnails of the PNG, and
-the explorer shows them. Call `setKeyDisplay(Claim, metadata, png, svg)` and the
+whitelisted, but it still lists the images and makes thumbnails of the PNG; the
+explorer shows them. Call `setKeyDisplay(Claim, metadata, png, svg)` and the
 same for `Cancel`, PNG first. A new image gets a new file name (as
 `claim-key-2.png` did), because wallets cache by URL.
 
@@ -82,7 +82,7 @@ acceptance flow with small amounts before announcing anything.
 
 ## Owner actions through the multisig (rehearsed on devnet, 13 Oct 2026)
 
-On mainnet the owner is the legacy mx-contracts-rs multisig `erd1…ul78u3` (2 of 3). Its code is byte-identical to `mvxsafe/app/public/contracts/multisig.wasm` (hash `f5658529…`). mvxsafe cannot propose contract calls or upgrades yet, and the old MultiversX multisig site is gone. Until a page for this exists, [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds every owner action, and a board member sends it from their wallet: to the multisig, 0 EGLD, with the printed data and gas.
+On mainnet the owner is the legacy mx-contracts-rs multisig `erd1…ul78u3` (2 of 3). Its code is byte-identical to `mvxsafe/app/public/contracts/multisig.wasm` (hash `f5658529…`). mvxsafe cannot propose contract calls or upgrades yet. The old MultiversX multisig site is gone. Until a page for this exists, [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds every owner action; a board member sends it from their wallet: to the multisig, 0 EGLD, with the printed data and gas.
 
 Every action is three transactions from board members:
 1. `propose`, which also counts as the proposer's signature;
@@ -112,16 +112,16 @@ What the devnet rehearsal established. The devnet contract is owned by a 2-of-2 
 | upgrade from source | done: same code hash, still upgradeable, readable, not payable; 459 vestings intact | 7.5M + 106M + 5M (about 5 times too much: see below) |
 
 mvxsafe's own devnet rehearsal measured further on 13 Oct 2026 (its docs list the transactions):
-- **An upgrade from source** used 8,264,045 gas in the contract's shard for the 26,540-byte release, about 300 gas a byte, and performs of 23.3M and 25.3M worked.
-- **The callback** came back with 6,458,200 gas, and a perform with 5M for it ran out.
+- **An upgrade from source** used 8,264,045 gas in the contract's shard for the 26,540-byte release (about 300 gas a byte). Performs of 23.3M and 25.3M worked.
+- **The callback** came back with 6,458,200 gas; a perform with 5M for it ran out.
 
-`scripts/src/multisig.ts` now budgets 7M for the callback, and for an upgrade (300 × the source's bytes + 1M) × 1.2.
+`scripts/src/multisig.ts` now budgets 7M for the callback and (300 × the source's bytes + 1M) × 1.2 for an upgrade.
 
 Rules that follow from it:
-- **A failed `perform` uses up the action**, which must then be proposed and signed again. The tool's gas budget has three parts: the multisig's own share, the call's measured need times 1.2, and **7M for the callback**.
+- **A failed `perform` uses up the action**, which must then be proposed and signed again. The tool's gas budget has three parts: the multisig's own share, the call's measured need times 1.2 and **7M for the callback**.
 - **The network cannot simulate `performAction`** when its call goes to another shard ("no async context found"). That is why `perform` uses the measured budget instead of a simulation. `propose` and `sign` are simulated (×1.2, plus 50,000 for a guarded wallet).
 - **An upgrade needs a source**: the new reproducible build, deployed in the **multisig's shard** (shard 1 on mainnet), because `performAction` reads the code there. Check that the source's code hash on chain equals the build's before proposing (`stage` does this on devnet). Then `proposeSCUpgradeFromSource@<contract>@@<source>@0500`. The metadata must be `0500` (upgradeable, readable, not payable): anything else changes the contract for good.
-- **Deploys are charged their whole gas limit** (devnet multisig 96M of 96M, source 105.5M of 105.5M, mainnet 150M of 150M). Simulate them, and keep the margin small.
+- **Deploys are charged their whole gas limit** (devnet multisig 96M of 96M, source 105.5M of 105.5M, mainnet 150M of 150M). Simulate them and keep the margin small.
 
 ## Version 2 rehearsed on devnet (13 Oct 2026)
 
@@ -179,7 +179,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 **The release.** Its code hash comes from the reproducible build of the merged commit: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0`. CI's "Reproducible build matches a known mainnet code hash" job prints it too. A plain `sc-meta all build` gives another hash: never use that one.
 
 - Version 2 as audited: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, 27,332 bytes.
-- If the contract changes, this changes, and the devnet rehearsal is repeated first.
+- If the contract changes, this changes and the devnet rehearsal is repeated first.
 
 1. **Merge and deploy the site.** Merge `upgrade-v2` into `main`. Add the release hash to `contractCodeHashes` in `dapp/src/config/config.mainnet.ts`, next to version 1's. CI must be green. Then `./deploy.sh mainnet`. The site works with both versions: no token fee on version 1, the fee shown and paid on version 2.
 2. **Deploy the source.** Use erd1u05m7s9u4dthgzzgxd0795kaxpadhj93yv24nydjczw832a66qlsgw5esx (shard 1, Sebastian's choice), with mvxsafe.io's "Deploy a source" and the release's `.wasm` (`output-docker/mvxvest/mvxvest.wasm`). The source must be:
@@ -188,7 +188,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
    - in shard 1, the multisig's shard; any other shard makes the perform fail and uses the action up.
 
    Then read the source's code hash back from the chain: it must equal the release hash.
-3. **Propose the upgrade:** `proposeSCUpgradeFromSource`, in mvxsafe.io. With `scripts/src/multisig.ts`, set `MVXVEST_EXPECT_HASH=<release hash>`: the tool refuses a source whose hash differs, or that is upgradeable or in another shard.
+3. **Propose the upgrade:** `proposeSCUpgradeFromSource`, in mvxsafe.io. With `scripts/src/multisig.ts`, set `MVXVEST_EXPECT_HASH=<release hash>`: the tool refuses a source whose hash differs, that is upgradeable or that is in another shard.
 4. **Each signer checks, then signs.** In mvxsafe.io's card, with the release hash pasted into "expected code hash", check:
    - the target is the vesting contract `erd1…gmllsu`;
    - the source hash matches the pasted release hash (green);
@@ -210,8 +210,8 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 
 **Operations after version 2:**
 - The token fee is sent to the owner in the same transaction as each creation.
-- If a token cannot reach the multisig (its issuer froze the multisig for it, or a transfer role), the fee comes back to the vesting contract as surplus. The `tokenFeePaid` event says only that it was sent. Check `getSurplus` for fee tokens now and then, and return such a surplus with `recoverSurplus(token, to, amount)`.
-- Any new owner must stay payable by smart contracts. Otherwise every fee bounces, and in the owner's own shard every fee-paying creation fails.
+- If a token cannot reach the multisig (its issuer froze the multisig for it or the token has a transfer role), the fee comes back to the vesting contract as surplus. The `tokenFeePaid` event says only that it was sent. Check `getSurplus` for fee tokens now and then. Return such a surplus with `recoverSurplus(token, to, amount)`.
+- Any new owner must stay payable by smart contracts. Otherwise every fee bounces; in the owner's own shard every fee-paying creation fails.
 
 ## Upgrades
 

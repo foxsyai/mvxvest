@@ -17,8 +17,8 @@ Status:
 - **Audited twice** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md).
-- **Not yet announced.** The source has been public since 14 Oct 2026, and
-  more audit rounds come before the announcement.
+- **Not yet announced.** The source has been public since 14 Oct 2026.
+  More audit rounds come before the announcement.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
   describes.
 
@@ -39,7 +39,7 @@ costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
 ## The contract in one page
 
 - **Schedules:** a cliff (a time and an optional amount unlocked at it), then
-  the rest released linearly per second, in equal steps every N seconds, or as
+  the rest released linearly per second, in equal steps every N seconds or as
   an explicit list of up to 120 tranches. Integer maths, rounding down, exact at
   the end. A start in the past is allowed (its vested part is claimable at
   once). [docs/CONTRACT_SPEC.md](docs/CONTRACT_SPEC.md) has the exact rules.
@@ -50,13 +50,13 @@ costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).
   (one or many keys), `cancel` (one or many keys).
 - **Owner (a multisig):** issue the key collections, set how new keys look,
   set a flat EGLD fee per vesting (capped at 1 EGLD in code), pause creation
-  (never claims or cancels), collect fees, and return keys or funds that
+  (never claims or cancels), collect fees and return keys or funds that
   bounced back. It can never move locked funds. The contract is upgradeable by
   the multisig.
 
 ## Build and test
 
-Needs Rust (the toolchain is pinned in `rust-toolchain.toml`), and
+Needs Rust (the toolchain is pinned in `rust-toolchain.toml`) and
 `sc-meta` 0.66.2:
 
 ```sh

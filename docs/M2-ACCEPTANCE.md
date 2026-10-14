@@ -16,16 +16,16 @@ Both wallets were set up with `scripts/src/tester.ts`: test tokens, plus four ve
 | Claim all (a monthly vesting and a cancelled one; the spent key burns) | #327 + #328 | #336 + #337 |
 | Cancel with a cancel key received from another wallet | #329: 1,930.16 TFOX back | #338 |
 | Create, typed one by one, cancelable, then cancel one | #330, #331 (cancelled: 199.73 TFOX back) | #339 |
-| Create from a CSV, monthly, not cancelable, one transaction | #332–#334 | |
-| **Create from a CSV of 120 beneficiaries** | | **#340–#459: 4 transactions of 30, one wallet prompt. All 120 match the file line by line (beneficiary, amount, creator, token, cancelable), 7,266 TFOX in total, and 120 cancel keys in the creator's wallet.** |
+| Create from a CSV, monthly, not cancelable, one transaction | #332 to #334 | |
+| **Create from a CSV of 120 beneficiaries** | | **#340 to #459: 4 transactions of 30, one wallet prompt. All 120 match the file line by line (beneficiary, amount, creator, token, cancelable), 7,266 TFOX in total and 120 cancel keys in the creator's wallet.** |
 
 ## Found during the test and fixed the same day
 
-- **My vestings failed for a wallet holding several claim keys.** sdk-core rewrote the query arguments in place. Fixed, and covered by a test against the real client.
-- **A linear vesting kept showing in "Claim all" for a few seconds' worth right after a claim.** It now joins "Claim all" once 1% of it is claimable again, and its card says "grows every second".
+- **My vestings failed for a wallet holding several claim keys.** sdk-core rewrote the query arguments in place. Fixed and covered by a test against the real client.
+- **A linear vesting kept showing in "Claim all" for a few seconds' worth right after a claim.** It now joins "Claim all" once 1% of it is claimable again. Its card says "grows every second".
 - **Cancel keys received from another wallet had no list.** "Created by me" now shows them.
 - **A card kept showing "Vesting" after a cancel.** Reads are now refreshed when a transaction's result is final.
-- **Form validation was too eager.** A line is judged when you leave it, and missing fields are named plainly.
+- **Form validation was too eager.** A line is judged when you leave it; missing fields are named plainly.
 - **The last beneficiary line could not be removed.** Remove now empties it.
 - **The CSV file picker was easy to miss.** It is now a button, with drop support and the file's name shown.
 - Layout and copy:

@@ -75,7 +75,7 @@ Script: `scripts/src/gas.ts`; every hash is in `scripts/state/devnet.json`.
   contract, media PNG and SVG from devnet.mvxvest.io. The API marks that
   storage `isWhitelistedStorage: false`: wallets and the explorer may not show
   images from hosts that are not whitelisted. On mainnet the images stayed on
-  mvxvest.io/nft/: the API still lists them and thumbnails the PNG, and the
+  mvxvest.io/nft/: the API still lists them and thumbnails the PNG; the
   explorer shows them.
   Checking xPortal and the DeFi Wallet extension is part of milestone 2.
 

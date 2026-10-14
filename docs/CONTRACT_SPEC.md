@@ -33,8 +33,8 @@ vested(t) = 0                                   if t < cliff
 
 Consequences, all tested:
 
-- vested(t) never decreases, never exceeds the total, and equals the total
-  exactly from `end` on (rounding remainders land at the end, or are spread by
+- vested(t) never decreases, never exceeds the total and equals the total
+  exactly from `end` on (rounding remainders land at the end or are spread by
   at most one unit per step);
 - the cliff gates everything: what the curve released before it unlocks at
   once at the cliff (the "startup" style, with `cliff_amount = 0`);
@@ -65,15 +65,15 @@ burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
   `;metadata:<value>` when the owner has set one. `cancelable:1` on a claim
   key warns a buyer that whoever holds the cancel key can stop the vesting; a
   cancel key always says `cancelable:1`. Keys minted by version 1 have no
-  `cancelable` part, and the contract cannot rewrite them: updating
-  attributes acts on the caller's own NFT, and the holders own the keys. URIs: as set by the owner with `setKeyDisplay`
+  `cancelable` part. The contract cannot rewrite them: updating
+  attributes acts on the caller's own NFT; the holders own the keys. URIs: as set by the owner with `setKeyDisplay`
   for keys minted from then on.
 
 ## 3. Endpoints
 
 ### `create(beneficiary, total, schedule, cancelable, label) -> id`
 
-Payable. Pay exactly `total` plus the token fee of the token, and the EGLD
+Payable. Pay exactly `total` plus the token fee of the token and the EGLD
 fee in EGLD when it is not zero. For an EGLD vesting, pay all three in EGLD (as
 plain value or as `EGLD-000000` in a multi-transfer; both work). The total is
 an argument, not inferred from the payment, so a fee change between the
@@ -91,7 +91,7 @@ The two fees, both set by the owner under hard caps and both 0 until set:
 Refused when: creation is paused; the claim key collection (or the cancel key
 collection, for a cancelable vesting) is not issued; nothing is paid; a
 payment is not fungible; two different ESDTs are paid; the EGLD does not equal
-the EGLD fee exactly, or the payment is not exactly the total plus the fees; the
+the EGLD fee exactly or the payment is not exactly the total plus the fees; the
 beneficiary is the zero address or the contract; the label
 is longer than 64 bytes; the schedule is invalid (section 1); the schedule ends
 more than 30 years ahead.
@@ -100,10 +100,10 @@ more than 30 years ahead.
 
 Payable. `entries` is a list of `(beneficiary, total, schedule)`, 1 to 49 of
 them (1 to 32 when cancelable: the network allows 100 built-in calls per
-transaction, each vesting mints and sends one or two keys, and the token fee
+transaction; each vesting mints and sends one or two keys; the token fee
 is one more transfer), all of the payment's token, all sharing `cancelable`
 and `label`. Pay the sum of the totals plus each entry's token fee (rounded
-down per entry, so a batch pays what single creations would), and the EGLD
+down per entry, so a batch pays what single creations would) and the EGLD
 fee times the number of entries. The same
 checks as `create`, per entry. Returns the ids in entry order. Cancel keys go
 to the creator in one transfer.
@@ -111,22 +111,22 @@ to the creator in one transfer.
 ### `claim()`
 
 Payable with one or more claim keys: at most 99 per transaction (each
-finished key is burned, a built-in call, and the network allows 100), and in
+finished key is burned, a built-in call; the network allows 100) and in
 practice fewer, as each key costs about 7M gas; the dApp sends at most 50. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
-the key, or burns it when nothing more can ever be claimed (`claimed` equals
-the total, or what had vested at the cancel). Each key that paid or burned
+the key or burns it when nothing more can ever be claimed (`claimed` equals
+the total or what had vested at the cancel). Each key that paid or burned
 emits `vestingClaimed`; a key that paid nothing goes back unchanged, with no
 event. Payouts of the same token are
 merged into one transfer with the returned keys. Refused when a payment is not
-a claim key minted by this contract, or when no key paid anything or was
+a claim key minted by this contract or when no key paid anything or was
 burned (`nothing to claim yet`): so claiming twice in one block pays once.
 
 ### `cancel()`
 
 Payable with one or more cancel keys, at most 99 per transaction (each is
 burned); the dApp sends at most 50. For each: sets `cancelled_at = now`,
-pays `total - vested(now)` to the caller (whoever holds the key), and burns the
+pays `total - vested(now)` to the caller (whoever holds the key) and burns the
 key. What had vested stays claimable with the claim key. Allowed at any time,
 also after the end (refund 0). A non-cancelable vesting has no cancel key and
 cannot be stopped.
@@ -142,7 +142,7 @@ cannot be stopped.
 | `setTokenFee(bps)` | Token fee, in basis points of each vesting's total, at most 200 (2%, `MAX_TOKEN_FEE_BPS`) |
 | `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |
 | `claimFees()` | Send the accrued EGLD fees to the owner |
-| `recoverSurplus(token, to, [amount])` | Send `amount` of what the contract holds of `token` beyond what it owes, or all of it without an amount (see section 5) |
+| `recoverSurplus(token, to, [amount])` | Send `amount` of what the contract holds of `token` beyond what it owes. Without an amount, send all of it (see section 5) |
 | `recoverBouncedKey(id, kind, to)` | Send on a key the contract holds after a bounce (below) |
 | `upgrade` | The multisig can upgrade the contract; storage is kept |
 
@@ -152,11 +152,11 @@ Sends on the claim or cancel key (`kind`) of vesting `id` when the contract
 itself holds it. That only happens when sending the key bounced: to a
 beneficiary, creator or holder that is a smart contract that cannot receive
 tokens from contracts (a wallet never bounces). The transaction that sent it
-shows whom it belongs to (its transfer log, or the contract's
-`vestingCreated`/`vestingClaimed` events), and the owner returns it there.
+shows whom it belongs to (its transfer log or the contract's
+`vestingCreated`/`vestingClaimed` events); the owner returns it there.
 Nobody else can move a key the contract holds. One `keyRecovered` event per
 key. Fails when the caller is not the owner, the vesting is unknown, the
-contract does not hold that key, or `to` is the zero address or the contract.
+contract does not hold that key or `to` is the zero address or the contract.
 
 (Earlier versions let the creator recover some keys itself. All three reviews
 found ways to abuse that: see [reviews/2026-10-12-contract.md](reviews/2026-10-12-contract.md).)
@@ -169,7 +169,7 @@ can ever collect), `refunded` and the `timestamp` used. Also: `getVestings(ids)`
 (up to 100), `getClaimable(id)`, `getVestedAt(id, timestamp)`,
 `getNextRelease(id)` (the next moment the vested amount grows and by how much,
 exact for every curve; empty only when nothing more will vest: everything has
-vested, or the vesting was cancelled),
+vested or the vesting was cancelled),
 `getVestingByClaimNonce(nonce)`, `getVestingByCancelNonce(nonce)` (0 if no
 key with that nonce was minted; the answer stays after the key is burned),
 `getVestingsByCreator(address, from, count)`, `getVestingCountByCreator`,
@@ -197,18 +197,18 @@ key with that nonce was minted; the answer stays after the key is burned),
   can return it to whom the events show it belongs. So does a token fee the
   owner could not receive. (`tokenFeePaid` means sent: across shards, a
   bounce comes back later as surplus.) The owner must be payable by smart
-  contracts. Otherwise every fee bounces, and in the owner's own shard every
+  contracts. Otherwise every fee bounces; in the owner's own shard every
   fee-paying creation fails.
 - **Tokens with special roles:** ESDT has no transfer fees, so the amount
   received is the amount sent. A token whose issuer can freeze, wipe or pause
-  it, or that has a transfer role, can still be blocked by its issuer; the
+  it (or that has a transfer role) can still be blocked by its issuer; the
   contract cannot detect this synchronously, so the dApp shows the issuer's
   powers on the vesting, token and create pages.
 - **Code metadata:** deploy and upgrade the contract neither payable nor
   payable by smart contracts (`scripts/src/deploy.ts` does), so stray transfers
   without a call bounce. The contract cannot check this in `init` or `upgrade`
   (on the real chain those run before the new metadata is written). No money
-  depends on it: a key, or EGLD or a fungible token, that reaches the contract
+  depends on it: a key, EGLD or a fungible token that reaches the contract
   outside an endpoint can be returned by the owner (`recoverBouncedKey`,
   `recoverSurplus`). Any other NFT, SFT or Meta ESDT could not be returned by
   anyone, which is one more reason to deploy non-payable.
@@ -218,7 +218,7 @@ key with that nonce was minted; the answer stays after the key is burned),
   beneficiary agree. The dApp warns about smart contract beneficiaries before
   creating.
 - **Smart contract holders:** a smart contract that holds a key must accept
-  tokens from other contracts (`payableBySC`), or the payout bounces (see
+  tokens from other contracts (`payableBySC`); otherwise the payout bounces (see
   "No dead ends"). The dApp warns when a beneficiary is a smart contract.
 
 ## 6. Events

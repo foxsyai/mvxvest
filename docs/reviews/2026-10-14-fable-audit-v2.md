@@ -1,6 +1,6 @@
 # Second audit: version 2 and its upgrade (Claude Fable 5.1, max effort, 14 October 2026)
 
-Three reviewers worked in parallel on branch `upgrade-v2` at 00c0071: the contract, the site's fee code, and a red team covering the upgrade procedure end to end. Each proved its findings with tests, or with exact evidence where a test does not fit. The proofs are the `audit2_*` files.
+Three reviewers worked in parallel on branch `upgrade-v2` at 00c0071: the contract, the site's fee code and a red team covering the upgrade procedure end to end. Each proved its findings with tests or with exact evidence where a test does not fit. The proofs are the `audit2_*` files.
 
 **Bottom line:**
 - No reviewer found a way to take, lose or lock vested funds through version 2 itself.
@@ -12,11 +12,11 @@ Three reviewers worked in parallel on branch `upgrade-v2` at 00c0071: the contra
 
 | # | Severity | Finding | Fix |
 |---|---|---|---|
-| H1 | High | `scripts/src/multisig.ts` let the second signer sign blind: `sign` never read the action, `status` showed only its kind number, and nothing checked the source hash, the target or the metadata on mainnet. | The tool decodes every pending action and says it in words. `sign` and `perform` refuse anything but one of mvxvest's owner calls, or an upgrade of mvxvest with metadata 0500 from a non-upgradeable source in the multisig's shard whose code hash equals `MVXVEST_EXPECT_HASH`. `propose-upgrade` checks the same before proposing. |
-| M1 | Medium | The tool named an action by searching its raw bytes, so a plain call to the built-in `upgradeContract` carrying new code was labelled "pauseCreation", and `unpauseCreation` as `pauseCreation`. | Actions are decoded field by field. Endpoints outside the owner list are refused, `upgradeContract` and `ChangeOwnerAddress` included. |
+| H1 | High | `scripts/src/multisig.ts` let the second signer sign blind: `sign` never read the action; `status` showed only its kind number; nothing checked the source hash, the target or the metadata on mainnet. | The tool decodes every pending action and says it in words. `sign` and `perform` refuse anything but one of mvxvest's owner calls or an upgrade of mvxvest with metadata 0500 from a non-upgradeable source in the multisig's shard whose code hash equals `MVXVEST_EXPECT_HASH`. `propose-upgrade` checks the same before proposing. |
+| M1 | Medium | The tool named an action by searching its raw bytes, so a plain call to the built-in `upgradeContract` carrying new code was labelled "pauseCreation" and `unpauseCreation` as `pauseCreation`. | Actions are decoded field by field. Endpoints outside the owner list are refused, `upgradeContract` and `ChangeOwnerAddress` included. |
 | M2 | Medium | `propose tokenfee 0.1` (meaning 0.1%) proposed a fee of 0. | Whole basis points only, at most 200. The tool prints the rate: "setTokenFee(10) = 0.1%". `fee` is parsed exactly, with no floating point. |
-| M3 | Medium, by design | The fee transfer is in `create`'s path. A token's issuer can stop the fee for its own token from reaching the multisig (by freezing the multisig or with a transfer role); on mainnet, across shards, the fee then comes back to the contract as surplus. An owner that is not payable by contracts would bounce every fee. | Kept: Sebastian wants the fee sent to the multisig at once. Users are never harmed: claims and cancels are untouched, the creation stands, and the surplus is recoverable by amount. The spec and the runbook now say so. |
-| M4 | Medium | The runbook's version 2 sequence was incomplete. | DEPLOY.md now has a full runbook: where the release hash comes from, the source deploy and its checks, what each signer checks on the card, the gas floor, a failed perform, verification after the upgrade, the fee votes, removing the old hash, and operations. |
+| M3 | Medium, by design | The fee transfer is in `create`'s path. A token's issuer can stop the fee for its own token from reaching the multisig (by freezing the multisig or with a transfer role); on mainnet, across shards, the fee then comes back to the contract as surplus. An owner that is not payable by contracts would bounce every fee. | Kept: Sebastian wants the fee sent to the multisig at once. Users are never harmed: claims and cancels are untouched, the creation stands and the surplus is recoverable by amount. The spec and the runbook now say so. |
+| M4 | Medium | The runbook's version 2 sequence was incomplete. | DEPLOY.md now has a full runbook: where the release hash comes from, the source deploy and its checks, what each signer checks on the card, the gas floor, a failed perform, verification after the upgrade, the fee votes, removing the old hash and operations. |
 | L1 | Low | After a partial send, a batch split by the old limits (50) keeps failing on version 2. | See the dApp section's finding 2. |
 | L2 | Low | The tool could not pass `recoverSurplus`'s new amount. | `recover-surplus <token> <to> [amount]`. |
 | L3 | Info | At 0.1%, a vesting under 1,000 units pays no token fee, which matters only for tokens with 0 decimals. | Accepted; the EGLD fee per vesting is the brake. |
@@ -27,12 +27,12 @@ The red team also noted two points for mvxsafe's card, which belongs to the mvxs
 
 | # | Severity | Finding | Fix |
 |---|---|---|---|
-| 1 | Low | A Create page opened before the upgrade, or before a fee vote, keeps the old settings: every creation it builds is refused, and nothing reads them again. | Closing a review that sent nothing reads the contract's settings again. The refusal notice says to close and check again if the fees or limits changed. |
-| 2 | Low | After a partial send and a fee change, the review showed the new rate while "Sign the remaining" paid the old one, and the lines that failed got no file. | The review shows the fees it was checked at. When the fees or limits have changed, "Sign the remaining" gives way to a notice. The CSV of the lines not created is always offered. |
+| 1 | Low | A Create page opened before the upgrade or before a fee vote keeps the old settings: every creation it builds is refused; nothing reads them again. | Closing a review that sent nothing reads the contract's settings again. The refusal notice says to close and check again if the fees or limits changed. |
+| 2 | Low | After a partial send and a fee change, the review showed the new rate while "Sign the remaining" paid the old one; the lines that failed got no file. | The review shows the fees it was checked at. When the fees or limits have changed, "Sign the remaining" gives way to a notice. The CSV of the lines not created is always offered. |
 | 3 | Low | `scripts/src/csv120.ts` created batches without the token fee. The root cause was the client's optional rate, which defaulted to 0. | The rate is a required argument; csv120 reads and pays it. |
 
 Checked sound:
-- telling version 1 from version 2 against the real API: only "function not found" reads as no fee, and a transient failure is never read as 0;
+- telling version 1 from version 2 against the real API: only "function not found" reads as no fee and a transient failure is never read as 0;
 - rounding identical to the contract's for every rate and decimals;
 - payments byte-identical to version 1's when the fee is 0;
 - the code-hash banner around the upgrade;

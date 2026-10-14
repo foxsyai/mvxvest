@@ -12,12 +12,12 @@ Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet
 | Cancel keys | `VESTCANCEL-ae94f5` (MvxVestCancelKey), red image `https://mvxvest.io/nft/cancel-key.png` / `.svg` |
 | Fees | Since 14 Oct 2026: 0.1% of each vesting in its own token, paid on top and sent to the multisig (`setTokenFee 10`), plus 0.1 EGLD per vesting (`setFee`). Free before. |
 
-Both collections are owned by the contract. They cannot be frozen, wiped or paused, and the NFT create role cannot be transferred. Holders cannot burn keys.
+Both collections are owned by the contract. They cannot be frozen, wiped or paused. The NFT create role cannot be transferred. Holders cannot burn keys.
 
 The roles, as read on 13 Oct 2026 (audit L4):
 - **The contract holds every NFT role on both collections**, because `issue_and_set_all_roles` gives them all: NFTCreate, NFTBurn, NFTUpdateAttributes, NFTAddURI, NFTRecreate, ModifyCreator, ModifyRoyalties, SetNewURI and NFTUpdate.
 - **Its code uses only NFTCreate and NFTBurn.** The others could be used only by new code, which means an upgrade voted by the multisig.
-- **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, and again only through new code.
+- **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, again only through new code.
 - **What these roles cannot do:** updating attributes acts on the caller's own NFT. The contract therefore cannot add the cancelable marker (RT3) to keys its holders own, so version 2 marks new keys only.
 
 ## Transactions
@@ -60,13 +60,13 @@ The contract then held exactly 76.222222 FOXSY, which is what #1 still owes (100
 The test found two problems, both fixed and live the same day:
 
 - **f955bf6:** copying an address from another window made the form judge the line.
-- **7a0114d:** a guarded wallet (2FA) could not create anything. The network refuses even to simulate a guarded account's transaction that does not name its guardian, and the page only named the guardian after the simulation.
+- **7a0114d:** a guarded wallet (2FA) could not create anything. The network refuses even to simulate a guarded account's transaction that does not name its guardian. The page only named the guardian after the simulation.
 
 The page also explains its figures now (d4ce0d7): "vested = claimed + claimable · not vested yet".
 
 ## The first owner vote (14 October 2026)
 
-The first vote of the owner multisig on mainnet, through mvxsafe.io (commit 7fda7bb), sent from wallets with guardians. It was `setFee 0`, harmless because the fee was already 0. It proved the board can propose, sign and carry out a call on the contract, and measured mainnet's gas for it.
+The first vote of the owner multisig on mainnet, through mvxsafe.io (commit 7fda7bb), sent from wallets with guardians. It was `setFee 0`, harmless because the fee was already 0. It proved the board can propose, sign and carry out a call on the contract. It also measured mainnet's gas for it.
 
 | Step | By | Transaction | Gas |
 |---|---|---|---|
@@ -97,8 +97,8 @@ The contract was upgraded to version 2 by a vote of the owner multisig, through 
 
 **Checked on chain against a snapshot taken before the upgrade:**
 - the code hash is the release's;
-- the contract is still upgradeable, readable and not payable, and the owner is still the multisig;
-- vestings #1 and #2 are stored byte for byte as before, and the vesting count is still 2;
+- the owner is still the multisig and the contract is still upgradeable, readable and not payable;
+- vestings #1 and #2 are stored byte for byte as before and the vesting count is still 2;
 - the FOXSY and EGLD totals are unchanged and the surplus is 0, with the contract still holding 76.22 FOXSY;
 - the key collections, the fee (0), the fees accrued (0) and the pause flag (off) are unchanged;
 - `getLimits` answers 49 and 32, `getTokenFee` 0 and `getMaxTokenFee` 200.
@@ -112,6 +112,6 @@ Proposed by `erd1q83m…r3s7j4`; signed and carried out by `erd1u05m…gw5esx`. 
 | `setTokenFee 10` (0.1%), safe action #3 | `3fac6dac88d8e1a50e7208f013eb733722a782311d80c5bdb4860c0b3146e6ca` | `110383cd55e0e012b86a2c0bcff9e190863dca6408fc3da351fc0e7399ac7c9e` | `e23757543026efe1e2d211f288aef2d1f0edea5fd60be42ad1ff2cfafd92c509` (19.35M) |
 | `setFee 0.1` EGLD, safe action #4 | `38775712eeaa6db1b71b3649c0859264a4838961739eeb33c10d0d32215b92be` | `b9a24fcf7cd91748f0219b57e1696a49ba69348ff14844db42e6cf3648e9264d` | `15debcb51c664b19dde5a24ad96cddf14ce5380841418d112d0cdaa73335071e` (19.45M) |
 
-Then `getTokenFee` read 10, `getFee` 100000000000000000, and `isCreationPaused` 0.
+Then `getTokenFee` read 10, `getFee` 100000000000000000 and `isCreationPaused` 0.
 
 Version 1's code hash was then removed from the site's list (c64fa34, the runbook's step 8).
