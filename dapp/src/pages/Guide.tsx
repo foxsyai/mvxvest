@@ -239,11 +239,11 @@ export const Guide = () => (
       </p>
       <Shot
         src='07-create-rows'
-        caption='Three beneficiaries typed one by one (their addresses are blurred in this picture).'
+        caption='Three beneficiaries typed one by one.'
       />
       <Shot
         src='15-csv'
-        caption='Sixty lines from a CSV (blurred here): the page splits them into transactions the network accepts.'
+        caption='Sixty lines from a CSV: the page splits them into transactions the network accepts.'
       />
     </Step>
 
@@ -301,7 +301,7 @@ export const Guide = () => (
       />
       <Shot
         src='14-created'
-        caption='Created, as #604 to #606: the claim keys went to the beneficiaries and the cancel keys to you.'
+        caption='Created, as #611 to #613: the claim keys went to the beneficiaries and the cancel keys to you.'
       />
     </Step>
 
@@ -316,7 +316,10 @@ export const Guide = () => (
         src='17-mine'
         caption='My vestings: a filter by token, Claim all and Claim on each card.'
       />
-      <Shot src='18-claimed' caption='After Claim all.' />
+      <Shot
+        src='18-claimed'
+        caption='After Claim all: the page says what reached the wallet, token by token.'
+      />
     </Step>
 
     <Step n={9} title='Move a claim key'>
@@ -346,7 +349,7 @@ export const Guide = () => (
       />
       <Shot
         src='21-cancelled'
-        caption='A cancelled vesting: what was returned and what the beneficiary keeps.'
+        caption='The same vesting afterwards: what was returned and what the beneficiary keeps.'
       />
     </Step>
 

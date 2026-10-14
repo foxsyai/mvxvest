@@ -10,7 +10,7 @@ Each proved its findings with a test that fails on 69eb614 or with exact evidenc
 **Bottom line:**
 - Nothing in this round can take, lose or lock funds; the contract did not change.
 - The serious findings were about what people read. The new panel and the vesting page overstated what stays claimable after a cancel. The guide had lost its caveat that the owner's limits hold for the code as it stands. Pictures and test data showed full addresses of real wallets.
-- All are fixed except the pictures, which need a new set taken with a fresh devnet wallet (see O1).
+- All are fixed. The pictures were retaken the same evening with a fresh devnet-only wallet (see O1).
 
 ## Words
 
@@ -19,8 +19,8 @@ Each proved its findings with a test that fails on 69eb614 or with exact evidenc
 | W1 | Medium | After a cancel the new panel said "Stays claimable by the beneficiary: X" with the event's vested part, which counts what was claimed before the cancel. | Same as C1. |
 | W2 | Medium | The guide's owner paragraph had lost "in the code as it stands" and "an upgrade replaces the code; the rest is trust in the multisig and its signers". | Restored in the guide; the README's owner bullet says the same. |
 | W3 | Low | Picture 11 still showed devnet's old 0.01 EGLD fee. | Cropped above the review box. |
-| W4 | Low | Pictures 20 and 21 show two different vestings under "The vesting afterwards". | Caption 21 reads "A cancelled vesting". |
-| W5 | Low | Pictures 1, 5, 18 and 20 were taken before the copy change and show a comma before "and"/"or". | With the new set of pictures (O1). |
+| W4 | Low | Pictures 20 and 21 show two different vestings under "The vesting afterwards". | The new set shows one vesting, #613, in both. |
+| W5 | Low | Pictures 1, 5, 18 and 20 were taken before the copy change and show a comma before "and"/"or". | All 22 pictures retaken (O1). |
 | W6 | Low | "One prompt for several transactions" is true for xPortal, not for a Ledger, which confirms each one. | The guide, caption 16, the panel and Create say so. |
 | W7 | Low | README still gave version 1's batch limits (50 and 33) and no token fee. | 49 and 32; the fees named with their caps. |
 | W8 | Low | SECURITY.md said every finding was proven by a test and fixed; some were proven by evidence, some accepted. | "proven (by a test where one fits) and then fixed or accepted, as each report records". Same in the backlog. |
@@ -47,17 +47,23 @@ The guide also lost "Check every address: a vesting cannot be redirected" in the
 
 | # | Severity | Finding | Fix |
 |---|---|---|---|
-| O1 | Medium | Pictures 7 and 15 and the new test fixtures showed full wallet addresses. The capture wallet is also a mainnet account with a personal herotag, so the guide tied a person to a wallet. Pictures 4 and the header show it shortened. | Pictures 7 and 15 are blurred; the fixtures use an address nobody holds. The script now needs `WALLET=` (a fresh devnet-only wallet) and uses unowned addresses for the other beneficiaries. **Open:** retake the pictures with a fresh wallet. The git history is not rewritten (Sebastian, 14 Oct 2026): the address was already public on chain; a force push of the public repo would cost more than it hides. |
+| O1 | Medium | Pictures 7 and 15 and the new test fixtures showed full wallet addresses. The capture wallet is also a mainnet account with a personal herotag, so the guide tied a person to a wallet. Pictures 4 and the header show it shortened. | All 22 pictures retaken on 14 Oct 2026 with a fresh devnet-only wallet in xPortal, funded by `scripts/src/fund-demo.ts`; the other beneficiaries are addresses nobody holds. The fixtures use an address nobody holds. The capture script needs `WALLET=`. The git history is not rewritten (Sebastian, 14 Oct 2026): the address was already public on chain; a force push of the public repo would cost more than it hides. |
 | O2 | Low | The capture script had no network guard: pointed at mvxvest.io, later phases would ask for a real claim or cancel. | It refuses any site but devnet (or a local build). It also stops on a page without the test network's strip. |
 | O3 | Low | `ONLY=17` asked for a Claim all approval no picture needed. | Only when picture 18 is wanted. |
 | O4 | Low | The deploy gate missed untracked files; Vite ships all of `public/`. | Any changed or untracked file in `dapp/` refuses the deploy. |
 | O5 | Low | Devnet deploys were not gated. | The same checks for every network. |
-| O6 | Low | Pictures from different runs contradicted each other (11 and 12; 20 and 21). | See W3 and W4. |
+| O6 | Low | Pictures from different runs contradicted each other (11 and 12; 20 and 21). | One run for the whole new set. |
 | O7 | Info | The deploy's tests ran against whichever config a previous deploy left. | The network's config is copied before the tests. |
 | O8 | Info | The script's output folder depended on where it was started. | Resolved from the script's own location. |
 | O9 | Info | `deploy.sh` names the droplet's user and IP. | Accepted: the IP is the sites' public DNS record and the user name alone grants nothing. |
 | O10 | Info | Secret scanning and push protection were off on the public repo. | Both enabled on 14 Oct 2026. |
 | O11 | Info | The private beta's password file was still in the session's scratch folder (not in the repo). | Deleted. |
+
+## Found while retaking the pictures
+
+The demo wallet sits in another shard than the contract, which the earlier capture wallet did not. Two bugs on the Create page showed up there, both fixed in 62fb952 with a test (`create_after_creation.test.tsx`):
+- **No "Created N vestings".** The page read the created ids once, as soon as the transaction showed success, before the API had the cross-shard result's logs; it never read them again. Now it does, for up to 30 seconds.
+- **A false "does not hold enough TFOX".** After the creation, the form was judged against the balance that had just paid for it. Once a review has sent something, it no longer is.
 
 ## Checked sound
 
