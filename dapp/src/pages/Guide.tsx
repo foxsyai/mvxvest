@@ -298,7 +298,7 @@ export const Guide = () => (
       />
       <Shot
         src='14-created'
-        caption='Created, as #541 to #543: the claim keys went to the beneficiaries and the cancel keys to you. The note in the corner comes from the wallet.'
+        caption='Created, as #604 to #606: the claim keys went to the beneficiaries and the cancel keys to you.'
       />
     </Step>
 
