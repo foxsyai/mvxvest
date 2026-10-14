@@ -34,13 +34,11 @@ claim what has vested by connecting their wallet.
 - **Anyone can look up** a token, a vesting or an address, read-only, so a
   community can verify a team's vesting (transparency is the selling point).
 
-Sebastian already runs a private, server-side vesting for FOXSY (a Python
-service in `~/FOXSY/foxsy-ops`, `foxsy_vesting.py`) that pays tranches from a
-hot wallet. This new product is different: trustless, on-chain, claimable,
-public. Do not touch foxsy-ops. Its vesting model (cadences daily, weekly,
-biweekly, monthly, quarterly, semiannual, annual; optional cliff; last
-tranche absorbs rounding; catch-up of past tranches) is a useful reference
-for what real teams ask for.
+FOXSY's own vesting has so far been paid off chain. This new product is
+different: trustless, on-chain, claimable, public. The off-chain model's
+features (cadences daily, weekly, biweekly, monthly, quarterly, semiannual,
+annual; optional cliff; last tranche absorbs rounding; catch-up of past
+tranches) are a useful reference for what real teams ask for.
 
 ## 2. Prior art: Pulsar Money (study it, do not copy it blindly)
 

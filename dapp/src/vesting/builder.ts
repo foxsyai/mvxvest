@@ -50,8 +50,7 @@ export interface Plan {
  * The same day of the month `months` later, at the same time of day, in the
  * reader's own calendar (the time zone the form's dates are typed in); the
  * 31st becomes the 30th or the 28th where the month is shorter. Always from the
- * anchor, never from the previous date, so the clamp does not drift (as
- * foxsy-ops does).
+ * anchor, never from the previous date, so the clamp does not drift.
  */
 export const addMonths = (anchor: number, months: number): number => {
   const date = new Date(anchor * 1000);

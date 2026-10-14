@@ -9,12 +9,20 @@ or a buyer. A cancelable vesting also gives its creator a **cancel key**:
 sending it back stops the vesting, refunds what has not vested and leaves what
 has vested claimable. Anyone can read every vesting without signing anything.
 
-Status: **live on mainnet** since 12 Oct 2026 and **public** at
-[mvxvest.io](https://mvxvest.io) since 13 Oct 2026. Contract
-`erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`, owned by a
-2-of-3 mvxsafe multisig. A big adversarial audit by Claude Fable 5.1 is done
-([its findings](docs/reviews/2026-10-13-fable-audit.md)); the repo stays private
-until two or three more clean rounds. The brief is in
+Status:
+- **Live on mainnet** since 12 Oct 2026, at [mvxvest.io](https://mvxvest.io).
+  The contract is `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`,
+  owned by a 2-of-3 mvxsafe multisig.
+- **Version 2** since 14 Oct 2026.
+- **Audited twice** by Claude Fable 5.1, in adversarial reviews:
+  [first audit](docs/reviews/2026-10-13-fable-audit.md),
+  [second audit](docs/reviews/2026-10-14-fable-audit-v2.md).
+- **Not yet announced.** The source has been public since 14 Oct 2026, and
+  more audit rounds come before the announcement.
+- **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
+  describes.
+
+The brief is in
 [docs/BRIEF.md](docs/BRIEF.md); the mainnet record in
 [docs/MAINNET.md](docs/MAINNET.md); deploying in [docs/DEPLOY.md](docs/DEPLOY.md);
 costs in [docs/MEASUREMENTS.md](docs/MEASUREMENTS.md).

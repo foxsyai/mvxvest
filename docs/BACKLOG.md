@@ -8,7 +8,8 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 2. **Big audit by Claude Fable 5.1 at max effort.** It covers the contract, the dApp, the deployment and the funds, and tries every malicious action: stealing or locking funds, corrupting state, edge cases. Each finding is proven by a failing test, then fixed. A contract fix is an upgrade, voted by the multisig.
 3. ~~**Public launch:** remove the beta password from mvxvest.io.~~ Done on 13 Oct 2026, after the big audit's dApp fixes.
 4. ~~**The contract upgrade:**~~ Version 2 is live since 14 Oct 2026, audited twice and voted by the multisig. It brought the fees (0.1% + 0.1 EGLD), C1 and RT3; see [MAINNET.md](MAINNET.md#version-2-14-october-2026).
-5. **Two or three more clean audit rounds**, around the week of 19 Oct 2026. Then **make the repo public**, after asking Sebastian.
+5. ~~**Make the repo public.**~~ Done on 14 Oct 2026 (Sebastian), before the announcement.
+6. **One or two more large adversarial audit rounds**, then the **official announcement** on FOXSY's channels.
 
 ## Product
 
