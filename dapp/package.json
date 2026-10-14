@@ -46,6 +46,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@swc/core": "^1.15.43",
     "@swc/jest": "^0.2.39",
     "@tailwindcss/postcss": "^4.3.2",

@@ -33,3 +33,4 @@ scripts/state/
 # Claude Code local state (agent worktrees)
 .claude/
 output-docker/
+docs/shots-raw/
