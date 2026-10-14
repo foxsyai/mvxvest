@@ -12,6 +12,13 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 6. **One or two more large adversarial audit rounds**, then the **official announcement** on FOXSY's channels. A third round covered what changed after the second, on 14 Oct 2026 ([report](reviews/2026-10-14-fable-audit-3.md)).
 7. ~~**New pictures for How it works**~~ Done on 14 Oct 2026 (all 22), taken with a fresh devnet-only wallet (`WALLET=erd1... node dapp/scripts/capture/guide.mjs`), so no picture shows a wallet with a history (third audit, O1). This also retakes the pictures that still show the old wording (W5). Needs Sebastian's xPortal for the four approvals.
 
+8. **Agent review and CI as merge gates, on mvxvest and mvxsafe** (Sebastian, 14 Oct 2026). Port foxsyai/foxleague-agent's setup:
+   - CI and a Claude Code review (Opus 5.5, effort xhigh) start only when a maintainer adds the label `merge-check`, so nobody can spend tokens or CI minutes by opening pull requests;
+   - the reviewer's settings, verdict script and workspace gate come from main; it only reads and comments; a pull request that changes CI or the review is checked by hand;
+   - a small GitHub App posts the `ci` and `review` results; a ruleset makes main require a pull request with one approval and both results, admins may bypass; no force push or deletion for anyone;
+   - the reviewer's prompt is written for each project (the vesting contract and its money paths; the multisig and signing).
+   Sebastian sets `CLAUDE_CODE_OAUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN_BACKUP` on both repos and installs the checks App. mvxvest first, then mvxsafe through a pull request, coordinated with its agent.
+
 ## Product
 
 - ~~**A detailed "How it works" with real screenshots.**~~ Live since 14 Oct 2026: 22 pictures, eleven steps and "Worth knowing" at https://mvxvest.io/guide.
