@@ -77,3 +77,28 @@ The first vote of the owner multisig on mainnet, through mvxsafe.io (commit 7fda
 The call reached the contract with 13.2M and answered `@00`; the callback came back with 9.45M. `getFee` reads 0.
 
 Until a mainnet upgrade has been measured, upgrades are carried out with at least 118.5M gas, in mvxsafe and in `scripts/src/multisig.ts` alike.
+
+## Version 2 (14 October 2026)
+
+The contract was upgraded to version 2 by a vote of the owner multisig, through mvxsafe.io, from wallets with guardians, following DEPLOY.md's runbook. The version had been audited twice ([first audit](reviews/2026-10-13-fable-audit.md), [second audit](reviews/2026-10-14-fable-audit-v2.md)) and rehearsed on devnet.
+
+| Step | By | Transaction | Gas |
+|---|---|---|---|
+| Source deployed: `erd1qqqqqqqqqqqqqpgqzywreqymt6j00wta43v7zvmrk4yz5xal6qls2j5m2c` (shard 1, not upgradeable) | `erd1u05m…gw5esx` | `80eca3d4d8e1aba18f2dcf9ea7d2dfbb62ad85e2d26ded6fef436ef28cb1cea7` | 108.8M, 0.0824 EGLD |
+| Upgrade proposed (safe action #2) | `erd1u05m…gw5esx` | `dc2e1efb7d1f06d4213636564d8164ed970fafc40d2fc76d46591e26065cd85a` | 6.4M |
+| Signed | `erd1q83m…r3s7j4` | `ac483fc8c60aa78bd7e27ec6fb48532bd78c1c1dd5015d54321dbee8ec9423b4` | 5.2M |
+| Performed | `erd1q83m…r3s7j4` | `c6ef96cfc2e7318596f4e96702b80366d058dc5febbdf4380bd0a11517a34d41` | 118.55M, 0.0013 EGLD |
+
+**The code:**
+- Code hash `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`: the reproducible build of `main` at 1db9b1c, also built by CI.
+- The source's code, read from the chain, is byte for byte the release file.
+
+**Gas:** the upgrade itself used 8.50M and the callback 3.39M, as on devnet.
+
+**Checked on chain against a snapshot taken before the upgrade:**
+- the code hash is the release's;
+- the contract is still upgradeable, readable and not payable, and the owner is still the multisig;
+- vestings #1 and #2 are stored byte for byte as before, and the vesting count is still 2;
+- the FOXSY and EGLD totals are unchanged and the surplus is 0, with the contract still holding 76.22 FOXSY;
+- the key collections, the fee (0), the fees accrued (0) and the pause flag (off) are unchanged;
+- `getLimits` answers 49 and 32, `getTokenFee` 0 and `getMaxTokenFee` 200.
