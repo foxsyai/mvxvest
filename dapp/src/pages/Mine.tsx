@@ -113,6 +113,7 @@ export const Mine = () => {
           )}
           {claiming && (
             <TxPanel
+              showPayouts
               sender={address}
               label={
                 claiming.length === 1

@@ -144,6 +144,7 @@ export const Created = () => {
       />
       {cancelling && (
         <TxPanel
+          showPayouts
           sender={address}
           label={`Cancel vesting #${cancelling.id}`}
           summary={

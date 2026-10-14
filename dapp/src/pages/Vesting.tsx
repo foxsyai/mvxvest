@@ -310,6 +310,7 @@ export const VestingPage = () => {
         )}
         {action === 'claim' && (
           <TxPanel
+            showPayouts
             sender={address}
             label={`Claim from vesting #${v.id}`}
             summary={
@@ -332,6 +333,7 @@ export const VestingPage = () => {
         )}
         {action === 'cancel' && (
           <TxPanel
+            showPayouts
             sender={address}
             label={`Cancel vesting #${v.id}`}
             summary={

@@ -5,6 +5,7 @@ import { outcomeOf, TxOutcome } from 'chain/reads';
 import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
 import { Amount, Button, ExplorerLink, Notice, Spinner } from 'components/ui';
+import { Payouts } from './Payouts';
 
 type Phase =
   | { step: 'checking' }
@@ -56,6 +57,7 @@ export const TxPanel = ({
   keepAfterSent = false,
   resume,
   refusalHelp,
+  showPayouts = false,
   onClose
 }: {
   sender: string;
@@ -88,6 +90,8 @@ export const TxPanel = ({
   resume?: { sent?: Sent; signing?: boolean; total: number };
   /** More the page can say when the network would refuse (which item blocks). */
   refusalHelp?: (problems: (string | null)[]) => ReactNode;
+  /** Claims and cancels: once final, say what was paid (from the events). */
+  showPayouts?: boolean;
   onClose: () => void;
 }) => {
   const [phase, setPhase] = useState<Phase>(() =>
@@ -350,6 +354,19 @@ export const TxPanel = ({
               </li>
             ))}
           </ul>
+          {showPayouts &&
+            phase.sent.hashes.every(
+              (hash) => outcomes[hash] && outcomes[hash].status !== 'pending'
+            ) &&
+            phase.sent.hashes.some(
+              (hash) => outcomes[hash].status === 'success'
+            ) && (
+              <Payouts
+                hashes={phase.sent.hashes.filter(
+                  (hash) => outcomes[hash].status === 'success'
+                )}
+              />
+            )}
           {!keepAfterSent && (
             <Button variant='secondary' onClick={onClose}>
               Close

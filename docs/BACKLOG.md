@@ -16,10 +16,10 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 - ~~**A detailed "How it works" with real screenshots.**~~ Live since 14 Oct 2026: 22 pictures, eleven steps and "Worth knowing" at https://mvxvest.io/guide.
   - To retake the pictures after an interface change, run `node dapp/scripts/capture/guide.mjs` (`ONLY=` and `FROM=` select pictures). The script fills every form itself and never signs; a person connects a devnet wallet and approves four times.
   - Then run `dapp/scripts/capture/to-web.sh`.
-- **Say what was received.** After a claim or a cancel, show the amounts ("Claimed 2,000 TUSD and 1,000.02 TFOX") instead of only "done". Read them from the transaction's events.
+- ~~**Say what was received.**~~ Done on 14 Oct 2026: after a claim, a Claim all or a cancel, the panel says what was received, returned or stays claimable, read from the contract's events once the result is final.
 - ~~**Warn before leaving Create.**~~ Done: leaving Create with transactions half done asks first, for in-app links as well as a browser close or reload.
 
 ## mvxsafe (Sebastian's multisig app, separate repo)
 
 - ~~**Contract-call and upgrade proposals**~~ (`proposeAsyncCall`, `proposeSCUpgradeFromSource`): live on mvxsafe.io since 14 Oct 2026. The board used them for version 2's upgrade and the fee votes. The brief was [handoff/mvxsafe-upgrade-and-calls.md](handoff/mvxsafe-upgrade-and-calls.md); [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds the same transactions.
-- **Add `devnet.mvxsafe.io` to the allowlist of mvxsafe's Reown project.** Without it, WalletConnect is probably refused there, as it was on devnet.mvxvest.io.
+- ~~**Add `devnet.mvxsafe.io` to the allowlist of mvxsafe's Reown project.**~~ Done: on 14 Oct 2026 Reown listed `mvxsafe.io` and `devnet.mvxsafe.io` as the project's allowed origins.

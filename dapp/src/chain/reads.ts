@@ -286,6 +286,89 @@ export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
   return { status: tx.status === 'invalid' ? 'invalid' : 'fail', reason };
 };
 
+/** What finished claims and cancels paid their caller, for one token. */
+export interface Payout {
+  token: string;
+  /** Paid by claims. */
+  claimed: bigint;
+  /** Paid back by cancels: the part not vested at the cancel. */
+  refunded: bigint;
+  /** Vested at a cancel: stays claimable with the claim key. */
+  staysClaimable: bigint;
+}
+
+const bytesOf = (base64: string) =>
+  Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+
+/** The nested BigUints of an event's data, in order (4-byte length, then bytes). */
+const nestedAmounts = (data: Uint8Array): bigint[] => {
+  const amounts: bigint[] = [];
+  let at = 0;
+  while (at + 4 <= data.length) {
+    const length =
+      ((data[at] << 24) |
+        (data[at + 1] << 16) |
+        (data[at + 2] << 8) |
+        data[at + 3]) >>>
+      0;
+    at += 4;
+    if (at + length > data.length) break;
+    let value = 0n;
+    for (const byte of data.slice(at, at + length))
+      value = (value << 8n) | BigInt(byte);
+    amounts.push(value);
+    at += length;
+  }
+  return amounts;
+};
+
+/**
+ * What a set of finished transactions paid out, per token, from mvxvest's own
+ * vestingClaimed and vestingCancelled events. Only events logged by the
+ * contract count, each vesting once per transaction.
+ */
+export const payoutsOf = async (hashes: string[]): Promise<Payout[]> => {
+  const byToken = new Map<string, Payout>();
+  const seen = new Set<string>();
+  for (const hash of hashes) {
+    const response = await fresh(
+      `/transactions/${hash}?withLogs=true&withResults=true`
+    );
+    if (!response.ok) throw new Error(`transaction ${hash} not readable`);
+    const tx = await response.json();
+    const events = [
+      ...(tx.logs?.events ?? []),
+      ...(tx.results ?? []).flatMap((result: any) => result.logs?.events ?? [])
+    ];
+    for (const event of events) {
+      if (event.address !== contractAddress) continue;
+      const [name, id, , token] = (event.topics ?? []).map((topic: string) =>
+        atob(topic)
+      );
+      if (name !== 'vestingClaimed' && name !== 'vestingCancelled') continue;
+      if (id === undefined || !token || typeof event.data !== 'string')
+        continue;
+      const key = `${hash}:${name}:${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const [first = 0n, second = 0n] = nestedAmounts(bytesOf(event.data));
+      const payout = byToken.get(token) ?? {
+        token,
+        claimed: 0n,
+        refunded: 0n,
+        staysClaimable: 0n
+      };
+      if (name === 'vestingClaimed') payout.claimed += first;
+      else {
+        payout.refunded += first;
+        payout.staysClaimable += second;
+      }
+      byToken.set(token, payout);
+    }
+  }
+  return [...byToken.values()];
+};
+
 /** Ids of the vestings a transaction created, from its vestingCreated events. */
 export const createdIdsOf = async (hash: string): Promise<number[]> => {
   const response = await fresh(
