@@ -10,6 +10,11 @@ import { act, render, screen } from '@testing-library/react';
 import { contractAddress, contractCodeHashes, ownerMultisig } from 'config';
 import { CodeCheck } from '../CodeCheck';
 
+// The devnet config, whichever network's config was copied last (a mainnet
+// deploy leaves mainnet's in place, which lists version 2 only since the
+// upgrade of 14 Oct 2026).
+jest.mock('config', () => jest.requireActual('config/config.devnet'));
+
 const mockAccount: { current: Record<string, string> } = { current: {} };
 jest.mock('chain/network', () => ({
   api: async () => mockAccount.current
