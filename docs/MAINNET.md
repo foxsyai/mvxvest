@@ -5,12 +5,12 @@ Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet
 | | |
 |---|---|
 | Contract | `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu` |
-| Code hash | `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32` (reproducible build, `multiversx/sdk-rust-contract-builder:v12.0.0`; the same code as devnet) |
+| Code hash | Version 2 since 14 Oct 2026: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, the reproducible build (`multiversx/sdk-rust-contract-builder:v12.0.0`). Version 1, 12 to 14 Oct: `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32`. |
 | Code metadata | upgradeable, readable, not payable, not payable by smart contracts |
 | Owner | the mvxsafe multisig `erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3`, quorum 2 of 3 |
 | Claim keys | `VESTKEY-f56bea` (MvxVestClaimKey), green image `https://mvxvest.io/nft/claim-key-2.png` / `.svg` |
 | Cancel keys | `VESTCANCEL-ae94f5` (MvxVestCancelKey), red image `https://mvxvest.io/nft/cancel-key.png` / `.svg` |
-| Fee | 0 |
+| Fees | Since 14 Oct 2026: 0.1% of each vesting in its own token, paid on top and sent to the multisig (`setTokenFee 10`), plus 0.1 EGLD per vesting (`setFee`). Free before. |
 
 Both collections are owned by the contract. They cannot be frozen, wiped or paused, and the NFT create role cannot be transferred. Holders cannot burn keys.
 
@@ -102,3 +102,16 @@ The contract was upgraded to version 2 by a vote of the owner multisig, through 
 - the FOXSY and EGLD totals are unchanged and the surplus is 0, with the contract still holding 76.22 FOXSY;
 - the key collections, the fee (0), the fees accrued (0) and the pause flag (off) are unchanged;
 - `getLimits` answers 49 and 32, `getTokenFee` 0 and `getMaxTokenFee` 200.
+
+### The fees voted (14 October 2026)
+
+Proposed by `erd1q83m…r3s7j4`; signed and carried out by `erd1u05m…gw5esx`. Each perform called the contract and got `@00` back.
+
+| Vote | Propose | Sign | Perform |
+|---|---|---|---|
+| `setTokenFee 10` (0.1%), safe action #3 | `3fac6dac88d8e1a50e7208f013eb733722a782311d80c5bdb4860c0b3146e6ca` | `110383cd55e0e012b86a2c0bcff9e190863dca6408fc3da351fc0e7399ac7c9e` | `e23757543026efe1e2d211f288aef2d1f0edea5fd60be42ad1ff2cfafd92c509` (19.35M) |
+| `setFee 0.1` EGLD, safe action #4 | `38775712eeaa6db1b71b3649c0859264a4838961739eeb33c10d0d32215b92be` | `b9a24fcf7cd91748f0219b57e1696a49ba69348ff14844db42e6cf3648e9264d` | `15debcb51c664b19dde5a24ad96cddf14ce5380841418d112d0cdaa73335071e` (19.45M) |
+
+Then `getTokenFee` read 10, `getFee` 100000000000000000, and `isCreationPaused` 0.
+
+Version 1's code hash was then removed from the site's list (c64fa34, the runbook's step 8).
