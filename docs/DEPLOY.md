@@ -168,13 +168,46 @@ The simulation of a guarded transaction already counts the guardian's 50,000 gas
 
 mvxsafe's docs/upgrade-and-calls.md lists those transactions.
 
-**Before the mainnet upgrade:**
-1. The audit rounds review this code. If they change it, the hash changes and this rehearsal is repeated.
-2. Add the new hash to `contractCodeHashes` in `config.mainnet.ts` and deploy the site.
-3. Deploy the source in shard 1.
-4. A first harmless mainnet vote (`setFee 0`) proves the guarded signers on mainnet and shows how mainnet's callback gas compares with devnet's. Until then an upgrade on mainnet is performed with at least 118.5M gas (Sebastian, 14 Oct 2026); `scripts/src/multisig.ts` and mvxsafe both apply this floor.
-5. Then propose, sign and perform the upgrade.
-6. Then vote the fees: `setTokenFee 10` (0.1%) and `setFee 0.1`.
+## Version 2 on mainnet: the runbook
+
+Every step is a mainnet action and needs Sebastian's go. Done so far: the first harmless owner vote, `setFee 0`, on 14 Oct 2026 (MAINNET.md). It proved the guarded signers and mainnet's gas for a call.
+
+**The release.** Its code hash comes from the reproducible build of the merged commit: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0`. CI's "Reproducible build matches a known mainnet code hash" job prints it too. A plain `sc-meta all build` gives another hash: never use that one.
+
+- Version 2 as audited: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, 27,332 bytes.
+- If the contract changes, this changes, and the devnet rehearsal is repeated first.
+
+1. **Merge and deploy the site.** Merge `upgrade-v2` into `main`. Add the release hash to `contractCodeHashes` in `dapp/src/config/config.mainnet.ts`, next to version 1's. CI must be green. Then `./deploy.sh mainnet`. The site works with both versions: no token fee on version 1, the fee shown and paid on version 2.
+2. **Deploy the source.** Use erd1u05m7s9u4dthgzzgxd0795kaxpadhj93yv24nydjczw832a66qlsgw5esx (shard 1, Sebastian's choice), with mvxsafe.io's "Deploy a source" and the release's `.wasm` (`output-docker/mvxvest/mvxvest.wasm`). The source must be:
+   - not upgradeable, so nobody can change its code before the perform;
+   - deployed without arguments;
+   - in shard 1, the multisig's shard; any other shard makes the perform fail and uses the action up.
+
+   Then read the source's code hash back from the chain: it must equal the release hash.
+3. **Propose the upgrade:** `proposeSCUpgradeFromSource`, in mvxsafe.io. With `scripts/src/multisig.ts`, set `MVXVEST_EXPECT_HASH=<release hash>`: the tool refuses a source whose hash differs, or that is upgradeable or in another shard.
+4. **Each signer checks, then signs.** In mvxsafe.io's card, with the release hash pasted into "expected code hash", check:
+   - the target is the vesting contract `erd1…gmllsu`;
+   - the source hash matches the pasted release hash (green);
+   - the metadata stays 0500 (upgradeable, readable, not payable);
+   - the source is not upgradeable and is in shard 1.
+
+   An upgrade only ever comes as an `SCUpgradeFromSource` action. A plain call to `upgradeContract` or `ChangeOwnerAddress` is refused. `multisig.ts sign` and `perform` decode the action, say it in words and refuse anything else.
+5. **Perform** with at least 118.5M gas: the mainnet floor until an upgrade has been measured there. If the perform fails, the action is used up: propose and sign it again.
+6. **Verify on chain:**
+   - the contract's code hash is the release hash;
+   - the metadata is 0500 and the owner is still the multisig;
+   - `getLimits` answers 49/32 and `getTokenFee` answers 0;
+   - `getVesting(1)` and `getVesting(2)` are unchanged;
+   - `getTokenTotals` and `getSurplus` are unchanged for FOXSY and EGLD (surplus 0).
+
+   Record the transactions in MAINNET.md and the version in CHANGELOG.md.
+7. **Vote the fees:** `setTokenFee 10` (0.1%; the card reads "setTokenFee(10)"), then `setFee 0.1` EGLD. Each is propose, sign, perform at about 19M. Then check that `getTokenFee` answers 10 and `getFee` answers 10^17.
+8. **Afterwards:** remove version 1's hash from `contractCodeHashes` and deploy the site again.
+
+**Operations after version 2:**
+- The token fee is sent to the owner in the same transaction as each creation.
+- If a token cannot reach the multisig (its issuer froze the multisig for it, or a transfer role), the fee comes back to the vesting contract as surplus. The `tokenFeePaid` event says only that it was sent. Check `getSurplus` for fee tokens now and then, and return such a surplus with `recoverSurplus(token, to, amount)`.
+- Any new owner must stay payable by smart contracts. Otherwise every fee bounces, and in the owner's own shard every fee-paying creation fails.
 
 ## Upgrades
 

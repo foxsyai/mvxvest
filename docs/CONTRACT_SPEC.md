@@ -194,7 +194,11 @@ key with that nonce was minted; the answer stays after the key is burned),
   in any case; see [DECISIONS.md](DECISIONS.md).)
 - **No dead ends:** every path ends claimable or refunded. A key that bounced
   can be recovered; a payout that bounced shows up as surplus and the owner
-  can return it to whom the events show it belongs.
+  can return it to whom the events show it belongs. So does a token fee the
+  owner could not receive. (`tokenFeePaid` means sent: across shards, a
+  bounce comes back later as surplus.) The owner must be payable by smart
+  contracts. Otherwise every fee bounces, and in the owner's own shard every
+  fee-paying creation fails.
 - **Tokens with special roles:** ESDT has no transfer fees, so the amount
   received is the amount sent. A token whose issuer can freeze, wipe or pause
   it, or that has a transfer role, can still be blocked by its issuer; the

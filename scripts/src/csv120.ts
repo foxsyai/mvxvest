@@ -43,13 +43,14 @@ for (const entry of entries) {
 }
 const limits = await client.limits();
 const fee = await client.fee();
+const bps = await client.tokenFee();
 const batches = splitIntoBatches(entries, true, limits);
 console.log(`120 lines -> ${batches.length} transactions of ${batches.map((b) => b.length).join(", ")}`);
 
 const before = await client.vestingCount();
 const controllerFree = entrypoint();
 for (const [index, batch] of batches.entries()) {
-  const tx = await client.createBatch(owner.address.toBech32(), token, batch, true, "csv 120", fee);
+  const tx = await client.createBatch(owner.address.toBech32(), token, batch, true, "csv 120", fee, bps);
   tx.nonce = owner.getNonceThenIncrement();
   const estimate = BigInt((await provider.estimateTransactionCost(Object.assign(tx, { gasLimit: 600_000_000n }))).gasLimit);
   tx.gasLimit = (estimate * 12n) / 10n;

@@ -1,6 +1,25 @@
 # Changelog
 
-## Unreleased
+## Version 2 (branch `upgrade-v2`, audited 14 Oct 2026, not on mainnet yet)
+
+Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash
+`a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, 27,332 bytes.
+
+### Added
+- `setTokenFee(bps)`, `getTokenFee`, `getMaxTokenFee`, events `tokenFeeSet`
+  and `tokenFeePaid`: a share of each vesting's total in its own token, at
+  most 2%, paid by the creator on top of the total and sent to the owner in
+  the same transaction. 0 until set.
+- `recoverSurplus(token, to, [amount])`: a surplus can be returned in parts
+  (first audit, C1).
+- New keys carry `cancelable:0` or `cancelable:1` in their attributes (first
+  audit, RT3).
+
+### Changed
+- Batches hold at most 49 vestings, 32 when cancelable (the token fee's
+  transfer is one more built-in call).
+
+## Version 1 (mainnet since 12 Oct 2026, code hash `fd32f4e1…`)
 
 ### Changed (after the reviews of 2026-10-12)
 - `create(beneficiary, total, schedule, cancelable, label)`: the total is

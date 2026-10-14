@@ -20,8 +20,17 @@
 // it (the rehearsal in docs/DEPLOY.md). Mainnet is never signed here.
 //
 // An upgrade's source is a copy of the new build deployed IN THE MULTISIG'S
-// SHARD (performAction reads its code there) by any wallet; its code hash must
-// be checked against the reproducible build before proposing.
+// SHARD (performAction reads its code there) by any wallet. Set
+// MVXVEST_EXPECT_HASH to the release's code hash (the reproducible build's):
+// propose-upgrade, sign and perform refuse a source with another hash, an
+// upgradeable source or one in another shard.
+//
+// Nothing is signed blind (second audit, red team H1/M1): `status`, `sign`
+// and `perform` decode each pending action and say it in words, and `sign`
+// and `perform` refuse anything but one of mvxvest's owner calls or an
+// upgrade of mvxvest from the release's source with metadata 0500. Use
+// mvxsafe.io for the multisig's other actions. Fees take strict values:
+// `fee 0.1` (EGLD), `tokenfee 10` (basis points: 10 = 0.1%).
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -101,31 +110,51 @@ async function proposal(): Promise<{ data: string; perform?: { kind: string; nee
     const calls: Record<string, () => [string, unknown[]]> = {
       pause: () => ["pauseCreation", []],
       unpause: () => ["unpauseCreation", []],
-      fee: () => ["setFee", [BigInt(Math.round(Number(a[0]) * 1e6)) * 10n ** 12n]],
-      // Version 2: basis points of each vesting's total (100 = 1%, at most 200).
-      tokenfee: () => ["setTokenFee", [Number(a[0])]],
+      fee: () => ["setFee", [egldUnits(a[0])]],
+      // Version 2: basis points of each vesting's total (10 = 0.1%, 100 = 1%,
+      // at most 200). Whole numbers only: "0.1" would be encoded as 0.
+      tokenfee: () => ["setTokenFee", [basisPoints(a[0])]],
       claimfees: () => ["claimFees", []],
       display: () => ["setKeyDisplay", [kind(a[0]), "", a[1], a[2]]],
       "recover-bounced": () => ["recoverBouncedKey", [BigInt(a[0]), kind(a[1]), Address.newFromBech32(a[2])]],
-      "recover-surplus": () => ["recoverSurplus", [a[0], Address.newFromBech32(a[1])]],
+      // Version 2: an optional amount, in the token's smallest units.
+      "recover-surplus": () => [
+        "recoverSurplus",
+        a[2] === undefined
+          ? [a[0], Address.newFromBech32(a[1])]
+          : [a[0], Address.newFromBech32(a[1]), wholeNumber(a[2], "amount")],
+      ],
     };
     const make = calls[action];
     if (!make) throw new Error(`Unknown action ${action}: one of ${Object.keys(calls).join(", ")}`);
     const [fn, args] = make();
+    console.log(`propose: ${fn}(${args.map((arg) => (arg instanceof Address ? arg.toBech32() : String(arg))).join(", ")})${fn === "setTokenFee" ? ` = ${Number(args[0]) / 100}% of each vesting` : ""}`);
     const [name, ...encoded] = await innerCall(fn, args);
     // proposeAsyncCall(to, egld_amount, function_and_arguments...)
     return { data: ["proposeAsyncCall", contractAddress().toHex(), "", hex(name), ...encoded].join("@") };
   }
   if (command === "propose-upgrade") {
     const source = Address.newFromBech32(rest[0] ?? "");
+    // The source is checked before anything is proposed, on every network.
+    const facts = await sourceFacts(source.toBech32());
+    console.log(describeSource(facts));
+    const problems = await sourceProblems(facts);
+    if (problems.length) throw new Error(`Not proposed:\n  - ${problems.join("\n  - ")}`);
     // proposeSCUpgradeFromSource(sc_address, amount, source, code_metadata, args...)
     return { data: ["proposeSCUpgradeFromSource", contractAddress().toHex(), "", source.toHex(), CODE_METADATA].join("@") };
   }
   const id = Number(rest[0]);
   if (!Number.isInteger(id) || id < 1) throw new Error("Give the action id.");
-  if (command === "sign") return { data: `sign@${u32(id)}` };
   if (command === "discard") return { data: `discardAction@${u32(id)}` };
-  if (command === "perform") return { data: `performAction@${u32(id)}`, perform: await actionNeed(id) };
+  // Never a blind signature: what is signed or performed is read from the
+  // chain, said in words and checked first (second audit, red team H1, M1).
+  const inspection = await inspectAction(id);
+  for (const line of inspection.lines) console.log(line);
+  if (inspection.problems.length) {
+    throw new Error(`REFUSED, do not ${command} action ${id}:\n  - ${inspection.problems.join("\n  - ")}`);
+  }
+  if (command === "sign") return { data: `sign@${u32(id)}` };
+  if (command === "perform") return { data: `performAction@${u32(id)}`, perform: inspection };
   throw new Error(`Unknown command ${command}`);
 }
 
@@ -139,27 +168,205 @@ const query = async (funcName: string, args: string[] = []) => {
 };
 const num = (b64?: string) => BigInt(`0x${Buffer.from(b64 ?? "", "base64").toString("hex") || "0"}`);
 
-/** What the call a pending action makes needs: an owner call, or an upgrade sized by its source. */
-async function actionNeed(id: number): Promise<{ kind: string; need: bigint }> {
+const readNested = (bytes: Buffer, at: number) => {
+  const length = bytes.readUInt32BE(at);
+  return { value: bytes.subarray(at + 4, at + 4 + length), next: at + 4 + length };
+};
+const bigOf = (bytes: Buffer) => (bytes.length ? BigInt(`0x${bytes.toString("hex")}`) : 0n);
+const bech32Of = (bytes: Buffer) => Address.newFromHex(bytes.toString("hex")).toBech32();
+
+/** "0.1" EGLD as base units, exactly (no floating point). */
+function egldUnits(text: string | undefined): bigint {
+  const match = /^(\d+)(?:\.(\d{1,18}))?$/.exec(text ?? "");
+  if (!match) throw new Error(`"${text}" is not an amount of EGLD (for example 0.1).`);
+  return BigInt(match[1]) * 10n ** 18n + BigInt((match[2] ?? "").padEnd(18, "0"));
+}
+function wholeNumber(text: string | undefined, what: string): bigint {
+  if (!/^\d+$/.test(text ?? "")) throw new Error(`The ${what} "${text}" must be a whole number of the token's smallest units.`);
+  return BigInt(text!);
+}
+function basisPoints(text: string | undefined): number {
+  if (!/^\d+$/.test(text ?? "")) {
+    throw new Error(`"${text}" is not a number of basis points: 10 is 0.1%, 100 is 1% (whole numbers only).`);
+  }
+  const bps = Number(text);
+  if (bps > 200) throw new Error(`${bps} basis points is ${bps / 100}%, above the contract's cap of 2% (200).`);
+  return bps;
+}
+const egldText = (units: bigint) => {
+  const whole = units / 10n ** 18n;
+  const fraction = (units % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+  return `${whole}${fraction ? `.${fraction}` : ""} EGLD`;
+};
+
+/** The arguments of an mvxvest owner call, in words. */
+function describeArgs(endpoint: string, args: Buffer[]): string {
+  const kind = (b?: Buffer) => (bigOf(b ?? Buffer.alloc(0)) === 0n ? "Claim" : "Cancel");
+  switch (endpoint) {
+    case "setFee":
+      return egldText(bigOf(args[0] ?? Buffer.alloc(0)));
+    case "setTokenFee": {
+      const bps = Number(bigOf(args[0] ?? Buffer.alloc(0)));
+      return `${bps} = ${bps / 100}% of each vesting`;
+    }
+    case "recoverSurplus":
+      return [
+        args[0]?.toString("latin1"),
+        args[1]?.length === 32 ? bech32Of(args[1]) : `?${args[1]?.toString("hex")}`,
+        ...(args[2] ? [`${bigOf(args[2])} units`] : ["all of it"]),
+      ].join(", ");
+    case "recoverBouncedKey":
+      return `vesting ${bigOf(args[0] ?? Buffer.alloc(0))}, ${kind(args[1])} key, to ${args[2]?.length === 32 ? bech32Of(args[2]) : "?"}`;
+    case "setKeyDisplay":
+      return [kind(args[0]), ...args.slice(1).map((b) => JSON.stringify(b.toString("utf8")))].join(", ");
+    default:
+      return args.map((b) => `0x${b.toString("hex").slice(0, 40)}${b.length > 20 ? "…" : ""}`).join(", ");
+  }
+}
+
+interface SourceFacts {
+  address: string;
+  hash: string;
+  bytes: number;
+  shard?: number;
+  upgradeable: boolean;
+}
+async function sourceFacts(address: string): Promise<SourceFacts> {
+  const account = (await (await fetch(`${api()}/accounts/${address}`)).json()) as {
+    code?: string;
+    codeHash?: string;
+    shard?: number;
+    isUpgradeable?: boolean;
+  };
+  return {
+    address,
+    hash: account.codeHash ? Buffer.from(account.codeHash, "base64").toString("hex") : "",
+    bytes: (account.code?.length ?? 0) / 2,
+    shard: account.shard,
+    upgradeable: account.isUpgradeable === true,
+  };
+}
+const describeSource = (f: SourceFacts) =>
+  `  source ${f.address}: code hash ${f.hash || "(none)"}, ${f.bytes} bytes, shard ${f.shard ?? "?"}, ${f.upgradeable ? "UPGRADEABLE" : "not upgradeable"}`;
+
+/**
+ * What must hold of an upgrade's source: the release's code (MVXVEST_EXPECT_HASH,
+ * from the reproducible build), not upgradeable (nobody can change it before
+ * the perform), and in the multisig's shard (performAction reads it there).
+ */
+async function sourceProblems(f: SourceFacts): Promise<string[]> {
+  const problems: string[] = [];
+  const expected = (process.env.MVXVEST_EXPECT_HASH ?? "").toLowerCase();
+  if (!f.hash) problems.push(`the source ${f.address} holds no code`);
+  if (!/^[0-9a-f]{64}$/.test(expected)) {
+    problems.push("MVXVEST_EXPECT_HASH is not set to the release's code hash (64 hex characters), so the source cannot be checked");
+  } else if (f.hash !== expected) {
+    problems.push(`the source's code hash ${f.hash} is not the release's ${expected}`);
+  }
+  if (f.upgradeable) problems.push("the source is upgradeable: its code could change before the upgrade is carried out");
+  const multisigShard = ((await (await fetch(`${api()}/accounts/${multisig.toBech32()}`)).json()) as { shard?: number }).shard;
+  if (f.shard === undefined || f.shard !== multisigShard) {
+    problems.push(`the source is in shard ${f.shard ?? "?"}, not the multisig's shard ${multisigShard ?? "?"}: the upgrade would fail and use the action up`);
+  }
+  return problems;
+}
+
+interface Inspection {
+  /** What the action does, in words. */
+  lines: string[];
+  /** Why it must not be signed or performed; empty when it may. */
+  problems: string[];
+  /** What the call it makes needs, for the perform's gas. */
+  need: bigint;
+  kind: string;
+}
+
+/**
+ * Pending action `id`, decoded from the legacy multisig's Action enum
+ * (5 SendTransferExecute, 6 SendAsyncCall, 7 SCDeployFromSource,
+ * 8 SCUpgradeFromSource) and checked against what this tool is for: one of
+ * mvxvest's owner calls, or an upgrade of mvxvest from the release's source.
+ * Anything else is refused; mvxsafe.io handles the multisig's other actions.
+ */
+async function inspectAction(id: number): Promise<Inspection> {
   const [raw] = await query("getActionData", [u32(id).padStart(2, "0")]);
   const bytes = Buffer.from(raw ?? "", "base64");
   if (bytes.length === 0) throw new Error(`No pending action ${id}`);
-  // The legacy multisig's Action enum (seen on chain in the devnet rehearsal):
-  // 5 SendTransferExecute, 6 SendAsyncCall, 7 SCDeployFromSource,
-  // 8 SCUpgradeFromSource (target, amount, source, metadata, arguments).
-  if (bytes[0] === 8) {
-    const amountLength = bytes.readUInt32BE(33);
-    const source = Address.newFromHex(bytes.subarray(37 + amountLength, 69 + amountLength).toString("hex"));
-    const account = (await (await fetch(`${api()}/accounts/${source.toBech32()}`)).json()) as { code?: string };
-    if (!account.code) throw new Error(`The upgrade's source ${source.toBech32()} holds no code.`);
-    return { kind: `upgrade from ${source.toBech32()}`, need: upgradeNeed(account.code.length / 2) };
+  const mvxvest = contractAddress().toBech32();
+  const problems: string[] = [];
+  try {
+    if (bytes[0] === 6) {
+      // SendAsyncCall(CallActionData { to, egld_amount, endpoint_name, arguments })
+      const to = bech32Of(bytes.subarray(1, 33));
+      let at = 33;
+      const egld = readNested(bytes, at);
+      at = egld.next;
+      const endpoint = readNested(bytes, at);
+      at = endpoint.next;
+      const count = bytes.readUInt32BE(at);
+      at += 4;
+      const args: Buffer[] = [];
+      for (let i = 0; i < count; i++) {
+        const arg = readNested(bytes, at);
+        args.push(arg.value);
+        at = arg.next;
+      }
+      const name = endpoint.value.toString("latin1");
+      if (to !== mvxvest) problems.push(`it calls ${to}, not the vesting contract ${mvxvest}`);
+      if (bigOf(egld.value) !== 0n) problems.push(`it sends ${egldText(bigOf(egld.value))} with the call`);
+      if (!(name in INNER_GAS)) {
+        problems.push(
+          `"${name}" is not one of mvxvest's owner calls (${Object.keys(INNER_GAS).join(", ")}): an upgrade or an owner change must never come as a plain call`,
+        );
+      }
+      if (at !== bytes.length) problems.push("the action holds bytes this tool does not understand");
+      return {
+        lines: [`action #${id}: call ${name}(${describeArgs(name, args)}) on ${to}`],
+        problems,
+        need: INNER_GAS[name] ?? 0n,
+        kind: name,
+      };
+    }
+    if (bytes[0] === 8) {
+      // SCUpgradeFromSource { sc_address, amount, source, code_metadata, arguments }
+      const target = bech32Of(bytes.subarray(1, 33));
+      let at = 33;
+      const amount = readNested(bytes, at);
+      at = amount.next;
+      const source = bech32Of(bytes.subarray(at, at + 32));
+      at += 32;
+      const metadata = bytes.subarray(at, at + 2).toString("hex");
+      at += 2;
+      const count = bytes.readUInt32BE(at);
+      if (target !== mvxvest) problems.push(`it upgrades ${target}, not the vesting contract ${mvxvest}`);
+      if (metadata !== CODE_METADATA) {
+        problems.push(`the new code metadata is ${metadata}, not ${CODE_METADATA} (upgradeable, readable, not payable)`);
+      }
+      if (bigOf(amount.value) !== 0n) problems.push(`it sends ${egldText(bigOf(amount.value))} with the upgrade`);
+      if (count !== 0) problems.push(`it passes ${count} argument(s); mvxvest's upgrade takes none`);
+      const facts = await sourceFacts(source);
+      problems.push(...(await sourceProblems(facts)));
+      return {
+        lines: [`action #${id}: upgrade ${target} with the code of ${source}, metadata ${metadata}`, describeSource(facts)],
+        problems,
+        need: upgradeNeed(facts.bytes),
+        kind: `upgrade from ${source}`,
+      };
+    }
+  } catch (failure) {
+    return {
+      lines: [`action #${id}: kind ${bytes[0]}, unreadable`],
+      problems: [`it could not be decoded (${(failure as Error).message})`],
+      need: 0n,
+      kind: "unreadable",
+    };
   }
-  if (bytes[0] === 6) {
-    const text = bytes.toString("latin1");
-    const known = Object.keys(INNER_GAS).find((fn) => text.includes(fn));
-    if (known) return { kind: known, need: INNER_GAS[known] };
-  }
-  throw new Error(`Action ${id} is not an mvxvest owner call (kind ${bytes[0]}); perform it with an explicit gas limit.`);
+  return {
+    lines: [`action #${id}: kind ${bytes[0]}, not a call or an upgrade of mvxvest`],
+    problems: [`kind ${bytes[0]} is not what this tool signs; use mvxsafe.io for the multisig's other actions`],
+    need: 0n,
+    kind: `kind ${bytes[0]}`,
+  };
 }
 
 async function status() {
@@ -174,8 +381,10 @@ async function status() {
     const [data] = await query("getActionData", [u32(id).padStart(2, "0")]);
     if (!data) continue;
     const signers = num((await query("getActionValidSignerCount", [u32(id).padStart(2, "0")]))[0]);
-    const kind = Buffer.from(data, "base64")[0];
-    console.log(`  pending #${id}: kind ${kind}, ${signers} valid signature(s)`);
+    const inspection = await inspectAction(id);
+    console.log(`  pending #${id}, ${signers} valid signature(s):`);
+    for (const line of inspection.lines) console.log(`    ${line}`);
+    for (const problem of inspection.problems) console.log(`    WARNING: ${problem}`);
   }
 }
 

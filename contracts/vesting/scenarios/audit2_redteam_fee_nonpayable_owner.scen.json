@@ -1,0 +1,178 @@
+{
+  "name": "audit2 red team: the owner is a contract that cannot receive the fee",
+  "steps": [
+    {
+      "step": "setState",
+      "comment": "two copies of version 2 with the fee at 10 bps: one owned by a safe that is not payable by contracts (0500), one by a safe that is (0506)",
+      "accounts": {
+        "sc:safe-not-payable": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:v1/mvxvest-v1.wasm",
+          "codeMetadata": "0x0500"
+        },
+        "sc:safe-payable": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:v1/mvxvest-v1.wasm",
+          "codeMetadata": "0x0506"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "1,000,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "sc:safe-not-payable",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456",
+            "str:tokenFeeBps": "10"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        },
+        "sc:mvxvest-b": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "sc:safe-payable",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456",
+            "str:tokenFeeBps": "10"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "FINDING: owned by a contract that is not payable by contracts, no creation with a fee can succeed",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "10000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:x"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "10010"
+          }
+        ]
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:sending value to non payable contract",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the same creation on the copy owned by a payable safe works, and the fee reaches it",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest-b",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "10000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:x"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "10010"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "sc:safe-payable": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "10"
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:safe-not-payable": {
+          "nonce": "*",
+          "balance": "*",
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    }
+  ]
+}

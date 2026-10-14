@@ -357,7 +357,7 @@ export class VestingClient {
     cancelable: boolean,
     label: string,
     fee: bigint,
-    tokenFeeBps = 0
+    tokenFeeBps: number
   ): Promise<Transaction> {
     return this.factory.createTransactionForExecute(
       Address.newFromBech32(sender),
@@ -390,7 +390,7 @@ export class VestingClient {
     cancelable: boolean,
     label: string,
     feePerVesting: bigint,
-    tokenFeeBps = 0
+    tokenFeeBps: number
   ): Promise<Transaction> {
     const sum = entries.reduce((total, entry) => total + entry.total, 0n);
     const tokenFee = tokenFeeOfAll(

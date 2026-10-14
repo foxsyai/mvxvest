@@ -371,6 +371,33 @@ export const Create = () => {
     beneficiaries.list.map((b) => b.amount),
     tokenFeeBps
   );
+  // What the review shows: once open, the fees it was checked at and signs
+  // with, even if the contract's change since (second audit, dApp finding 2).
+  const shownFee = review?.fee ?? fee;
+  const shownBps = review?.tokenFeeBps ?? tokenFeeBps;
+  const shownFeeTotal = shownFee * BigInt(beneficiaries.list.length);
+  const shownTokenFeeTotal = review
+    ? tokenFeeOfAll(
+        beneficiaries.list.map((b) => b.amount),
+        shownBps
+      )
+    : tokenFeeTotal;
+  // The contract's fees or limits moved since the review was checked: what
+  // is left of it would be refused for its payment or its size (second
+  // audit, dApp finding 2 and red team L1).
+  const feesChanged =
+    !!review &&
+    !!settings.data &&
+    (settings.data.fee !== review.fee ||
+      settings.data.tokenFeeBps !== review.tokenFeeBps ||
+      review.batches.some(
+        (batch) =>
+          batch.length > 1 &&
+          batch.length >
+            (review.cancelable
+              ? settings.data!.limits.maxBatchCancelable
+              : settings.data!.limits.maxBatch)
+      ));
   const tranchesEach = entries.reduce(
     (most, entry) =>
       Math.max(
@@ -619,7 +646,12 @@ export const Create = () => {
       );
     };
 
-  const onClose = (id: number, attempt: Attempt) => () =>
+  const onClose = (id: number, attempt: Attempt) => () => {
+    // Read the contract's fees and limits again: a review refused for its
+    // payment or its size was most likely built before the multisig changed
+    // them (the upgrade to version 2, a fee vote), and the next check must
+    // use what the contract has now (second audit, dApp finding 1).
+    settings.reload();
     update(id, (current) =>
       // Nothing of the review was sent: the form unlocks.
       !current.hashes.some(Boolean)
@@ -629,6 +661,7 @@ export const Create = () => {
             attempts: current.attempts.filter((a) => a.n !== attempt.n)
           }
     );
+  };
 
   const signRemaining = () => {
     if (!review) return;
@@ -1271,31 +1304,35 @@ export const Create = () => {
                 </Info>
               </dt>
               <dd>
-                {fee === 0n && tokenFeeTotal === 0n ? (
+                {shownFee === 0n && shownTokenFeeTotal === 0n ? (
                   'none'
                 ) : (
                   <ul className='space-y-0.5'>
-                    {tokenFeeTotal > 0n && (
+                    {shownTokenFeeTotal > 0n && (
                       <li>
                         <Amount
-                          units={tokenFeeTotal}
+                          units={shownTokenFeeTotal}
                           decimals={decimals}
                           ticker={ticker}
                         />{' '}
-                        ({percentOf(tokenFeeBps)} of each vesting)
+                        ({percentOf(shownBps)} of each vesting)
                       </li>
                     )}
-                    {fee > 0n && (
+                    {shownFee > 0n && (
                       <li>
-                        <Amount units={feeTotal} decimals={18} ticker='EGLD' />{' '}
-                        (<Amount units={fee} decimals={18} /> per vesting)
+                        <Amount
+                          units={shownFeeTotal}
+                          decimals={18}
+                          ticker='EGLD'
+                        />{' '}
+                        (<Amount units={shownFee} decimals={18} /> per vesting)
                       </li>
                     )}
                   </ul>
                 )}
               </dd>
             </div>
-            {tokenFeeTotal > 0n && (
+            {shownTokenFeeTotal > 0n && (
               <div>
                 <dt className='text-muted'>You pay in {ticker}</dt>
                 <dd className='font-semibold'>
@@ -1461,6 +1498,13 @@ export const Create = () => {
                     signing: review.busyAttempt === attempt.n,
                     total: attempt.indexes.length
                   }}
+                  refusalHelp={() => (
+                    <p className='mt-2'>
+                      If the contract&apos;s fees or limits changed since this
+                      page opened (a vote of its owner), close this with Not now
+                      and check again: the page reads them again.
+                    </p>
+                  )}
                   onClose={onClose(review.id, attempt)}
                 />
               );
@@ -1513,10 +1557,28 @@ export const Create = () => {
                         created nothing yet (not sent or failed). The vestings
                         already created are listed above and are not signed
                         again.
+                        {feesChanged && (
+                          <span className='mt-2 block font-semibold'>
+                            The contract&apos;s fees or limits changed since
+                            this review was checked, so the rest would be
+                            refused. Download the lines not created and create
+                            them again in a new creation.
+                          </span>
+                        )}
                       </Notice>
-                      <Button onClick={signRemaining}>
-                        Sign the remaining {toSign.length}
-                      </Button>
+                      <div className='flex flex-wrap gap-2'>
+                        {!feesChanged && (
+                          <Button onClick={signRemaining}>
+                            Sign the remaining {toSign.length}
+                          </Button>
+                        )}
+                        <Button
+                          variant='secondary'
+                          onClick={downloadNotCreated}
+                        >
+                          Download the lines not created (CSV)
+                        </Button>
+                      </div>
                     </>
                   )}
                 </div>
