@@ -5,6 +5,7 @@ import { Card, ExplorerLink, PageTitle } from 'components/ui';
 import {
   contractAddress,
   contractCodeHashes,
+  GITHUB_REPO_URL,
   keyCollections,
   ownerMultisig,
   ownerQuorum,
@@ -405,7 +406,7 @@ export const Guide = () => (
         <b className='text-ink'>Your keys never reach this site.</b> Every
         transaction is signed in your own wallet. The source is{' '}
         <a
-          href='https://github.com/foxsyai/mvxvest'
+          href={GITHUB_REPO_URL}
           target='_blank'
           rel='noreferrer'
           className='text-accent hover:underline'

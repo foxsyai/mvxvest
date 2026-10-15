@@ -1,6 +1,7 @@
 import { PropsWithChildren, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { networkName } from 'chain/network';
+import { GITHUB_REPO_URL } from 'config';
 import { useGetIsLoggedIn } from 'lib';
 import { CodeCheck } from './CodeCheck';
 import {
@@ -105,14 +106,27 @@ export const Layout = ({ children }: PropsWithChildren) => {
             mvxvest, token vesting on MultiversX. Your keys never leave your
             wallet.
           </span>
-          {/^[0-9a-f]{40}$/.test(COMMIT) && (
-            <span
-              className='font-mono'
-              title='The commit this page was built from'
+          <span className='flex items-center gap-3'>
+            {/^[0-9a-f]{40}$/.test(COMMIT) && (
+              <a
+                href={`${GITHUB_REPO_URL}/commit/${COMMIT}`}
+                target='_blank'
+                rel='noreferrer'
+                title='The commit this page was built from'
+                className='font-mono hover:text-accent'
+              >
+                {COMMIT.slice(0, 7)}
+              </a>
+            )}
+            <a
+              href={GITHUB_REPO_URL}
+              target='_blank'
+              rel='noreferrer'
+              className='hover:text-accent'
             >
-              {COMMIT.slice(0, 7)}
-            </span>
-          )}
+              Source
+            </a>
+          </span>
         </div>
       </footer>
     </div>
