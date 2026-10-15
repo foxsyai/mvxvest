@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>mvxvest, a guide for beneficiaries</title>
+<!-- Source for public/mvxvest-for-beneficiaries.pdf, the counterpart of
+     mvxsafe's mvxsafe-for-signers.pdf. Rendered with:
+       node scripts/make-beneficiary-pdf.mjs
+     Printed on white on purpose: it is emailed and sometimes printed. The
+     pictures are crops of the guide's own (public/shots), so retaking those
+     and running the script again keeps both in step. -->
+<style>
+  @font-face { font-family: 'Satoshi'; src: url('../src/assets/fonts/Satoshi-Regular.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'Satoshi'; src: url('../src/assets/fonts/Satoshi-Medium.woff2') format('woff2'); font-weight: 500; }
+  @font-face { font-family: 'Satoshi'; src: url('../src/assets/fonts/Satoshi-Bold.woff2') format('woff2'); font-weight: 700; }
+  @page { size: A4; margin: 13mm 14mm 11mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; color: #15151A; background: #fff;
+    font: 10.5pt/1.45 'Satoshi', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  }
+  header { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 3px solid #FF6E0A; }
+  header h1 { margin: 0; font-size: 19pt; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: #6B7280; font-size: 10pt; }
+  .fox { width: 40px; height: 40px; flex: 0 0 40px; }
+  .intro { display: flex; gap: 14px; align-items: center; margin: 14px 0 4px; font-size: 11pt; }
+  .intro p { margin: 0 0 6px; }
+  .key { width: 74px; height: 74px; flex: 0 0 74px; border-radius: 12px; }
+  .muted { color: #6B7280; }
+  .step { display: flex; gap: 12px; margin-top: 16px; break-inside: avoid; }
+  .num {
+    flex: 0 0 34px; height: 34px; border-radius: 50%; background: #FF6E0A; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13pt;
+  }
+  .body { flex: 1; min-width: 0; }
+  .step h2 { margin: 4px 0 4px; font-size: 13pt; }
+  .step p { margin: 0 0 6px; }
+  .step ul { margin: 6px 0 0; padding-left: 18px; }
+  .step li { margin-bottom: 3px; }
+  /* A crop of a 1366 px wide picture: --sx, --sy, --sw, --sh in its pixels. Percentage
+     margins are relative to the frame's width, so the crop scales with it. */
+  .shot {
+    position: relative; overflow: hidden; margin-top: 8px; border-radius: 8px;
+    border: 1px solid #D9DBE1; height: 0; padding-top: calc(var(--sh) / var(--sw) * 100%);
+  }
+  .shot img {
+    position: absolute; top: 0; left: 0; display: block; width: calc(1366 / var(--sw) * 100%);
+    margin-left: calc(var(--sx) / var(--sw) * -100%); margin-top: calc(var(--sy) / var(--sw) * -100%);
+  }
+  .row { display: flex; gap: 14px; align-items: flex-start; }
+  .row ul { flex: 1; }
+  .side { flex: 0 0 40%; margin-top: 6px; }
+  .callout {
+    margin-top: 18px; padding: 12px 14px; border-left: 4px solid #FF6E0A; background: #FFF6EF;
+    font-size: 10.5pt; break-inside: avoid;
+  }
+  .callout ul { margin: 6px 0 0; padding-left: 18px; }
+  .callout li { margin-bottom: 3px; }
+  footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #E5E7EB; color: #6B7280; font-size: 9.5pt; }
+  .page-break { break-before: page; }
+</style>
+</head>
+<body>
+  <header>
+    <svg class="fox" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+      <path d="M 84 24 L 180 160 L 332 160 L 428 24 L 472 300 L 256 492 L 40 300 Z"
+            fill="#FF6E0A" stroke="#FF6E0A" stroke-width="18" stroke-linejoin="round"/>
+      <g transform="translate(250 290) scale(5.6) translate(-30 -31)" stroke="#09090D" stroke-width="7"
+         stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="24" cy="25" r="8.5"/>
+        <path d="M30 31l13 13M39.5 40.5l4-4M35.5 36.5l3-3"/>
+      </g>
+    </svg>
+    <div>
+      <h1>Claiming your tokens at mvxvest.io</h1>
+      <p>A short guide for the beneficiaries of a vesting</p>
+    </div>
+  </header>
+
+  <div class="intro">
+    <img class="key" src="../public/nft/claim-key-2.png" alt="The claim key" />
+    <div>
+      <p>Someone locked tokens for you in a <strong>vesting</strong>. They unlock over time.
+        You collect what has unlocked <strong>whenever you like</strong>.</p>
+      <p>Your wallet holds the vesting's <strong>claim key</strong>: an NFT called
+        <em>Vesting #… claim key</em>, like the one on the left. Whoever holds it can claim.</p>
+      <p class="muted">Your part takes about a minute. It is the same every time.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">1</div>
+    <div class="body">
+      <h2>Open mvxvest.io and connect your wallet</h2>
+      <div class="row">
+        <ul>
+          <li>Go to <strong>mvxvest.io</strong> and press <strong>Connect</strong>. Check the address in your
+            browser: only mvxvest.io.</li>
+          <li>Choose how you sign: <strong>xPortal</strong> (scan the code with your phone), the MultiversX
+            <strong>browser extension</strong>, a <strong>Ledger</strong> or the <strong>web wallet</strong>.</li>
+          <li>Connect the wallet that holds the claim key. Connecting only shows the site your address;
+            it cannot move anything.</li>
+        </ul>
+        <div class="side">
+          <div class="shot" style="--sx: 912; --sy: 16; --sw: 438; --sh: 372">
+            <img src="../public/shots/05-connect.jpg" alt="The wallet chooser" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">2</div>
+    <div class="body">
+      <h2>Open My vestings</h2>
+      <div class="row">
+        <ul>
+          <li>Press <strong>My vestings</strong> at the top. You see every vesting whose claim key is in
+            your wallet.</li>
+          <li>Each card shows what has vested so far, what you already claimed and what you can
+            <strong>claim now</strong>.</li>
+        </ul>
+        <div class="side">
+          <div class="shot" style="--sx: 108; --sy: 84; --sw: 572; --sh: 420">
+            <img src="../public/shots/17-mine.jpg" alt="My vestings" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">3</div>
+    <div class="body">
+      <h2>Claim</h2>
+      <ul>
+        <li>Press <strong>Claim</strong> on one card. <strong>Claim all</strong> collects from every
+          vesting at once.</li>
+        <li>The page first checks with the network and shows the most the network fee can be. Then press
+          <strong>Sign in your wallet</strong> and approve in your wallet. A Ledger asks you to confirm
+          each transaction on the device.</li>
+        <li>Claiming costs only that small network fee, paid in EGLD. Keep a little EGLD in your wallet:
+          around 0.05 is plenty.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="num">4</div>
+    <div class="body">
+      <h2>Done</h2>
+      <ul>
+        <li>The page tells you what reached your wallet, token by token. The tokens are in your wallet now.</li>
+        <li>The claim key comes back to you for the next time. Once everything is claimed it is burned:
+          that vesting is finished.</li>
+      </ul>
+      <div class="shot" style="--sx: 108; --sy: 192; --sw: 852; --sh: 196">
+        <img src="../public/shots/18-claimed.jpg" alt="After Claim all" />
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Good to know</strong>
+    <ul>
+      <li>You can claim as often as you like. Waiting loses nothing.</li>
+      <li>Some vestings grow every second; others unlock on set dates. Each vesting's page shows the next
+        release.</li>
+      <li>If the creator can cancel your vesting, what has vested by then stays yours.</li>
+      <li>Sending the claim key to another wallet gives that wallet the right to claim. Only do it on purpose.</li>
+      <li>Nobody from mvxvest will ever ask for your secret words or your keys.</li>
+    </ul>
+  </div>
+
+  <footer>
+    mvxvest is open source: github.com/foxsyai/mvxvest. It never holds your keys: every transaction is signed
+    in your own wallet. The full guide, for creators too: mvxvest.io/guide.
+  </footer>
+</body>
+</html>

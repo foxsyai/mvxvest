@@ -424,5 +424,22 @@ export const Guide = () => (
     <div className='mt-12'>
       <Verify />
     </div>
+
+    <Card className='mt-6'>
+      <h2 className='font-bold'>If you only receive a vesting</h2>
+      <p className='mt-2 text-sm text-muted'>
+        Someone created it for you and you only claim. That is four steps, on
+        two pages:{' '}
+        <a
+          href='/mvxvest-for-beneficiaries.pdf'
+          target='_blank'
+          rel='noreferrer'
+          className='text-accent hover:underline'
+        >
+          download the guide for beneficiaries (PDF)
+        </a>
+        .
+      </p>
+    </Card>
   </div>
 );
