@@ -23,7 +23,7 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 - ~~**A detailed "How it works" with real screenshots.**~~ Live since 14 Oct 2026: 22 pictures, eleven steps and "Worth knowing" at https://mvxvest.io/guide.
   - To retake the pictures after an interface change, run `node dapp/scripts/capture/guide.mjs` (`ONLY=` and `FROM=` select pictures). The script fills every form itself and never signs; a person connects a devnet wallet and approves four times.
-  - Then run `dapp/scripts/capture/to-web.sh`, and `node dapp/scripts/make-beneficiary-pdf.mjs` to rebuild the guide for beneficiaries (`dapp/public/mvxvest-for-beneficiaries.pdf`, from `dapp/docs/beneficiary-guide.html`), which crops the same pictures.
+  - Then run `dapp/scripts/capture/to-web.sh`. Then `node dapp/scripts/make-beneficiary-pdf.mjs` rebuilds the guide for beneficiaries (`dapp/public/mvxvest-for-beneficiaries.pdf`, from `dapp/docs/beneficiary-guide.html`), which crops the same pictures.
 - ~~**Say what was received.**~~ Done on 14 Oct 2026: after a claim, a Claim all or a cancel, the panel says what was received, returned or stays claimable, read from the contract's events once the result is final.
 - ~~**Warn before leaving Create.**~~ Done: leaving Create with transactions half done asks first, for in-app links as well as a browser close or reload.
 
