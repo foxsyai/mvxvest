@@ -97,7 +97,22 @@ enable the hook that refuses staged secrets:
 git config core.hooksPath .githooks
 ```
 
-CI also scans every push with gitleaks.
+CI also scans the history with gitleaks, on main and on every merge candidate.
+
+## Contributing
+
+Pull requests into `main` are welcome. When one is a candidate to merge, a maintainer adds the
+label `merge-check`. That starts two checks, which must both pass. The pull request also needs a
+maintainer's approval:
+
+- **CI** (`mvxvest/ci`): the contract's build, tests and reproducible build; the dApp's lint,
+  types, tests and build; a secret scan.
+- **An AI review** (`mvxvest/review`): Claude Code reads the change, comments on what it finds and
+  gives a verdict. A blocking finding keeps the pull request from merging.
+
+Opening or updating a pull request starts nothing on its own. After a new commit, remove `merge-check` and add it again: GitHub starts the checks only when the
+label is added. A change to `.github/` or `scripts/ci/` is checked by hand. Report a security
+issue through [SECURITY.md](SECURITY.md), never in a pull request.
 
 ## Licence
 
