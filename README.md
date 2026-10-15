@@ -110,8 +110,8 @@ maintainer's approval:
 - **An AI review** (`mvxvest/review`): Claude Code reads the change, comments on what it finds and
   gives a verdict. A blocking finding keeps the pull request from merging.
 
-Opening or updating a pull request starts nothing on its own. A commit pushed after the checks
-needs the label again. A change to `.github/` or `scripts/ci/` is checked by hand. Report a security
+Opening or updating a pull request starts nothing on its own. After a new commit, remove `merge-check` and add it again: GitHub starts the checks only when the
+label is added. A change to `.github/` or `scripts/ci/` is checked by hand. Report a security
 issue through [SECURITY.md](SECURITY.md), never in a pull request.
 
 ## Licence
