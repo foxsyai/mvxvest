@@ -1,17 +1,73 @@
+# CI for mvxvest, as foxsyai/foxleague-agent runs it (ported 15 Oct 2026). It runs when a maintainer marks a pull
+# request into main as a merge candidate with the label merge-check (adding a label needs triage or write access),
+# on every push to main and on demand. Opening or updating a pull request starts nothing, so nobody can spend the
+# project's CI minutes by opening pull requests.
+#
+# The pull request's code runs here under the plain pull_request event: GitHub's sandbox for it, with no secret and
+# a read-only token. The result reaches main as the commit status "mvxvest/ci", posted by the checks GitHub App
+# from report-ci.yml, which runs from main and never sees this code. A pull request that changes this file, or
+# anything else in .github/ or scripts/ci/, fails the agent review: the maintainer checks such a change by hand.
+# A run started by any other label fails unless merge-check is on the pull request (a skipped job would count as
+# passed), and a commit pushed after the run has no result: add merge-check again.
 name: CI
 
 on:
-  push:
   pull_request:
+    types: [labeled]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  contract:
+  gate:
+    name: gate
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Only a merge candidate is tested
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'merge-check') }}
+        run: |
+          if [[ "$HAS_LABEL" != "true" ]]; then
+            echo "::error::This pull request is not marked merge-check: CI runs only when a maintainer adds that label."
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The merge commit of the event is tested, while the result attaches to the pull request's head: its second
+      # parent must be that head (read from the commit object, which a shallow checkout has).
+      - name: The code tested is the head that gets the result
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          second=$(git cat-file -p HEAD | awk '/^parent /{print $2}' | sed -n 2p)
+          if [[ "$second" != "$HEAD_SHA" ]]; then
+            echo "::error::The pull request changed since merge-check was added: add merge-check again to test its newest commit."
+            exit 1
+          fi
+
+      - name: The reviewer's workspace gate holds
+        run: python3 scripts/ci/test_review_gate.py
+
+  contract:
+    needs: gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # rustup reads rust-toolchain.toml (toolchain, wasm target, clippy).
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
@@ -82,12 +138,15 @@ jobs:
           PY
 
   dapp:
+    needs: gate
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: dapp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
         with:
           version: 10.28.2
@@ -107,10 +166,12 @@ jobs:
         run: pnpm build-devnet
 
   secrets:
+    needs: gate
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: gitleaks
         run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --verbose --config /repo/.gitleaks.toml
