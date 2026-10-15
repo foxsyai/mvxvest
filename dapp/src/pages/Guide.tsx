@@ -166,7 +166,23 @@ const Verify = () =>
 export const Guide = () => (
   <div className='mx-auto max-w-3xl'>
     <PageTitle title='How it works' />
-    <p className='text-muted'>
+    <Card>
+      <h2 className='font-bold'>If you only receive a vesting</h2>
+      <p className='mt-2 text-sm text-muted'>
+        Someone created it for you and you only claim. That is four steps, on
+        two pages:{' '}
+        <a
+          href='/mvxvest-for-beneficiaries.pdf'
+          target='_blank'
+          rel='noreferrer'
+          className='text-accent hover:underline'
+        >
+          download the guide for beneficiaries (PDF)
+        </a>
+        .
+      </p>
+    </Card>
+    <p className='mt-6 text-muted'>
       A vesting locks tokens in the mvxvest contract and releases them to one
       beneficiary over time. One contract holds every vesting; each has a number
       and anyone can read it. The beneficiary receives an NFT, the{' '}
@@ -424,22 +440,5 @@ export const Guide = () => (
     <div className='mt-12'>
       <Verify />
     </div>
-
-    <Card className='mt-6'>
-      <h2 className='font-bold'>If you only receive a vesting</h2>
-      <p className='mt-2 text-sm text-muted'>
-        Someone created it for you and you only claim. That is four steps, on
-        two pages:{' '}
-        <a
-          href='/mvxvest-for-beneficiaries.pdf'
-          target='_blank'
-          rel='noreferrer'
-          className='text-accent hover:underline'
-        >
-          download the guide for beneficiaries (PDF)
-        </a>
-        .
-      </p>
-    </Card>
   </div>
 );
