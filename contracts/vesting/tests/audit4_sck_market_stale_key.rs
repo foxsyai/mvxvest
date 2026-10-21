@@ -17,7 +17,8 @@
 //! holds it: during `claim`, never at `cancel`. The mainnet contract already
 //! holds `ESDTRoleNFTUpdateAttributes` on both collections (API, 20 Oct 2026).
 //!
-//! Finding SCK-1 (the first test fails on 322cb43): a key that has just paid
+//! Finding SCK-1 (the first test failed on version 2, 322cb43, and passes
+//! since version 3, which stamps the key at each claim): a key that has just paid
 //! out everything vested goes back to its holder byte-identical to the key as
 //! minted, and is sold that way. Expected once fixed: a key returned by
 //! `claim` says what it has paid (for example `;claimed:<amount>` set with
@@ -77,15 +78,13 @@ fn vesting_of_claim_nonce(f: &mut Fixture, nonce: u64) -> u64 {
         .run()
 }
 
-/// SCK-1 (fails on 322cb43). A project vests 1,000 FOX to itself, not even
+/// SCK-1 (failed on version 2; fixed in version 3). A project vests 1,000 FOX to itself, not even
 /// cancelable: the most trustworthy kind of key. At second 999 of 1,000 it
 /// claims: 999 FOX leave the contract and the key comes back. It then sells
 /// the key to Bob, who receives an NFT byte-identical to the one minted
 /// (same nonce, same name, same attributes) while the contract will ever pay
 /// it 1 FOX more. The views say so; the NFT does not.
 #[test]
-#[ignore = "SCK-1 needs a contract change (version 3), which waits for the owner's decision and a multisig vote: \
-            cargo test -p mvxvest --test audit4_sck_market_stale_key -- --ignored shows it failing"]
 fn a_drained_claim_key_goes_back_byte_identical_to_the_key_as_minted() {
     let mut f = Fixture::new();
     let id = f.create_fox(CREATOR, 1_000, linear(T0, T0, 0, T0 + 1_000), false);

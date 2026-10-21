@@ -38,7 +38,7 @@
           },
           "esdt": {
             "str:VESTKEY-123456": {
-              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn"],
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn", "ESDTRoleNFTUpdate"],
               "lastNonce": "0"
             },
             "str:VESTCANCEL-123456": {
@@ -149,7 +149,7 @@
             "str:FOX-a1b2c3": "1000",
             "str:EVIL-123456": "1",
             "str:VESTKEY-123456": {
-              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn"],
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn", "ESDTRoleNFTUpdate"],
               "lastNonce": "2"
             },
             "str:VESTCANCEL-123456": {
@@ -195,7 +195,7 @@
                   "balance": "1",
                   "creator": "sc:mvxvest",
                   "uri": [""],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;claimed:500"
                 },
                 {
                   "nonce": "2",

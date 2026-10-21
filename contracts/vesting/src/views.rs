@@ -217,6 +217,29 @@ pub trait ViewsModule:
         self.surplus(&token)
     }
 
+    /// What the contract lacks of `token` to pay everything it owes; 0
+    /// always, since every payout is booked. `getSurplus` stops at 0, so only
+    /// this view would show the books going wrong (fourth audit, SCM-1;
+    /// version 3).
+    #[view(getDeficit)]
+    fn get_deficit(&self, token: TokenId) -> BigUint {
+        self.deficit(&token)
+    }
+
+    /// Everything about the vesting a claim key opens, in one call: what a
+    /// marketplace or a buyer checks before paying for the key (fourth audit,
+    /// SCK-2; version 3). Fails for a nonce that was never minted.
+    #[view(getClaimKeyStatus)]
+    fn get_claim_key_status(&self, nonce: u64) -> VestingView<Self::Api> {
+        self.vesting_view(self.claim_key_vesting(nonce).get())
+    }
+
+    /// Whether `claim` stamps the keys it returns (version 3).
+    #[view(isKeyStamping)]
+    fn is_key_stamping(&self) -> bool {
+        self.key_stamping_off().is_empty()
+    }
+
     #[view(getLimits)]
     fn get_limits(&self) -> Limits {
         Limits {

@@ -43,7 +43,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "0"
             },
@@ -959,7 +960,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "4"
             },

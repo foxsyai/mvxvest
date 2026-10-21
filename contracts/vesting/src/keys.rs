@@ -1,12 +1,13 @@
 //! The claim and cancel keys: one NFT each, minted once per vesting, with a
 //! nonce that never changes. The contract never reads their attributes: it
-//! finds the vesting from the nonce, in its own storage.
+//! finds the vesting from the nonce, in its own storage. Since version 3 a
+//! claim key's name and attributes also say what its claims have paid.
 
 use multiversx_sc::imports::*;
 
 use crate::{
     errors::*,
-    storage::{self, KeyDisplay, KeyKind},
+    storage::{self, KeyDisplay, KeyKind, Vesting},
 };
 
 #[multiversx_sc::module]
@@ -42,30 +43,58 @@ pub trait KeysModule: storage::StorageModule {
         }
     }
 
-    /// Mints one key for vesting `id` and returns its nonce. The key stays in
-    /// the contract until the caller sends it on.
-    ///
-    /// The attributes say whether the vesting can be cancelled
+    /// A claim key's name: its vesting, and whether it can be cancelled.
+    /// Marketplaces show the name, not the attributes (fourth audit, SCK-2;
+    /// version 3).
+    fn claim_key_name(&self, id: u64, cancelable: bool) -> ManagedBuffer {
+        if cancelable {
+            sc_format!("Vesting #{} claim key, cancelable", id)
+        } else {
+            sc_format!("Vesting #{} claim key", id)
+        }
+    }
+
+    /// A key's attributes. They say whether the vesting can be cancelled
     /// (`cancelable:1` or `cancelable:0`, since version 2): a claim key is
     /// sold as an NFT, and outside this dApp its attributes are all a buyer
-    /// sees (red team RT3). The contract itself never reads them.
-    fn mint_key(&self, kind: KeyKind, id: u64, token: &TokenId, cancelable: bool) -> u64 {
-        let collection = self.key_mapper(kind).get_token_id();
-        let display = self.key_display_or_default(kind);
-        let name = match kind {
-            KeyKind::Claim => sc_format!("Vesting #{} claim key", id),
-            KeyKind::Cancel => sc_format!("Vesting #{} cancel key", id),
-        };
+    /// sees (red team RT3). A claim key returned by `claim` also says what
+    /// its claims have paid (`claimed:<units>`, since version 3). `metadata`
+    /// is the display's, for a key of its kind. The contract itself never
+    /// reads them.
+    fn key_attributes(
+        &self,
+        id: u64,
+        token: &TokenId,
+        cancelable: bool,
+        claimed: Option<&BigUint>,
+        metadata: &ManagedBuffer,
+    ) -> ManagedBuffer {
         let mut attributes = sc_format!(
             "tags:mvxvest,vesting;vesting:{};token:{};cancelable:{}",
             id,
             token,
             if cancelable { 1u8 } else { 0u8 }
         );
-        if !display.metadata.is_empty() {
-            attributes.append_bytes(b";metadata:");
-            attributes.append(&display.metadata);
+        if let Some(claimed) = claimed {
+            attributes.append(&sc_format!(";claimed:{}", claimed));
         }
+        if !metadata.is_empty() {
+            attributes.append_bytes(b";metadata:");
+            attributes.append(metadata);
+        }
+        attributes
+    }
+
+    /// Mints one key for vesting `id` and returns its nonce. The key stays in
+    /// the contract until the caller sends it on.
+    fn mint_key(&self, kind: KeyKind, id: u64, token: &TokenId, cancelable: bool) -> u64 {
+        let collection = self.key_mapper(kind).get_token_id();
+        let display = self.key_display_or_default(kind);
+        let name = match kind {
+            KeyKind::Claim => self.claim_key_name(id, cancelable),
+            KeyKind::Cancel => sc_format!("Vesting #{} cancel key", id),
+        };
+        let attributes = self.key_attributes(id, token, cancelable, None, &display.metadata);
         let mut uris = display.uris;
         if uris.is_empty() {
             uris.push(ManagedBuffer::new());
@@ -79,6 +108,56 @@ pub trait KeysModule: storage::StorageModule {
             &attributes,
             &uris,
         )
+    }
+
+    /// Rewrites the claim key `nonce` of vesting `id` while `claim` holds it,
+    /// before it goes back: its name and attributes say what has been claimed
+    /// so far (fourth audit, SCK-1; version 3). A key sold afterwards shows
+    /// it wherever the NFT is shown. The protocol lets only the holder change
+    /// a non-dynamic NFT, so a cancel cannot be written here; a claim after a
+    /// cancel always finishes and burns the key.
+    ///
+    /// `ESDTMetaDataUpdate` changes the name and the attributes and keeps
+    /// what it is given empty; it takes at least one URI, so the key's own
+    /// URIs are passed back unchanged.
+    fn stamp_claim_key(
+        &self,
+        nonce: u64,
+        id: u64,
+        vesting: &Vesting<Self::Api>,
+        claimed: &BigUint,
+    ) {
+        let collection = self.claim_key().get_token_id();
+        let mut name = self.claim_key_name(id, vesting.cancelable);
+        let percent = (claimed * 100u32 / &vesting.total).to_u64().unwrap_or(0);
+        if percent == 0 {
+            name.append_bytes(b", under 1% claimed");
+        } else {
+            name.append(&sc_format!(", {}% claimed", percent));
+        }
+        let attributes = self.key_attributes(
+            id,
+            &vesting.token,
+            vesting.cancelable,
+            Some(claimed),
+            &self.key_display_or_default(KeyKind::Claim).metadata,
+        );
+        let mut uris = self
+            .blockchain()
+            .get_esdt_token_data(&self.blockchain().get_sc_address(), &collection, nonce)
+            .uris;
+        if uris.is_empty() {
+            uris.push(ManagedBuffer::new());
+        }
+        self.send().esdt_metadata_update(
+            collection,
+            nonce,
+            name,
+            0,
+            ManagedBuffer::new(),
+            &attributes,
+            uris,
+        );
     }
 
     /// The vesting opened by a received key, after checking it is a key of

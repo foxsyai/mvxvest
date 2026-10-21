@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           38
+// Endpoints:                           42
 // Async Callback:                       1
-// Total number of exported functions:  41
+// Total number of exported functions:  45
 
 #![no_std]
 
@@ -28,6 +28,7 @@ multiversx_sc_wasm_adapter::endpoints! {
         setTokenFee => set_token_fee
         pauseCreation => pause_creation
         unpauseCreation => unpause_creation
+        setKeyStamping => set_key_stamping
         claimFees => claim_fees
         create => create
         createBatch => create_batch
@@ -57,6 +58,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         getClaimKeyCollection => get_claim_key_collection
         getCancelKeyCollection => get_cancel_key_collection
         getSurplus => get_surplus
+        getDeficit => get_deficit
+        getClaimKeyStatus => get_claim_key_status
+        isKeyStamping => is_key_stamping
         getLimits => get_limits
     )
 }

@@ -80,6 +80,11 @@ const action = (): Buffer => {
     // pauseCreation takes no argument: the contract refuses the call, after two signatures.
     case "pause-with-an-argument":
       return sendAsyncCall(MVXVEST, "pauseCreation", [Buffer.from([1])]);
+    // Version 3's switch for the stamping of claim keys: off (false encodes empty), and a value that is no bool.
+    case "key-stamping-off":
+      return sendAsyncCall(MVXVEST, "setKeyStamping", [Buffer.alloc(0)]);
+    case "key-stamping-not-a-bool":
+      return sendAsyncCall(MVXVEST, "setKeyStamping", [Buffer.from([2])]);
     // A well-formed upgrade of mvxvest from a source whose account answer carries no code metadata.
     case "upgrade-source-metadata-unknown":
       return upgradeFromSource(MVXVEST, SOURCE, Buffer.from([0x05, 0x00]));
