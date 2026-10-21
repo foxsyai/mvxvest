@@ -22,7 +22,7 @@ import { CreatorLabel } from 'components/vesting/CreatorLabel';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { IssuerPowers } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
-import { useAsync, useSigningRecord, useToken } from 'hooks';
+import { useAsync, useKeyStamping, useSigningRecord, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
 import { isVestingNumber } from 'vesting/identifiers';
@@ -104,6 +104,7 @@ const VestingView = () => {
     return { v, collections, claimHolder, cancelHolder };
   }, [id]);
   const history = useAsync(() => historyOf(id), [id]);
+  const stamping = useKeyStamping();
   const v = data.data?.v;
   const token = useToken(v?.token);
 
@@ -234,8 +235,23 @@ const VestingView = () => {
             decimals={token.decimals}
             ticker={ticker}
           />
-          ). Read this page right before paying: the key itself never shows what
-          was claimed or whether the vesting was cancelled.
+          ). Read this page right before paying:{' '}
+          {stamping === true ? (
+            <>
+              the key&apos;s name shows what had been claimed at its last claim;
+              it never shows a cancel.
+            </>
+          ) : stamping === false ? (
+            <>
+              the owner has turned the stamp off, so a key&apos;s name no longer
+              shows what has been claimed since, nor a cancel.
+            </>
+          ) : (
+            <>
+              the key itself never shows what was claimed or whether the vesting
+              was cancelled.
+            </>
+          )}
         </Notice>
       )}
 

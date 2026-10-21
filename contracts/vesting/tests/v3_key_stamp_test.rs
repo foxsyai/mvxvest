@@ -169,3 +169,31 @@ fn the_stamp_keeps_the_keys_pictures() {
     f.claim(CREATOR, &[1]);
     assert_eq!(claim_key_of(&mut f, CREATOR, 1).uris, minted.uris);
 }
+
+#[test]
+fn a_long_minted_metadata_is_kept_whole() {
+    let mut f = Fixture::new();
+    // Longer than the 256 bytes the stamp searches for the metadata's start.
+    let metadata = format!("ipfs://{}", "a".repeat(400));
+    f.world
+        .tx()
+        .from(OWNER)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .set_key_display(
+            KeyKind::Claim,
+            metadata.as_str(),
+            MultiValueEncoded::<StaticApi, ManagedBuffer<StaticApi>>::new(),
+        )
+        .run();
+    let id = f.create_fox(CREATOR, 1_000, linear(T0, T0, 0, T0 + 1_000), false);
+    f.set_time(T0 + 500);
+    f.claim(CREATOR, &[1]);
+    assert_eq!(
+        claim_key_of(&mut f, CREATOR, 1).attributes,
+        format!(
+            "{};claimed:500;metadata:{metadata}",
+            key_attributes(id, FOX.as_str(), false)
+        )
+    );
+}

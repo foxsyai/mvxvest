@@ -36,7 +36,7 @@ fn run_on_go_vm(scenario: &str) {
 /// VM's gas schedule; devnet charges more per key, so the dApp also splits by
 /// simulated gas). Since version 3, 99 unfinished keys that pay and go back
 /// stamped are 99 `ESDTMetaDataUpdate` calls plus the transfer, 100 again:
-/// they go in one call too, for about 287M gas.
+/// they go in one call too, for about 300M gas.
 #[test]
 fn safe_99_keys() {
     run_on_go_vm("review5_safe_99_keys.scen.json");

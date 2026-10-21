@@ -81,8 +81,8 @@ burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
   `ESDTMetaDataUpdate` (the contract holds `ESDTRoleNFTUpdate` on both
   networks): the name gets `, <p>% claimed` (`claimed` over the total, rounded
   down; `, under 1% claimed` below 1%) and the attributes get
-  `;claimed:<units>` before any `metadata` part, with the display's current
-  metadata. The key's URIs, nonce and royalties do not change. A claim that
+  `;claimed:<units>` before the `metadata` part the key was minted with, if
+  any. The key's URIs, nonce and royalties do not change. A claim that
   pays nothing leaves the key as it was; a key minted by version 1 or 2 is
   rewritten in the version 3 format at its first such claim. A cancel cannot
   be written: the contract does not hold the claim key then. A claim after a

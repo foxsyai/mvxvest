@@ -295,6 +295,26 @@ export class VestingClient {
     }
   }
 
+  /**
+   * Whether claims stamp the keys they return with what was claimed (version
+   * 3). null for a contract before version 3, which has no such view; any
+   * other failure is thrown.
+   */
+  async isKeyStamping(): Promise<boolean | null> {
+    try {
+      const [value] = await this.query('isKeyStamping');
+      return Boolean(value);
+    } catch (failure) {
+      if (
+        /function not found|invalid function|isKeyStamping/i.test(
+          String((failure as any)?.message ?? failure)
+        )
+      )
+        return null;
+      throw failure;
+    }
+  }
+
   async creationPaused(): Promise<boolean> {
     const [value] = await this.query('isCreationPaused');
     return Boolean(value);

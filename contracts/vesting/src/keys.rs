@@ -119,7 +119,9 @@ pub trait KeysModule: storage::StorageModule {
     ///
     /// `ESDTMetaDataUpdate` changes the name and the attributes and keeps
     /// what it is given empty; it takes at least one URI, so the key's own
-    /// URIs are passed back unchanged.
+    /// URIs are passed back unchanged. The key keeps the `metadata` part it
+    /// was minted with, like its URIs: `setKeyDisplay` changes only keys
+    /// minted afterwards (version 3's audit, V3C-1).
     fn stamp_claim_key(
         &self,
         nonce: u64,
@@ -135,17 +137,19 @@ pub trait KeysModule: storage::StorageModule {
         } else {
             name.append(&sc_format!(", {}% claimed", percent));
         }
+        let key = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            &collection,
+            nonce,
+        );
         let attributes = self.key_attributes(
             id,
             &vesting.token,
             vesting.cancelable,
             Some(claimed),
-            &self.key_display_or_default(KeyKind::Claim).metadata,
+            &minted_metadata(&key.attributes),
         );
-        let mut uris = self
-            .blockchain()
-            .get_esdt_token_data(&self.blockchain().get_sc_address(), &collection, nonce)
-            .uris;
+        let mut uris = key.uris;
         if uris.is_empty() {
             uris.push(ManagedBuffer::new());
         }
@@ -197,6 +201,30 @@ pub trait KeysModule: storage::StorageModule {
         nonce != 0
             && self.key_mapper(kind).get_token_state().is_set()
             && self.key_mapper(kind).get_balance(nonce) > 0u32
+    }
+}
+
+/// The `metadata` part of a key's attributes, empty when it has none. The
+/// contract writes it last, after `tags`, `vesting`, `token`, `cancelable`
+/// and `claimed`, none of which can contain `;metadata:` (numbers and a
+/// token identifier), so its first occurrence starts it; that prefix is at
+/// most about 180 bytes, so only the first 256 are searched.
+pub fn minted_metadata<M: ManagedTypeApi>(attributes: &ManagedBuffer<M>) -> ManagedBuffer<M> {
+    const MARK: &[u8] = b";metadata:";
+    let mut head = [0u8; 256];
+    let searched = attributes.len().min(head.len());
+    attributes.load_slice(0, &mut head[..searched]);
+    match head[..searched]
+        .windows(MARK.len())
+        .position(|window| window == MARK)
+    {
+        Some(at) => {
+            let start = at + MARK.len();
+            attributes
+                .copy_slice(start, attributes.len() - start)
+                .unwrap_or_default()
+        }
+        None => ManagedBuffer::new(),
     }
 }
 
