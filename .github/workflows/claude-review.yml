@@ -5,7 +5,8 @@
 # after the review: main requires that status from that App, so a pull request merges only after the agent has
 # reviewed it and found nothing blocking. The job is red when Claude records a "block" verdict, red when no
 # verdict was recorded (crash, timeout, interruption), red when no credential is set and red when merge-check is
-# not on the pull request. A commit pushed after the review has no result: remove merge-check and add it again.
+# not on the pull request; adding any other label starts nothing. A commit pushed after the review has no result:
+# remove merge-check and add it again.
 #
 # Ported on 15 Oct 2026 from foxsyai/foxleague-agent's claude-review (Sebastian: "exactly as it is for the
 # FoxLeague agent"): pull_request_target, so a pull request from a fork is reviewed too; the workflow, the
@@ -30,14 +31,15 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  id-token: write
 
+# Another label added to the pull request neither runs a review nor cancels the one under way (fourth audit, OPS-10).
 concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
+  group: claude-review-${{ github.event.pull_request.number }}-${{ github.event.label.name == 'merge-check' }}
   cancel-in-progress: true
 
 jobs:
   claude-review:
+    if: ${{ github.event.label.name == 'merge-check' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -81,15 +83,17 @@ jobs:
           fi
 
       # A pull request that changes the CI or the review itself (.github/, scripts/ci/) is not judged by them: CI
-      # runs the pull request's own copy of ci.yml, so its result would be the author's. Such a change fails here
-      # and the maintainer checks it by hand (and merges it with the admin bypass when it is sound).
+      # runs the pull request's own copy of ci.yml, so its result would be the author's. The same holds for the
+      # secret scan's settings, which CI reads from the pull request (fourth audit, OPS-9). Such a change fails
+      # here and the maintainer checks it by hand (and merges it with the admin bypass when it is sound).
       - name: A change to the CI or the review is checked by hand
         run: |
           # --no-renames: a file renamed out of these folders counts as a change to them; the pathspec, not a grep
           # of the names, so a quoted name (special characters) cannot slip past (reviews of PR #5).
-          changed=$(git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD -- .github scripts/ci)
+          changed=$(git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD -- .github scripts/ci \
+            .gitleaks.toml .gitleaksignore)
           if [[ -n "$changed" ]]; then
-            echo "::error::This pull request changes the CI or the review, so they cannot judge it: a maintainer checks it by hand. Files: $(echo $changed)"
+            echo "::error::This pull request changes the CI, the review or the secret scan's settings, so they cannot judge it: a maintainer checks it by hand. Files: $(echo $changed)"
             exit 1
           fi
 
@@ -341,7 +345,7 @@ jobs:
   report:
     name: report review
     needs: claude-review
-    if: ${{ always() }}
+    if: ${{ always() && github.event.label.name == 'merge-check' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
