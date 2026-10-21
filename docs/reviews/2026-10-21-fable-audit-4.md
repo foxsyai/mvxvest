@@ -54,7 +54,7 @@ Each finding was proven by a test that fails on 322cb43 or by exact evidence whe
 | WEB-1 | Low | `/t/`, `/v/` and `/a/` showed any text in the address as the page's heading: a link to the real domain could carry someone else's message. A missing token read as "the network did not answer". | Each page checks the shape of the identifier before it reads or shows anything; text of another shape is called not a token identifier, a vesting number or an address and is never repeated; a missing token reads "No such token on this network". `audit4_web_route_echo.test.tsx` |
 | WEB-2 | Low | A copy of the site looks the same, the Verify box included. What a copy cannot fake is the receiver the wallet shows; nothing told people to check it. | The Verify box, step 7 and the guide for beneficiaries (PDF) name mvxvest.io as the only site and say the wallet must show the contract address as the receiver. `audit4_web_guide_clone_checks.test.tsx` |
 | WEB-3 | Low | No Cross-Origin-Opener-Policy: a page that opened the site kept a handle on its tab and could later send it to a copy. | `same-origin-allow-popups` on both sites; the web wallet's popup still works. `audit4_ops_site_headers.test.ts` |
-| WEB-4 | Low | mvxvest.io has no SPF, DMARC or MX record, so mail can pretend to come from it. | For the owner: DNS at the registrar (below). |
+| WEB-4 | Low | mvxvest.io has no SPF, DMARC or MX record, so mail can pretend to come from it. | For the owner: three DNS records (below). |
 | WEB-5 | Info | follow-redirects 1.16.0 (two advisories) under axios, in Node only. | Overridden to 1.16.1. `audit4_web_supply_lock_advisories.test.ts` |
 | WEB-6 | Info | Nothing pinned the package manager: an older pnpm would run the install scripts the workspace disables. | `packageManager` with its hash and `engines` in `dapp/package.json`. `audit4_web_supply_package_manager.test.ts` |
 | WEB-7 | Info | The CSP allowed two hosts the site never calls and WalletConnect's telemetry. | All three removed; the telemetry's failures are caught. `audit4_ops_site_headers.test.ts` |
@@ -92,7 +92,7 @@ Each finding was proven by a test that fails on 322cb43 or by exact evidence whe
 
 - **Contract version 3** (SCK-1, SCK-2, SCM-1): stamp what a claim paid into the returned key, mark cancelable keys in their name, a status view and a deficit view. It needs the code, an audit of its own, a devnet rehearsal and a multisig vote. Version 3 must not add fields to the stored structures (`Vesting`, `TokenTotals`, `KeyDisplay`, `Schedule`): old entries would stop decoding.
 - **Merge rules** (OPS-6, OPS-8, RT3): either a second maintainer who approves or no required approval while both results stay required (then the owner's own pull requests merge without the bypass). Strict results cost a new `merge-check` after each update of main.
-- **DNS** (WEB-4): `v=spf1 -all`, a DMARC record with `p=reject` and a null MX, at the registrar.
+- **DNS** (WEB-4): `v=spf1 -all`, a DMARC record with `p=reject` and a null MX, in the domain's DNS at DigitalOcean.
 - **HSTS preload** (WEB-8): add `preload` and submit the domain; leaving the list later takes months.
 
 ## Checked sound
