@@ -1,10 +1,16 @@
 # Contract specification
 
-The rules the vesting contract implements. This is **version 2**, live on
-mainnet since 14 October 2026 (code hash a7acbf22…, [MAINNET.md](MAINNET.md)).
-It differs from version 1, which ran from 12 to 14 October, in four places: the
-token fee, the batch limits (49 and 32 instead of 50 and 33),
-`recoverSurplus`'s amount and the `cancelable` marker in the key attributes.
+The rules the vesting contract implements. This is **version 3**, not deployed
+yet: mainnet runs version 2 since 14 October 2026 (code hash a7acbf22…,
+[MAINNET.md](MAINNET.md)). Version 3 differs from version 2 in what a claim key
+shows: a cancelable vesting's claim key says so in its name; each claim that
+pays rewrites the returned key's name and attributes with what has been
+claimed (the fourth audit's SCK-1 and SCK-2). It adds the owner's switch for
+that (`setKeyStamping`) and three views (`getClaimKeyStatus`, `getDeficit`,
+`isKeyStamping`). Version 2 differed from version 1, which ran from 12 to 14
+October, in four places: the token fee, the batch limits (49 and 32 instead of
+50 and 33), `recoverSurplus`'s amount and the `cancelable` marker in the key
+attributes.
 
 The code is in
 [contracts/vesting/src](../contracts/vesting/src); each rule is checked by the
@@ -60,14 +66,29 @@ burn roles. Proposed names: `MvxVestClaimKey` / `VESTKEY` and
   cancelable, one cancel key (sent to the creator). Amount 1, no royalties.
 - A key keeps its nonce for life. The contract maps nonce to vesting id in its
   own storage and never reads the NFT's attributes.
-- Name: `Vesting #<id> claim key` / `Vesting #<id> cancel key`. Attributes:
+- Name at mint: `Vesting #<id> claim key` (`Vesting #<id> claim key,
+  cancelable` when the vesting can be cancelled, since version 3) and
+  `Vesting #<id> cancel key`. Attributes:
   `tags:mvxvest,vesting;vesting:<id>;token:<token>;cancelable:<0|1>`, plus
   `;metadata:<value>` when the owner has set one. `cancelable:1` on a claim
   key warns a buyer that whoever holds the cancel key can stop the vesting; a
   cancel key always says `cancelable:1`. Keys minted by version 1 have no
-  `cancelable` part. The contract cannot rewrite them: updating
-  attributes acts on the caller's own NFT; the holders own the keys. URIs: as set by the owner with `setKeyDisplay`
-  for keys minted from then on.
+  `cancelable` part. URIs: as set by the owner with `setKeyDisplay` for keys
+  minted from then on.
+- The stamp (version 3). The protocol lets only the holder change a
+  non-dynamic NFT, so the contract can rewrite a claim key only while `claim`
+  holds it. Each claim that pays and returns the key rewrites it with
+  `ESDTMetaDataUpdate` (the contract holds `ESDTRoleNFTUpdate` on both
+  networks): the name gets `, <p>% claimed` (`claimed` over the total, rounded
+  down; `, under 1% claimed` below 1%) and the attributes get
+  `;claimed:<units>` before the `metadata` part the key was minted with, if
+  any. The key's URIs, nonce and royalties do not change. A claim that
+  pays nothing leaves the key as it was; a key minted by version 1 or 2 is
+  rewritten in the version 3 format at its first such claim. A cancel cannot
+  be written: the contract does not hold the claim key then. A claim after a
+  cancel always pays the rest and burns the key. The owner can turn
+  the stamp off and on (`setKeyStamping`); it changes only what a key shows,
+  never what a claim pays.
 
 ## 3. Endpoints
 
@@ -111,8 +132,11 @@ to the creator in one transfer.
 ### `claim()`
 
 Payable with one or more claim keys: at most 99 per transaction (each
-finished key is burned, a built-in call; the network allows 100) and in
-practice fewer, as each key costs about 7M gas; the dApp sends at most 50. For each key: pays `vested(now) -
+finished key is burned and, since version 3, each key that paid and goes back
+is stamped, a built-in call each; the network allows 100) and in practice
+fewer, as each key costs about 7M gas, more with the stamp (8.6M for one
+stamped key on devnet); the dApp sends at most 50. When the network refuses a
+set whose keys each pass alone, the dApp offers to claim half of them. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
 the key or burns it when nothing more can ever be claimed (`claimed` equals
 the total or what had vested at the cancel). Each key that paid or burned
@@ -142,6 +166,7 @@ cannot be stopped.
 | `setTokenFee(bps)` | Token fee, in basis points of each vesting's total, at most 200 (2%, `MAX_TOKEN_FEE_BPS`) |
 | `pauseCreation()`, `unpauseCreation()` | Stop or resume `create` and `createBatch` only |
 | `claimFees()` | Send the accrued EGLD fees to the owner |
+| `setKeyStamping(on)` | Whether `claim` stamps the keys it returns (version 3; on unless turned off). Exists so a change of the protocol's metadata update can never stop claims until an upgrade |
 | `recoverSurplus(token, to, [amount])` | Send `amount` of what the contract holds of `token` beyond what it owes. Without an amount, send all of it (see section 5) |
 | `recoverBouncedKey(id, kind, to)` | Send on a key the contract holds after a bounce (below) |
 | `upgrade` | The multisig can upgrade the contract; storage is kept |
@@ -178,7 +203,11 @@ key with that nonce was minted; the answer stays after the key is burned),
 `getFee`, `getMaxFee`, `getTokenFee`, `getMaxTokenFee`, `getFeesAccrued`,
 `isCreationPaused`,
 `getClaimKeyCollection`, `getCancelKeyCollection` (empty until issued),
-`getSurplus(token)` and `getLimits`. Pages hold at most 100 ids.
+`getSurplus(token)` and `getLimits`. Pages hold at most 100 ids. Since
+version 3: `getClaimKeyStatus(nonce)` (the `getVesting` view of the vesting a
+claim key opens, in one call; fails for a nonce never minted),
+`getDeficit(token)` (what the balance lacks of what is owed: always 0, since
+every payout is booked, while `getSurplus` stops at 0) and `isKeyStamping`.
 
 ## 5. Accounting and safety
 
@@ -228,5 +257,6 @@ claim_nonce, cancel_nonce, label)`, `vestingClaimed(id, caller, token; amount,
 claimed_total, finished)`, `vestingCancelled(id, caller, token; refund,
 vested)`, `feeSet`, `tokenFeeSet(bps)`, `tokenFeePaid(token, to; amount)`,
 `creationPaused`, `feesClaimed`, `keyRecovered(id, kind, caller, to)`,
-`surplusRecovered`. Indexed topics come before the semicolon. Together they
+`surplusRecovered`, `keyStampingSet(on)` (version 3). A stamp shows in the
+claim's logs as the protocol's `ESDTMetaDataUpdate`. Indexed topics come before the semicolon. Together they
 are enough to rebuild the full history without reading storage.

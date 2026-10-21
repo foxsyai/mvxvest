@@ -14,7 +14,9 @@ use crate::{
 pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::KeysModule {
     /// Send one or more claim keys. Pays everything vested and not yet claimed
     /// on each, in one transfer back with the keys. A key whose vesting can
-    /// pay nothing more is burned instead of returned. Fails when no key paid
+    /// pay nothing more is burned instead of returned. A key that paid and
+    /// goes back says what has been claimed in its name and attributes
+    /// (version 3, unless the owner turned it off). Fails when no key paid
     /// anything or was burned.
     #[payable]
     #[endpoint(claim)]
@@ -25,6 +27,7 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         let now = self.now();
         let mut outgoing = ManagedVec::new();
         let mut progressed = false;
+        let stamp = self.key_stamping_off().is_empty();
         for payment in payments.iter() {
             let id = self.vesting_of_key(KeyKind::Claim, &payment);
             let vesting = self.vesting(id).get();
@@ -43,6 +46,9 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             if finished {
                 self.burn_key(KeyKind::Claim, payment.token_nonce);
             } else {
+                if stamp && amount > 0u32 {
+                    self.stamp_claim_key(payment.token_nonce, id, &vesting, &claimed_total);
+                }
                 outgoing.push(payment.clone());
             }
             // A key that paid nothing and is not finished changed nothing: it
@@ -175,6 +181,21 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         }
         if balance > owed {
             balance - owed
+        } else {
+            BigUint::zero()
+        }
+    }
+
+    /// What the contract lacks of `token` to pay everything it owes: the
+    /// other side of `surplus`, 0 normally (version 3).
+    fn deficit(&self, token: &TokenId) -> BigUint {
+        let balance = self.blockchain().get_sc_balance(token, 0);
+        let mut owed = self.totals_of(token).owed();
+        if token.is_native() {
+            owed += self.fees_accrued().get();
+        }
+        if owed > balance {
+            owed - balance
         } else {
             BigUint::zero()
         }

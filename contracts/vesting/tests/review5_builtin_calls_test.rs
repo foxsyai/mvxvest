@@ -27,6 +27,7 @@ const BUILTINS: &[&str] = &[
     "ESDTNFTAddQuantity",
     "ESDTLocalBurn",
     "ESDTLocalMint",
+    "ESDTMetaDataUpdate",
 ];
 
 /// Built-in calls made by the contract itself (not the incoming payment,
@@ -210,15 +211,25 @@ fn safe_claim_all_fits_99_keys_and_one_key_always_fits() {
     f.check_invariant(Some(FOX));
 }
 
-/// SAFE: a claim of keys that are not finished burns nothing: one transfer,
-/// whatever the number of keys (the 250-transfer limit is reached first only
-/// past 125 keys of 125 different tokens, above the 99 cap).
+/// SAFE, and still the dApp's cap since version 3: a claim of keys that are
+/// not finished burns nothing, but stamps each key that paid
+/// (`ESDTMetaDataUpdate`) before the one transfer back. 99 such keys make 100
+/// calls; 100 make 101, which the network refuses. A key that pays nothing
+/// is not stamped. (The 250-transfer limit is reached first only past 125
+/// keys of 125 different tokens, above the 99 cap.)
 #[test]
-fn safe_claim_of_unfinished_keys_is_one_builtin_call() {
+fn safe_claim_of_unfinished_keys_stamps_each_and_99_still_fit() {
     let mut f = Fixture::new();
-    let ids = plain_vestings(&mut f, 50, ALICE);
+    let ids = plain_vestings(&mut f, 100, ALICE);
     f.set_time(T0 + DAY / 2);
-    assert_eq!(claim_calls(&mut f, ALICE, &ids), 1);
+    assert_eq!(claim_calls(&mut f, ALICE, &ids[..99]), 99 + 1);
+    let mut g = Fixture::new();
+    let more = plain_vestings(&mut g, 100, ALICE);
+    g.set_time(T0 + DAY / 2);
+    assert_eq!(claim_calls(&mut g, ALICE, &more), MAX_BUILTIN_CALLS + 1);
+    // The 100th key alone, which still pays: one stamp and the transfer.
+    assert_eq!(claim_calls(&mut f, ALICE, &ids[99..]), 2);
+    f.check_invariant(Some(FOX));
 }
 
 /// SAFE, and the dApp's cap: a cancel burns each cancel key and sends the

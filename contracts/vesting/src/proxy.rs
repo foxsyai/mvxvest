@@ -206,6 +206,23 @@ where
             .original_result()
     }
 
+    /// Turns the stamping of claim keys at claim on or off (version 3); on 
+    /// unless the owner turned it off. It changes only what a returned key 
+    /// shows, never what a claim pays: it exists so that a change of the 
+    /// protocol's metadata update can never stop claims until an upgrade. 
+    pub fn set_key_stamping<
+        Arg0: ProxyArg<bool>,
+    >(
+        self,
+        on: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, ()> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("setKeyStamping")
+            .argument(&on)
+            .original_result()
+    }
+
     /// Sends the accrued EGLD fees to the owner. 
     pub fn claim_fees(
         self,
@@ -271,7 +288,9 @@ where
 
     /// Send one or more claim keys. Pays everything vested and not yet claimed 
     /// on each, in one transfer back with the keys. A key whose vesting can 
-    /// pay nothing more is burned instead of returned. Fails when no key paid 
+    /// pay nothing more is burned instead of returned. A key that paid and 
+    /// goes back says what has been claimed in its name and attributes 
+    /// (version 3, unless the owner turned it off). Fails when no key paid 
     /// anything or was burned. 
     pub fn claim(
         self,
@@ -624,6 +643,49 @@ where
             .payment(NotPayable)
             .raw_call("getSurplus")
             .argument(&token)
+            .original_result()
+    }
+
+    /// What the contract lacks of `token` to pay everything it owes; 0 
+    /// always, since every payout is booked. `getSurplus` stops at 0, so only 
+    /// this view would show the books going wrong (fourth audit, SCM-1; 
+    /// version 3). 
+    pub fn get_deficit<
+        Arg0: ProxyArg<TokenId<Env::Api>>,
+    >(
+        self,
+        token: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, BigUint<Env::Api>> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("getDeficit")
+            .argument(&token)
+            .original_result()
+    }
+
+    /// Everything about the vesting a claim key opens, in one call: what a 
+    /// marketplace or a buyer checks before paying for the key (fourth audit, 
+    /// SCK-2; version 3). Fails for a nonce that was never minted. 
+    pub fn get_claim_key_status<
+        Arg0: ProxyArg<u64>,
+    >(
+        self,
+        nonce: Arg0,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, VestingView<Env::Api>> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("getClaimKeyStatus")
+            .argument(&nonce)
+            .original_result()
+    }
+
+    /// Whether `claim` stamps the keys it returns (version 3). 
+    pub fn is_key_stamping(
+        self,
+    ) -> TxTypedCall<Env, From, To, NotPayable, Gas, bool> {
+        self.wrapped_tx
+            .payment(NotPayable)
+            .raw_call("isKeyStamping")
             .original_result()
     }
 

@@ -34,7 +34,9 @@ fn run_on_go_vm(scenario: &str) {
 /// finishing plain claim keys and 99 claim keys of cancelled vestings each go
 /// in one call, with exact refunds and payouts (about 133M gas each with this
 /// VM's gas schedule; devnet charges more per key, so the dApp also splits by
-/// simulated gas).
+/// simulated gas). Since version 3, 99 unfinished keys that pay and go back
+/// stamped are 99 `ESDTMetaDataUpdate` calls plus the transfer, 100 again:
+/// they go in one call too, for about 300M gas.
 #[test]
 fn safe_99_keys() {
     run_on_go_vm("review5_safe_99_keys.scen.json");

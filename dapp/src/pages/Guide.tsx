@@ -12,7 +12,7 @@ import {
   ownerSigners,
   ownerSignersDistinct
 } from 'config';
-import { useAsync } from 'hooks';
+import { useAsync, useKeyStamping } from 'hooks';
 import { percentOf } from 'vesting/fees';
 import { formatAmount } from 'vesting/format';
 import { keyId } from 'vesting/identifiers';
@@ -56,6 +56,51 @@ const Step = ({
     </div>
   </section>
 );
+
+/**
+ * What a claim key's name shows, as the contract does it now: since version
+ * 3 a claim stamps it with what was claimed (version 3's audit, V3R-1).
+ */
+const KeyNameOnCancelable = () => {
+  const stamping = useKeyStamping();
+  if (stamping === null)
+    return (
+      <> (keys made since 14 October 2026 also say so in their attributes).</>
+    );
+  // A key minted since version 3 has the marker from its mint; an older one
+  // gets it from a claim that pays, and only while the stamp is on.
+  return (
+    <>
+      ; its claim key says so in its name too (a key made before this change,
+      only from its next claim that pays
+      {stamping === false &&
+        ' once the owner turns the stamp back on: it is off now'}
+      ).
+    </>
+  );
+};
+
+const KeyNameOnSale = () => {
+  const stamping = useKeyStamping();
+  if (stamping === null) return <>The key itself never changes either:</>;
+  return (
+    <>
+      Its name shows what had been claimed at its last stamped claim, never a
+      cancel; a name without “% claimed” tells nothing about what was paid
+      {stamping === false &&
+        ' (the owner has turned that stamp off for now, so a name may be out of date)'}
+      :
+    </>
+  );
+};
+
+const OwnerStamp = () =>
+  useKeyStamping() === null ? null : (
+    <>
+      , turn off the stamp of claim keys (it changes what a key shows, never
+      what it pays)
+    </>
+  );
 
 /** The fees as the contract has them now, read live. */
 const Fees = () => {
@@ -295,8 +340,8 @@ export const Guide = () => (
       <p>
         A vesting that cannot be cancelled is the strongest promise: no key can
         stop it. A cancelable one gives you a cancel key per vesting. Everyone
-        can see on its page that it is cancelable (keys made since 14 October
-        2026 also say so in their attributes). A label helps you find it later.
+        can see on its page that it is cancelable
+        <KeyNameOnCancelable /> A label helps you find it later.
       </p>
       <Shot src='11-options' caption='Cancelable, labelled Team 2027.' />
     </Step>
@@ -349,9 +394,9 @@ export const Guide = () => (
       <p>
         The claim key is an ordinary NFT: send it from your wallet to another
         address and the right to claim goes with it. Whoever holds it now
-        claims; nothing else changes. The key itself never changes either:
-        before buying one, look its vesting up here right before paying, by its
-        number or by the key&apos;s identifier ({keyId(keyCollections.claim, 7)}
+        claims; nothing else changes. <KeyNameOnSale /> before buying one, look
+        its vesting up here right before paying, by its number or by the
+        key&apos;s identifier ({keyId(keyCollections.claim, 7)}
         ), for what was claimed, what is still claimable and who holds the
         cancel key. Whoever holds a cancel key can stop the vesting at any
         moment and keep what has not vested by then.
@@ -395,7 +440,8 @@ export const Guide = () => (
       <li>
         <b className='text-ink'>What the owner can and cannot do.</b> The owner,
         a multisig, can set the fees on new vestings, pause the creation of new
-        vestings and return keys or tokens that bounced back from a smart
+        vestings
+        <OwnerStamp /> and return keys or tokens that bounced back from a smart
         contract. In the code as it stands, it cannot pause claims or cancels
         and has no way to move locked tokens. It can upgrade the contract, so a
         serious bug can be fixed. An upgrade is a vote of the multisig and

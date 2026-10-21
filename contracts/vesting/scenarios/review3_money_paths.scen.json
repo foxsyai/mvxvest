@@ -42,7 +42,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "0"
             },
@@ -500,7 +501,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },
@@ -567,6 +569,17 @@
         "logs": [
           {
             "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "1",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
             "endpoint": "str:claim",
             "topics": [
               "str:vestingClaimed",
@@ -577,6 +590,17 @@
             "data": [
               "biguint:250|biguint:250|u8:0"
             ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "3",
+              "",
+              "*"
+            ],
+            "data": []
           },
           {
             "address": "sc:mvxvest",
@@ -593,6 +617,17 @@
           },
           {
             "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "4",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
             "endpoint": "str:claim",
             "topics": [
               "str:vestingClaimed",
@@ -603,6 +638,17 @@
             "data": [
               "biguint:250|biguint:250|u8:0"
             ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "5",
+              "",
+              "*"
+            ],
+            "data": []
           },
           {
             "address": "sc:mvxvest",
@@ -733,7 +779,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1;claimed:250"
                 },
                 {
                   "nonce": "3",
@@ -742,7 +788,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1;claimed:150"
                 },
                 {
                   "nonce": "4",
@@ -751,7 +797,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000;cancelable:0"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:4;token:EGLD-000000;cancelable:0;claimed:250"
                 },
                 {
                   "nonce": "5",
@@ -760,7 +806,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3;cancelable:1"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:5;token:USDC-a1b2c3;cancelable:1;claimed:100"
                 },
                 {
                   "nonce": "6",
@@ -791,7 +837,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:1"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:1;claimed:500"
                 },
                 {
                   "nonce": "7",
@@ -800,7 +846,7 @@
                   "uri": [
                     ""
                   ],
-                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000;cancelable:1"
+                  "attributes": "str:tags:mvxvest,vesting;vesting:7;token:EGLD-000000;cancelable:1;claimed:125"
                 }
               ]
             }
@@ -818,7 +864,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },
@@ -1017,7 +1064,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },
@@ -1205,7 +1253,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },
@@ -1425,7 +1474,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },
@@ -1530,7 +1580,8 @@
             "str:VESTKEY-123456": {
               "roles": [
                 "ESDTRoleNFTCreate",
-                "ESDTRoleNFTBurn"
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
               ],
               "lastNonce": "7"
             },

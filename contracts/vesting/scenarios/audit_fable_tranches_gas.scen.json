@@ -34,7 +34,8 @@
       "str:VESTKEY-123456": {
        "roles": [
         "ESDTRoleNFTCreate",
-        "ESDTRoleNFTBurn"
+        "ESDTRoleNFTBurn",
+        "ESDTRoleNFTUpdate"
        ],
        "lastNonce": "0"
       },
@@ -353,7 +354,7 @@
          "uri": [
           ""
          ],
-         "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
+         "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1;claimed:60"
         }
        ]
       }

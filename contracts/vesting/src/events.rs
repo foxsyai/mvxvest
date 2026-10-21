@@ -84,6 +84,9 @@ pub trait EventsModule {
     #[event("creationPaused")]
     fn creation_paused_event(&self, #[indexed] paused: bool);
 
+    #[event("keyStampingSet")]
+    fn key_stamping_set_event(&self, #[indexed] on: bool);
+
     #[event("feesClaimed")]
     fn fees_claimed_event(&self, #[indexed] to: &ManagedAddress, amount: &BigUint);
 

@@ -136,6 +136,21 @@ pub trait AdminModule:
         self.creation_paused_event(false);
     }
 
+    /// Turns the stamping of claim keys at claim on or off (version 3); on
+    /// unless the owner turned it off. It changes only what a returned key
+    /// shows, never what a claim pays: it exists so that a change of the
+    /// protocol's metadata update can never stop claims until an upgrade.
+    #[only_owner]
+    #[endpoint(setKeyStamping)]
+    fn set_key_stamping(&self, on: bool) {
+        if on {
+            self.key_stamping_off().clear();
+        } else {
+            self.key_stamping_off().set(true);
+        }
+        self.key_stamping_set_event(on);
+    }
+
     /// Sends the accrued EGLD fees to the owner.
     #[only_owner]
     #[endpoint(claimFees)]

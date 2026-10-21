@@ -132,6 +132,12 @@ pub trait StorageModule {
     #[storage_mapper("creationPaused")]
     fn creation_paused(&self) -> SingleValueMapper<bool>;
 
+    /// Set when the owner turned off the stamping of claim keys at claim.
+    /// Empty, so stamping is on, unless the owner turned it off. Added in
+    /// version 3.
+    #[storage_mapper("keyStampingOff")]
+    fn key_stamping_off(&self) -> SingleValueMapper<bool>;
+
     /// The totals of `token`, all zero before its first vesting. (An empty
     /// entry does not decode as a struct, so never `get` it directly.)
     fn totals_of(&self, token: &TokenId) -> TokenTotals<Self::Api> {

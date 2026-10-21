@@ -8,6 +8,7 @@
 //                                   | display <Claim|Cancel> <png url> <svg url>
 //                                   | recover-bounced <id> <Claim|Cancel> <erd1 to>
 //                                   | recover-surplus <token> <erd1 to>
+//                                   | stamping <on|off>
 //   pnpm tsx src/multisig.ts propose-upgrade <erd1 source>
 //   pnpm tsx src/multisig.ts sign <id> | perform <id> | discard <id>
 //   pnpm tsx src/multisig.ts stage          (devnet: deploy the upgrade's source)
@@ -60,6 +61,8 @@ const INNER_GAS: Record<string, bigint> = {
   setKeyDisplay: 6_100_000n,
   recoverBouncedKey: 10_000_000n,
   recoverSurplus: 10_000_000n,
+  // Version 3: a storage write and an event, like a pause.
+  setKeyStamping: 4_600_000n,
 };
 /** The fewest and the most arguments each takes (the ABI's; setKeyDisplay's URIs are variadic). */
 const ARGUMENTS: Record<string, [number, number]> = {
@@ -71,6 +74,7 @@ const ARGUMENTS: Record<string, [number, number]> = {
   setKeyDisplay: [2, Infinity],
   recoverBouncedKey: [3, 3],
   recoverSurplus: [2, 3],
+  setKeyStamping: [1, 1],
 };
 /** The contract's caps (contracts/vesting/src/admin.rs): 1 EGLD a vesting, 200 basis points. */
 const FEE_CAP = 10n ** 18n;
@@ -128,6 +132,8 @@ async function proposal(): Promise<{ data: string; perform?: { kind: string; nee
       // at most 200). Whole numbers only: "0.1" would be encoded as 0.
       tokenfee: () => ["setTokenFee", [basisPoints(a[0])]],
       claimfees: () => ["claimFees", []],
+      // Version 3: whether claims stamp the keys they return (on unless turned off).
+      stamping: () => ["setKeyStamping", [onOff(a[0])]],
       display: () => ["setKeyDisplay", [kind(a[0]), "", a[1], a[2]]],
       "recover-bounced": () => ["recoverBouncedKey", [BigInt(a[0]), kind(a[1]), Address.newFromBech32(a[2])]],
       // Version 2: an optional amount, in the token's smallest units.
@@ -194,6 +200,10 @@ function egldUnits(text: string | undefined): bigint {
   if (!match) throw new Error(`"${text}" is not an amount of EGLD (for example 0.1).`);
   return BigInt(match[1]) * 10n ** 18n + BigInt((match[2] ?? "").padEnd(18, "0"));
 }
+function onOff(text: string | undefined): boolean {
+  if (text !== "on" && text !== "off") throw new Error(`Stamping is on or off, not "${text}".`);
+  return text === "on";
+}
 function feeUnits(text: string | undefined): bigint {
   const units = egldUnits(text);
   if (units > FEE_CAP) throw new Error(`${egldText(units)} is above the contract's cap of 1 EGLD.`);
@@ -237,6 +247,8 @@ function describeArgs(endpoint: string, args: Buffer[]): string {
       return `vesting ${bigOf(args[0] ?? Buffer.alloc(0))}, ${kind(args[1])} key, to ${args[2]?.length === 32 ? bech32Of(args[2]) : "?"}`;
     case "setKeyDisplay":
       return [kind(args[0]), ...args.slice(1).map((b) => JSON.stringify(b.toString("utf8")))].join(", ");
+    case "setKeyStamping":
+      return bigOf(args[0] ?? Buffer.alloc(0)) === 0n ? "off" : "on";
     default:
       return args.map((b) => `0x${b.toString("hex").slice(0, 40)}${b.length > 20 ? "…" : ""}`).join(", ");
   }
@@ -262,6 +274,7 @@ function argumentProblems(endpoint: string, args: Buffer[]): string[] {
     refused("the key kind is neither Claim (0) nor Cancel (1)");
   }
   if (endpoint === "recoverBouncedKey" && args[0].length > 8) refused("the vesting id is longer than a u64");
+  if (endpoint === "setKeyStamping" && !isKind(args[0])) refused("the value is not a bool (on 1, off 0)");
   if ((endpoint === "recoverBouncedKey" && args[2].length !== 32) || (endpoint === "recoverSurplus" && args[1].length !== 32)) {
     refused("the recipient is not an address");
   }

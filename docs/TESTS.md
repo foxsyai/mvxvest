@@ -13,6 +13,8 @@ endpoint, mapped to the tests that check it. Run them with
   (the one validators run): deploy, a full lifecycle, every payment and payout
   shape with pinned logs, bounce recovery and the largest batch. Needs
   `mx-scenario-go` (`sc-meta install mx-scenario-go`) and a build.
+- `v3_*.rs`: version 3, what a claim key shows (the name marker, the stamp
+  at claim, the owner's switch, the new views).
 - `review5_*.rs` to `review2_*.rs`: tests from the fifth to second reviews.
 - `review_*.rs`: tests written by the adversarial review of 2026-10-12, each
   failing on the code it reviewed, plus a long random walk checked against an
@@ -57,7 +59,9 @@ endpoint, mapped to the tests that check it. Run them with
 | `recoverSurplus` | `admin_test::surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `review3_go_vm_test::money_paths`, `review4_stray_nft_cannot_be_returned_test` |
 | claim mixing paying, non-paying and finishing keys | `review4_safe_claim_mix_test` |
 | every cancel key of the largest batch reaches the creator | `review4_go_vm_test` |
-| the largest batches make exactly the 100 built-in calls the network allows; 99 keys fit one claim or cancel | `review5_builtin_calls_test`, `review5_go_vm_test` |
+| the largest batches make exactly the 100 built-in calls the network allows; 99 keys fit one claim or cancel, also when each is stamped (version 3) | `review5_builtin_calls_test`, `review5_go_vm_test` |
+| a cancelable vesting's claim key says so in its name; each claim that pays stamps the returned key and keeps its URIs; a claim that pays nothing leaves it as it was (version 3) | `v3_key_stamp_test::*`, `audit4_sck_market_stale_key`, `go_vm_test::lifecycle`, `review3_go_vm_test::money_paths` |
+| `setKeyStamping`, `isKeyStamping`, `getClaimKeyStatus`, `getDeficit` (version 3) | `v3_switch_and_views_test::*` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
 | `getNextRelease` | `views_test::next_release_and_claimable`, `review_next_release_linear_test`, `schedule_math::next_release_*` |
 | deploy on the real VM | `go_vm_test::deploy` |

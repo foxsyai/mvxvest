@@ -205,6 +205,26 @@ impl Fixture {
             .issue_cancel_key("MvxVestCancelKey", "VESTCANCEL")
             .egld(big(ISSUE_COST))
             .run();
+        // Issued on mainnet and devnet, each collection gave the contract nine
+        // roles, among them the one a metadata update needs (version 3 stamps
+        // claim keys): ESDTRoleNFTUpdate on the chain, ESDTRoleNFTRecreate in
+        // this VM, whose issue grants four. This sets the eight this VM can
+        // name (the list replaces the issue's); the Go VM scenarios check the
+        // chain's role.
+        self.world.set_esdt_local_roles(
+            SC,
+            CLAIM_KEY.as_str().as_bytes(),
+            &[
+                EsdtLocalRole::NftCreate,
+                EsdtLocalRole::NftBurn,
+                EsdtLocalRole::NftUpdateAttributes,
+                EsdtLocalRole::NftAddUri,
+                EsdtLocalRole::NftRecreate,
+                EsdtLocalRole::ModifyRoyalties,
+                EsdtLocalRole::ModifyCreator,
+                EsdtLocalRole::SetNewUri,
+            ],
+        );
     }
 
     pub fn set_time(&mut self, t: u64) {
@@ -406,7 +426,9 @@ impl Fixture {
             .esdt_balance(FOX, big(expected));
     }
 
-    /// `account` holds the key with this nonce, minted for vesting `id`.
+    /// `account` holds the key with this nonce, minted for vesting `id`. A
+    /// claim key that has paid says so since version 3: only its own claims
+    /// change `claimed`, and each one that pays stamps it.
     pub fn check_holds_key(
         &mut self,
         account: TestAddress,
@@ -419,14 +441,15 @@ impl Fixture {
             KeyKind::Claim => CLAIM_KEY,
             KeyKind::Cancel => CANCEL_KEY,
         };
-        let cancelable = kind == KeyKind::Cancel || self.view(id).vesting.cancelable;
+        let view = self.view(id);
+        let cancelable = kind == KeyKind::Cancel || view.vesting.cancelable;
+        let mut attributes = key_attributes(id, token_id, cancelable);
+        if kind == KeyKind::Claim && view.claimed > 0u32 {
+            let claimed = view.claimed.to_display().to_boxed_bytes().into_vec();
+            attributes.push_str(&format!(";claimed:{}", String::from_utf8(claimed).unwrap()));
+        }
         self.world
             .check_account(account)
-            .esdt_nft_balance_and_attributes(
-                collection,
-                nonce,
-                1,
-                key_attributes(id, token_id, cancelable).as_bytes(),
-            );
+            .esdt_nft_balance_and_attributes(collection, nonce, 1, attributes.as_bytes());
     }
 }

@@ -22,7 +22,7 @@ import { CreatorLabel } from 'components/vesting/CreatorLabel';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { IssuerPowers } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
-import { useAsync, useSigningRecord, useToken } from 'hooks';
+import { useAsync, useKeyStamping, useSigningRecord, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
 import { isVestingNumber } from 'vesting/identifiers';
@@ -104,6 +104,7 @@ const VestingView = () => {
     return { v, collections, claimHolder, cancelHolder };
   }, [id]);
   const history = useAsync(() => historyOf(id), [id]);
+  const stamping = useKeyStamping();
   const v = data.data?.v;
   const token = useToken(v?.token);
 
@@ -217,6 +218,19 @@ const VestingView = () => {
           the same whatever was claimed, and the holder of the cancel key can
           stop the vesting right after a sale. Only this page knows (fourth
           audit, RT1 and DT-5; the sales email of 19 Oct 2026). */}
+      {/* With the stamp off, a key's name stops following its claims: a
+          stale figure that looks exact. The Cancelable notice says it for a
+          cancelable vesting; every other key still out is sold just the same
+          (version 3's audit, V3O-2). */}
+      {stamping === false &&
+        claimHolder !== null &&
+        !(v.cancelable && v.cancelledAt === 0) && (
+          <Notice tone='warn'>
+            The owner has turned the stamp off: a claim key&apos;s name no
+            longer shows what has been claimed since. Before buying this one,
+            read this page right before paying.
+          </Notice>
+        )}
       {v.cancelable && v.cancelledAt === 0 && (
         <Notice tone='warn'>
           <b>Cancelable.</b> Before you buy its claim key: whoever holds the
@@ -234,8 +248,24 @@ const VestingView = () => {
             decimals={token.decimals}
             ticker={ticker}
           />
-          ). Read this page right before paying: the key itself never shows what
-          was claimed or whether the vesting was cancelled.
+          ). Read this page right before paying:{' '}
+          {stamping === true ? (
+            <>
+              the key&apos;s name shows what had been claimed at its last
+              stamped claim (a name without “% claimed” tells nothing about what
+              was paid); it never shows a cancel.
+            </>
+          ) : stamping === false ? (
+            <>
+              the owner has turned the stamp off, so a key&apos;s name no longer
+              shows what has been claimed since, nor a cancel.
+            </>
+          ) : (
+            <>
+              the key itself never shows what was claimed or whether the vesting
+              was cancelled.
+            </>
+          )}
         </Notice>
       )}
 
