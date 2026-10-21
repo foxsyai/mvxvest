@@ -61,15 +61,24 @@ const Step = ({
  * What a claim key's name shows, as the contract does it now: since version
  * 3 a claim stamps it with what was claimed (version 3's audit, V3R-1).
  */
-const KeyNameOnCancelable = () =>
-  useKeyStamping() === null ? (
-    <> (keys made since 14 October 2026 also say so in their attributes).</>
-  ) : (
+const KeyNameOnCancelable = () => {
+  const stamping = useKeyStamping();
+  if (stamping === null)
+    return (
+      <> (keys made since 14 October 2026 also say so in their attributes).</>
+    );
+  // A key minted since version 3 has the marker from its mint; an older one
+  // gets it from a claim that pays, and only while the stamp is on.
+  return (
     <>
       ; its claim key says so in its name too (a key made before this change,
-      only from its next claim that pays).
+      only from its next claim that pays
+      {stamping === false &&
+        ' once the owner turns the stamp back on: it is off now'}
+      ).
     </>
   );
+};
 
 const KeyNameOnSale = () => {
   const stamping = useKeyStamping();

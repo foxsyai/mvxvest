@@ -254,3 +254,20 @@ it('the guide says an older key shows "cancelable" in its name only from its nex
     )
   ).toBe(true);
 });
+
+// The third review of PR #5: while the owner has the stamp off, an older key
+// gets ", cancelable" from no claim at all, so step 6 must say the stamp is
+// off rather than promise it for the next claim.
+it('with the stamp off, the guide does not promise the marker at the next claim', async () => {
+  stamping = false;
+  render(
+    <MemoryRouter>
+      <Guide />
+    </MemoryRouter>
+  );
+  await settle(4);
+  const text = document.body.textContent ?? '';
+  expect(
+    sentenceWith(text, /cancelable/i, /\bname\b/i, /stamp/i, /\boff\b/i)
+  ).toBe(true);
+});
