@@ -218,6 +218,19 @@ const VestingView = () => {
           the same whatever was claimed, and the holder of the cancel key can
           stop the vesting right after a sale. Only this page knows (fourth
           audit, RT1 and DT-5; the sales email of 19 Oct 2026). */}
+      {/* With the stamp off, a key's name stops following its claims: a
+          stale figure that looks exact. The Cancelable notice says it for a
+          cancelable vesting; every other key still out is sold just the same
+          (version 3's audit, V3O-2). */}
+      {stamping === false &&
+        claimHolder !== null &&
+        !(v.cancelable && v.cancelledAt === 0) && (
+          <Notice tone='warn'>
+            The owner has turned the stamp off: a claim key&apos;s name no
+            longer shows what has been claimed since. Before buying this one,
+            read this page right before paying.
+          </Notice>
+        )}
       {v.cancelable && v.cancelledAt === 0 && (
         <Notice tone='warn'>
           <b>Cancelable.</b> Before you buy its claim key: whoever holds the
