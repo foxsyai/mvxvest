@@ -22,7 +22,10 @@ export const contractAddress =
 export const contractCodeHashes = [
   // Version 2, live since 14 Oct 2026 (MAINNET.md). Version 1's fd32f4e1… was
   // removed after the upgrade.
-  'a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a'
+  'a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a',
+  // Version 3 (CHANGELOG.md), listed before the multisig's vote; version 2's
+  // hash goes once the upgrade is done.
+  '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
 ];
 export const keyCollections = {
   claim: 'VESTKEY-f56bea',

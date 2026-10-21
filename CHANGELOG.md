@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 3 (not deployed yet; audited 21 Oct 2026)
+
+Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash
+`65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, 29,327 bytes.
+
+### Added
+- A claim key shows what has been claimed: each claim that pays and returns
+  the key rewrites its name (`, 25% claimed`) and attributes
+  (`;claimed:<units>`) with `ESDTMetaDataUpdate`, keeping its URIs and the
+  metadata it was minted with (fourth audit, SCK-1).
+- A cancelable vesting's claim key says so in its name from the mint
+  (`Vesting #N claim key, cancelable`; SCK-2).
+- `setKeyStamping(on)`, `isKeyStamping` and the event `keyStampingSet`: the
+  owner can turn the stamp off and on; it changes only what a key shows.
+- `getClaimKeyStatus(nonce)` (a claim key's vesting in one call) and
+  `getDeficit(token)` (SCM-1).
+
 ## Version 2 (mainnet since 14 Oct 2026, audited twice)
 
 Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash

@@ -82,7 +82,7 @@ acceptance flow with small amounts before announcing anything.
 
 ## Owner actions through the multisig (rehearsed on devnet, 13 Oct 2026)
 
-On mainnet the owner is the legacy mx-contracts-rs multisig `erd1…ul78u3` (2 of 3). Its code is byte-identical to `mvxsafe/app/public/contracts/multisig.wasm` (hash `f5658529…`). mvxsafe cannot propose contract calls or upgrades yet. The old MultiversX multisig site is gone. Until a page for this exists, [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds every owner action; a board member sends it from their wallet: to the multisig, 0 EGLD, with the printed data and gas.
+On mainnet the owner is the legacy mx-contracts-rs multisig `erd1…ul78u3` (2 of 3). Its code is byte-identical to `mvxsafe/app/public/contracts/multisig.wasm` (hash `f5658529…`). Since 14 Oct 2026 mvxsafe.io proposes contract calls and upgrades too; its card decodes them for the signers. [scripts/src/multisig.ts](../scripts/src/multisig.ts) builds the same owner actions from a terminal; a board member sends what it prints from their wallet: to the multisig, 0 EGLD, with the printed data and gas.
 
 Every action is three transactions from board members:
 1. `propose`, which also counts as the proposer's signature;
@@ -212,6 +212,21 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 - The token fee is sent to the owner in the same transaction as each creation.
 - If a token cannot reach the multisig (its issuer froze the multisig for it or the token has a transfer role), the fee comes back to the vesting contract as surplus. The `tokenFeePaid` event says only that it was sent. Check `getSurplus` for fee tokens now and then. Return such a surplus with `recoverSurplus(token, to, amount)`.
 - Any new owner must stay payable by smart contracts. Otherwise every fee bounces; in the owner's own shard every fee-paying creation fails.
+
+## Version 3 on mainnet: the runbook
+
+Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet comes first (below, once done).
+
+**The release:** the reproducible build of the merged commit, 29,327 bytes, code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d` (CHANGELOG.md). Each signer can rebuild it with the command in "Version 2 on mainnet" or take it from CI's "Reproducible build" job of the merged commit; never from a message alone. A plain `sc-meta all build` gives another hash.
+
+1. **Merge and deploy the site.** Both configs list version 3's hash next to version 2's; CI's reproducible build must print the release hash. Then `./deploy.sh mainnet`. The site works with both versions: before the upgrade it reads no `isKeyStamping` and says what it said for version 2.
+2. **Deploy the source** with mvxsafe.io's "Deploy a source" from a shard 1 wallet (erd1u05m…gw5esx, as for version 2): the release's `mvxvest.wasm`, not upgradeable, no arguments. Read back `/accounts/<source>?fields=codeHash,shard,isUpgradeable`: the release hash, shard 1, not upgradeable. A deploy is charged its whole gas limit: simulate it.
+3. **Propose the upgrade** in mvxsafe.io (`proposeSCUpgradeFromSource@<contract>@@<source>@0500`). From a terminal the same is `MVXVEST_EXPECT_HASH=<release> pnpm tsx src/multisig.ts propose-upgrade <source>`.
+4. **Each signer checks, then signs:** the target is `erd1…gmllsu`, the metadata stays 0500, the source's hash is green against the pasted release hash, the source is not upgradeable and is in shard 1.
+5. **Perform** with the measured budget: 7.5M for the multisig, about 11.8M for the upgrade of 29,327 bytes and 7M for the callback, about 26M in all (version 2 used 8.50M for its upgrade). A failed perform uses the action up.
+6. **Verify on chain:** the code hash is the release's; the owner is still the multisig, the contract upgradeable, readable and not payable; `getLimits` 49/32, `getTokenFee` 10, `getFee` 10^17, `isCreationPaused` false; `getVesting(1)` and `getVesting(2)` unchanged; `getTokenTotals` and `getSurplus` unchanged for FOXSY-5d5f3e and EGLD, `getDeficit` 0 for both; `isKeyStamping` true; `getClaimKeyStatus(1)` equals `getVesting(1)`. Record the transactions in MAINNET.md and the date in CHANGELOG.md.
+7. **The first stamp on mainnet.** Mainnet's one live claim key (vesting #1) is fully vested, so its next claim pays the rest and burns it: no stamp. Create a small vesting of a few minutes, claim it once before the end and read `/nfts/VESTKEY-f56bea-<nonce>`: the name ends `, <p>% claimed`, the attributes `;claimed:<units>`, the URIs are the two mvxvest.io images, the creator is the contract. If that claim fails on the stamp, vote `setKeyStamping` off (`pnpm tsx src/multisig.ts propose stamping off`, about 19M to perform, like a fee vote): claims then work as in version 2 while the cause is found.
+8. **Afterwards:** remove version 2's hash from both configs and deploy the sites again; README and CONTRACT_SPEC say version 3 is live.
 
 ## Upgrades
 
