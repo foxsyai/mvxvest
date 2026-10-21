@@ -13,6 +13,7 @@
 //! - claims made while the owner had stamping off (the old stamp stays);
 //! - claims made before version 3 (no stamp at all: a key without a stamp is
 //!   not a key that paid nothing).
+//!
 //! And a look-alike collection can copy the name, the attributes and the
 //! pictures: only the collection identifier tells, and the contract refuses a
 //! look-alike key at `claim`.
