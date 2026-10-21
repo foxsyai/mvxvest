@@ -14,10 +14,11 @@ Status:
   The contract is `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`,
   owned by a 2-of-3 mvxsafe multisig.
 - **Version 2** since 14 Oct 2026.
-- **Audited three times** by Claude Fable 5.1, in adversarial reviews:
+- **Audited four times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),
-  [third audit](docs/reviews/2026-10-14-fable-audit-3.md) (what changed after the second).
+  [third audit](docs/reviews/2026-10-14-fable-audit-3.md) (what changed after the second),
+  [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again).
 - **Not yet announced.** The source has been public since 14 Oct 2026.
   More audit rounds come before the announcement.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)

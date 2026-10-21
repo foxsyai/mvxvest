@@ -9,7 +9,7 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 3. ~~**Public launch:** remove the beta password from mvxvest.io.~~ Done on 13 Oct 2026, after the big audit's dApp fixes.
 4. ~~**The contract upgrade:**~~ Version 2 is live since 14 Oct 2026, audited twice and voted by the multisig. It brought the fees (0.1% + 0.1 EGLD), C1 and RT3; see [MAINNET.md](MAINNET.md#version-2-14-october-2026).
 5. ~~**Make the repo public.**~~ Done on 14 Oct 2026 (Sebastian), before the announcement.
-6. **One or two more large adversarial audit rounds**, then the **official announcement** on FOXSY's channels. A third round covered what changed after the second, on 14 Oct 2026 ([report](reviews/2026-10-14-fable-audit-3.md)).
+6. **One or two more large adversarial audit rounds**, then the **official announcement** on FOXSY's channels. A third round covered what changed after the second, on 14 Oct 2026 ([report](reviews/2026-10-14-fable-audit-3.md)). The fourth covered the whole system again on 20 and 21 Oct 2026 ([report](reviews/2026-10-21-fable-audit-4.md)); its open items are below.
 7. ~~**New pictures for How it works**~~ Done on 14 Oct 2026 (all 22), taken with a fresh devnet-only wallet (`WALLET=erd1... node dapp/scripts/capture/guide.mjs`), so no picture shows a wallet with a history (third audit, O1). This also retakes the pictures that still show the old wording (W5). Needs Sebastian's xPortal for the four approvals.
 
 8. **Agent review and CI as merge gates, on mvxvest and mvxsafe** (Sebastian, 14 Oct 2026). Port foxsyai/foxleague-agent's setup:
@@ -18,6 +18,15 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
    - a small GitHub App posts the `ci` and `review` results; a ruleset makes main require a pull request with one approval and both results, admins may bypass; no force push or deletion for anyone;
    - the reviewer's prompt is written for each project (the vesting contract and its money paths; the multisig and signing).
    Sebastian sets `CLAUDE_CODE_OAUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN_BACKUP` on both repos and installs the checks App. mvxvest first, then mvxsafe through a pull request, coordinated with its agent.
+
+## From the fourth audit
+
+- **Contract version 3**, if the owner wants it (SCK-1, SCK-2, SCM-1): stamp what a claim paid into the returned key, mark cancelable keys in their name, a key status view and a deficit view. Then an audit of its own, a devnet rehearsal and a multisig vote. No new fields in stored structures. The failing proof waits in `audit4_sck_market_stale_key.rs` (ignored).
+- **Owner decisions:** the merge rules (a second approving maintainer or no required approval; strict results), DNS for mvxvest.io (SPF `-all`, DMARC `p=reject`, a null MX) and HSTS preload. See the report's last section.
+- **After the CI change is on main:** turn on "require actions to be pinned to a full-length commit SHA" (every action and the actions they use are pinned).
+- **Renew `dapp/public/.well-known/security.txt`** before its `Expires` (1 July 2027).
+- **Guide pictures** that show a vesting card or page predate the "cancelable" mark and the quoted labels; retake them with the next interface change.
+- **`pnpm typecheck` in `scripts/`** fails on `csv120.ts`, `fund-demo.ts` and `v2-batches.ts` (they import the dApp's code with a second copy of sdk-core).
 
 ## Product
 

@@ -140,7 +140,8 @@ create and burn roles. Name and ticker to agree with Sebastian (for example
   the claim NFT.
 - Owner only: set the fee (capped in code), pause and unpause **creation**
   (never claims or cancels), claim accumulated fees. The owner can never move
-  locked funds.
+  locked funds in the code as it stands; the contract is upgradeable by the
+  owner (a 2-of-3 multisig), as README.md and MAINNET.md say.
 
 **Views (the UI reads everything through them):** `getVesting(id)`,
 `getClaimable(id)`, `getVestedAt(id, timestamp)`, `getNextRelease(id)`,
