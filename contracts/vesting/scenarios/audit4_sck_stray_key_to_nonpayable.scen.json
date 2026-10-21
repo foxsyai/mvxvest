@@ -1,0 +1,202 @@
+{
+  "name": "audit4 SCK, safe: a key sent to the non-payable contract with an unknown function or to a view never leaves its sender (a transfer with no function at all is refused by the protocol before any transaction exists: the runner stops with 'sending value to non payable contract', so it cannot be a step here)",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "1,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "stray-claim-key-unknown-function",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "sendMeTheKey",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "1",
+        "message": "str:invalid function (not found)",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "stray-cancel-key-to-a-view",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "getVesting",
+        "arguments": [
+          "1"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:function does not accept ESDT payment",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "both keys are where the creation left them; the contract holds only the deposit",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": "*"
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:VESTCANCEL-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "1000",
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "1"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "1"
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    }
+  ]
+}
