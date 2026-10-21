@@ -27,6 +27,7 @@
   .intro p { margin: 0 0 6px; }
   .key { width: 74px; height: 74px; flex: 0 0 74px; border-radius: 12px; }
   .muted { color: #6B7280; }
+  .addr { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 9pt; word-break: break-all; }
   .step { display: flex; gap: 12px; margin-top: 16px; break-inside: avoid; }
   .num {
     flex: 0 0 34px; height: 34px; border-radius: 50%; background: #FF6E0A; color: #fff;
@@ -140,6 +141,9 @@
         <li>The page first checks with the network and shows the most the network fee can be. Then press
           <strong>Sign in your wallet</strong> and approve in your wallet. A Ledger asks you to confirm
           each transaction on the device.</li>
+        <li>Before you approve, check that your wallet shows the vesting contract as the receiver:
+          <span class="addr">erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu</span>. A copy of the site
+          elsewhere can look the same, but it cannot fake that address.</li>
         <li>Claiming costs only that small network fee, paid in EGLD. Keep a little EGLD in your wallet:
           around 0.05 is plenty.</li>
       </ul>

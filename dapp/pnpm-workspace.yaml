@@ -24,3 +24,7 @@ overrides:
   qs@<6.16.0: 6.16.0
   pbkdf2@<3.1.7: 3.1.7
   postcss@<8.5.23: 8.5.28
+  # 21 Oct 2026 (fourth audit, WEB-5): follow-redirects under axios, two
+  # advisories (GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c). Node only: the
+  # browser bundle has no trace of it.
+  follow-redirects@>=1.16.0 <1.16.1: 1.16.1

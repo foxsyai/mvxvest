@@ -152,6 +152,17 @@ interface Row {
   amount: string;
 }
 
+/** A read that failed, with the way to ask again, in one line. */
+const RetryRead = ({ what, retry }: { what: string; retry: () => void }) => (
+  <button
+    type='button'
+    onClick={retry}
+    className='text-sm text-warn underline hover:text-accent'
+  >
+    Could not read {what}: try again
+  </button>
+);
+
 type CliffChoice = 'none' | 'catch-up' | 'lump';
 type ShapeChoice = 'linear' | 'days' | 'months' | 'tranches';
 
@@ -778,7 +789,11 @@ export const Create = () => {
       >
         <Step n={1} title='Token' done={!!token}>
           {!balances.data ? (
-            <Spinner label='Reading your wallet' />
+            balances.error ? (
+              <RetryRead what='your wallet' retry={balances.reload} />
+            ) : (
+              <Spinner label='Reading your wallet' />
+            )
           ) : (
             <Field
               label='The token to lock'
@@ -1323,7 +1338,15 @@ export const Create = () => {
                 </Info>
               </dt>
               <dd>
-                {shownFee === 0n && shownTokenFeeTotal === 0n ? (
+                {/* Unknown fees are never shown as "none" (fourth audit,
+                    DT-4): the contract would refuse what was built on them. */}
+                {!review && !settings.data ? (
+                  settings.error ? (
+                    <RetryRead what='the fees' retry={settings.reload} />
+                  ) : (
+                    '…'
+                  )
+                ) : shownFee === 0n && shownTokenFeeTotal === 0n ? (
                   'none'
                 ) : (
                   <ul className='space-y-0.5'>
@@ -1356,8 +1379,12 @@ export const Create = () => {
                 <dt className='text-muted'>You pay in {ticker}</dt>
                 <dd className='font-semibold'>
                   <Amount
+                    // The same frozen fees as the row above: what is signed
+                    // (fourth audit, DT-7).
                     units={
-                      sum + tokenFeeTotal + (tokenId === EGLD ? feeTotal : 0n)
+                      sum +
+                      shownTokenFeeTotal +
+                      (tokenId === EGLD ? shownFeeTotal : 0n)
                     }
                     decimals={decimals}
                     ticker={ticker}
@@ -1391,6 +1418,12 @@ export const Create = () => {
         {noFeeMoney && (
           <Notice tone='danger'>
             This wallet does not hold enough EGLD for the contract fee.
+          </Notice>
+        )}
+        {labelBytes > limits.maxLabelLen && (
+          <Notice tone='danger'>
+            The label is longer than {limits.maxLabelLen} bytes (accents and
+            emoji count for more than one): shorten it in step 4.
           </Notice>
         )}
         {entryIssues.length > 0 && (

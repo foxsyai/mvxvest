@@ -18,12 +18,14 @@ import {
   When
 } from 'components/ui';
 import { ScheduleChart } from 'components/vesting/Chart';
+import { CreatorLabel } from 'components/vesting/CreatorLabel';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { IssuerPowers } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
 import { useAsync, useSigningRecord, useToken } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
+import { isVestingNumber } from 'vesting/identifiers';
 import { nextRelease } from 'vesting/schedule';
 
 const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -50,7 +52,26 @@ const Bounced = () => (
   </span>
 );
 
+/**
+ * The vesting page's address segment, checked before anything is read or
+ * shown: text that is not a vesting number is never echoed (fourth audit,
+ * WEB-1).
+ */
 export const VestingPage = () => {
+  const id = useParams().id ?? '';
+  if (!isVestingNumber(id))
+    return (
+      <div className='space-y-4'>
+        <PageTitle back title='Vesting' />
+        <Notice tone='warn'>
+          Not a vesting number. A vesting number is a whole number, such as 7.
+        </Notice>
+      </div>
+    );
+  return <VestingView key={id} />;
+};
+
+const VestingView = () => {
   const params = useParams();
   const id = Number(params.id);
   const isLoggedIn = useGetIsLoggedIn();
@@ -151,9 +172,12 @@ export const VestingPage = () => {
           lead={
             <>
               {v.label && (
-                <span className='font-semibold text-ink'>
-                  <bdi>{v.label}</bdi>.{' '}
-                </span>
+                <>
+                  <span className='font-semibold text-ink'>
+                    <CreatorLabel text={v.label} />
+                  </span>
+                  <span>, the creator&apos;s label. </span>
+                </>
               )}
               <Amount
                 units={v.total}
@@ -188,6 +212,32 @@ export const VestingPage = () => {
           {STATUS_LABEL[status]}
         </Badge>
       </div>
+
+      {/* The claim key never changes after its mint: on a marketplace it looks
+          the same whatever was claimed, and the holder of the cancel key can
+          stop the vesting right after a sale. Only this page knows (fourth
+          audit, RT1 and DT-5; the sales email of 19 Oct 2026). */}
+      {v.cancelable && v.cancelledAt === 0 && (
+        <Notice tone='warn'>
+          <b>Cancelable.</b> Before you buy its claim key: whoever holds the
+          cancel key
+          {cancelHolder && cancelHolder !== contractAddress && (
+            <>
+              {' '}
+              (<AddressText address={cancelHolder} />)
+            </>
+          )}{' '}
+          can stop this vesting at any moment and keep what has not vested by
+          then (now about{' '}
+          <Amount
+            units={v.total - v.vested}
+            decimals={token.decimals}
+            ticker={ticker}
+          />
+          ). Read this page right before paying: the key itself never shows what
+          was claimed or whether the vesting was cancelled.
+        </Notice>
+      )}
 
       <Card className='space-y-4'>
         <Progress

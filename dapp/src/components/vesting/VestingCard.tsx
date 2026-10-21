@@ -5,6 +5,7 @@ import { useToken } from 'hooks';
 import type { Vesting } from 'vesting/client';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
 import { nextRelease } from 'vesting/schedule';
+import { CreatorLabel } from './CreatorLabel';
 import { TokenId } from './TokenTrust';
 
 const STATUS_TONE = {
@@ -45,7 +46,7 @@ export const VestingCard = ({
             #{vesting.id}
             {vesting.label && (
               <span className='ml-2 text-muted'>
-                <bdi>{vesting.label}</bdi>
+                <CreatorLabel text={vesting.label} />
               </span>
             )}
           </Link>
@@ -58,7 +59,19 @@ export const VestingCard = ({
             <TokenId token={token} className='ml-2' />
           </div>
         </div>
-        <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
+        <div className='flex flex-col items-end gap-1'>
+          <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>
+          {/* A buyer of the claim key tells the two kinds apart at a glance
+              (fourth audit, DT-5). */}
+          {vesting.cancelable && vesting.cancelledAt === 0 && (
+            <span
+              className='text-xs text-warn'
+              title='Whoever holds the cancel key can stop it'
+            >
+              cancelable
+            </span>
+          )}
+        </div>
       </div>
       <Progress
         total={vesting.total}

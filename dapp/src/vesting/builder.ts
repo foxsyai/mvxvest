@@ -281,7 +281,11 @@ const CHECKPOINT_STEPS: { seconds?: number; months?: number }[] = [
   { months: 1 },
   { months: 3 },
   { months: 6 },
-  { months: 12 }
+  { months: 12 },
+  // Up to the contract's 30 years: with 12 months at most, a linear vesting
+  // over 27 years stopped short of its end (fourth audit, DT-2).
+  { months: 24 },
+  { months: 60 }
 ];
 const MAX_CHECKPOINTS = 24;
 
@@ -329,7 +333,18 @@ export const releases = (
         });
         previous = vested;
       }
-      if (time === schedule.end || rows.length > MAX_CHECKPOINTS + 2) break;
+      if (time === schedule.end) break;
+      if (rows.length > MAX_CHECKPOINTS + 2) {
+        // Never stop short of the end: the last row says the whole total.
+        const end = vestedAt(schedule, total, schedule.end);
+        rows.push({
+          time: schedule.end,
+          amount: end - previous,
+          vested: end,
+          continuous: true
+        });
+        break;
+      }
     }
     return { rows, truncated: false };
   }

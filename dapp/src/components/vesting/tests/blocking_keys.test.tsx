@@ -26,6 +26,10 @@ const salary = vesting(1, 'Salary', 'FOX-a1b2c3');
 const bonus = vesting(3, 'Bonus', 'FOX-a1b2c3');
 const airdrop = vesting(2, 'airdrop', 'EVIL-123456');
 
+/** A paragraph's whole text: the label sits in its own element, quoted (fourth audit, WEB-9). */
+const paragraph = (text: RegExp) => (_: string, element: Element | null) =>
+  element?.tagName === 'P' && text.test(element.textContent ?? '');
+
 beforeEach(() => {
   mockPrepare.mockReset();
   // Only the airdrop's key is refused on its own.
@@ -54,7 +58,7 @@ it('checks each key on its own and offers the others', async () => {
   await flush();
   expect(mockPrepare).toHaveBeenCalledTimes(3);
   expect(
-    screen.getByText(/Vesting #2 \(airdrop\) blocks the others/)
+    screen.getByText(paragraph(/Vesting #2 “airdrop” blocks the others/))
   ).toBeTruthy();
   fireEvent.click(screen.getByText('Claim the other 2'));
   expect(onClaim).toHaveBeenCalledWith([salary, bonus]);
@@ -70,7 +74,9 @@ it('names the vesting at once when the refusal names its token', () => {
       onClaim={() => undefined}
     />
   );
-  expect(screen.getByText(/Vesting #2 \(airdrop\) blocks/)).toBeTruthy();
+  expect(
+    screen.getByText(paragraph(/Vesting #2 “airdrop” blocks/))
+  ).toBeTruthy();
   expect(screen.getByText('Claim the other 1')).toBeTruthy();
   expect(mockPrepare).not.toHaveBeenCalled();
 });

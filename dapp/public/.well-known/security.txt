@@ -1,0 +1,5 @@
+# mvxvest: how to report a vulnerability (RFC 9116). Renew before it expires.
+Contact: https://github.com/foxsyai/mvxvest/security/advisories/new
+Expires: 2027-07-01T00:00:00.000Z
+Policy: https://github.com/foxsyai/mvxvest/blob/main/SECURITY.md
+Preferred-Languages: en

@@ -1,10 +1,10 @@
 # Contract specification
 
-The rules the vesting contract implements. This is **version 2** (branch
-`upgrade-v2`, not deployed yet). It differs from version 1, which runs on
-mainnet, in four places: the token fee, the batch limits (49 and 32 instead of
-50 and 33), `recoverSurplus`'s amount and the `cancelable` marker in the key
-attributes.
+The rules the vesting contract implements. This is **version 2**, live on
+mainnet since 14 October 2026 (code hash a7acbf22…, [MAINNET.md](MAINNET.md)).
+It differs from version 1, which ran from 12 to 14 October, in four places: the
+token fee, the batch limits (49 and 32 instead of 50 and 33),
+`recoverSurplus`'s amount and the `cancelable` marker in the key attributes.
 
 The code is in
 [contracts/vesting/src](../contracts/vesting/src); each rule is checked by the

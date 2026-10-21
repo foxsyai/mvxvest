@@ -15,6 +15,7 @@ import {
 import { useAsync } from 'hooks';
 import { percentOf } from 'vesting/fees';
 import { formatAmount } from 'vesting/format';
+import { keyId } from 'vesting/identifiers';
 
 // The public walkthrough: what a vesting is, then every screen in the order a
 // creator and a beneficiary meet them, then what is worth knowing. The
@@ -158,7 +159,10 @@ const Verify = () =>
       <p className='mt-3 text-sm text-muted'>
         A key from any other collection is not from mvxvest, whatever its name
         or picture. Every page compares the contract&apos;s code and owner with
-        these and warns at the top if they differ.
+        these and warns at the top if they differ. The real site is only at
+        mvxvest.io: a copy elsewhere can show the same pages, this box included.
+        What a copy cannot fake is the receiver your wallet shows before you
+        approve: it must be the contract address above.
       </p>
     </Card>
   ) : null;
@@ -291,8 +295,8 @@ export const Guide = () => (
       <p>
         A vesting that cannot be cancelled is the strongest promise: no key can
         stop it. A cancelable one gives you a cancel key per vesting. Everyone
-        can see that it is cancelable, even on its claim key. A label helps you
-        find it later.
+        can see on its page that it is cancelable (keys made since 14 October
+        2026 also say so in their attributes). A label helps you find it later.
       </p>
       <Shot src='11-options' caption='Cancelable, labelled Team 2027.' />
     </Step>
@@ -302,7 +306,9 @@ export const Guide = () => (
         The review sums it all up, fees included. Check and sign asks the
         network to try every transaction first: a transaction it would refuse is
         never sent to your wallet. In xPortal several transactions are approved
-        with one prompt; a Ledger confirms each one on the device.
+        with one prompt; a Ledger confirms each one on the device. Before you
+        approve, check that your wallet shows the contract address (under Check
+        that it is the real mvxvest, below) as the receiver.
       </p>
       <Shot
         src='12-review'
@@ -343,8 +349,12 @@ export const Guide = () => (
       <p>
         The claim key is an ordinary NFT: send it from your wallet to another
         address and the right to claim goes with it. Whoever holds it now
-        claims; nothing else changes. Before buying a claim key, look the
-        vesting up here: it says whether someone holds a cancel key.
+        claims; nothing else changes. The key itself never changes either:
+        before buying one, look its vesting up here right before paying, by its
+        number or by the key&apos;s identifier ({keyId(keyCollections.claim, 7)}
+        ), for what was claimed, what is still claimable and who holds the
+        cancel key. Whoever holds a cancel key can stop the vesting at any
+        moment and keep what has not vested by then.
       </p>
     </Step>
 

@@ -35,6 +35,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Address, Transaction, TransactionComputer } from "@multiversx/sdk-core";
+import { blake2b } from "@noble/hashes/blake2b";
 import { ROOT, abi, api, contractAddress, entrypoint, network, onNetwork, send, signer } from "./lib.js";
 
 const multisigAddress = process.env.MVXVEST_MULTISIG ?? "";
@@ -60,6 +61,20 @@ const INNER_GAS: Record<string, bigint> = {
   recoverBouncedKey: 10_000_000n,
   recoverSurplus: 10_000_000n,
 };
+/** The fewest and the most arguments each takes (the ABI's; setKeyDisplay's URIs are variadic). */
+const ARGUMENTS: Record<string, [number, number]> = {
+  pauseCreation: [0, 0],
+  unpauseCreation: [0, 0],
+  setFee: [1, 1],
+  setTokenFee: [1, 1],
+  claimFees: [0, 0],
+  setKeyDisplay: [2, Infinity],
+  recoverBouncedKey: [3, 3],
+  recoverSurplus: [2, 3],
+};
+/** The contract's caps (contracts/vesting/src/admin.rs): 1 EGLD a vesting, 200 basis points. */
+const FEE_CAP = 10n ** 18n;
+const TOKEN_FEE_CAP = 200n;
 /**
  * An upgrade from source compiles the new code in the contract's shard, at
  * about 300 gas a byte, and runs its `upgrade` (which does nothing in
@@ -108,7 +123,7 @@ async function proposal(): Promise<{ data: string; perform?: { kind: string; nee
     const calls: Record<string, () => [string, unknown[]]> = {
       pause: () => ["pauseCreation", []],
       unpause: () => ["unpauseCreation", []],
-      fee: () => ["setFee", [egldUnits(a[0])]],
+      fee: () => ["setFee", [feeUnits(a[0])]],
       // Version 2: basis points of each vesting's total (10 = 0.1%, 100 = 1%,
       // at most 200). Whole numbers only: "0.1" would be encoded as 0.
       tokenfee: () => ["setTokenFee", [basisPoints(a[0])]],
@@ -156,11 +171,11 @@ async function proposal(): Promise<{ data: string; perform?: { kind: string; nee
   throw new Error(`Unknown command ${command}`);
 }
 
-const query = async (funcName: string, args: string[] = []) => {
+const query = async (funcName: string, args: string[] = [], scAddress = multisig) => {
   const response = await fetch(`${api()}/query`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ scAddress: multisig.toBech32(), funcName, args }),
+    body: JSON.stringify({ scAddress: scAddress.toBech32(), funcName, args }),
   });
   return ((await response.json()) as { returnData?: string[] }).returnData ?? [];
 };
@@ -178,6 +193,11 @@ function egldUnits(text: string | undefined): bigint {
   const match = /^(\d+)(?:\.(\d{1,18}))?$/.exec(text ?? "");
   if (!match) throw new Error(`"${text}" is not an amount of EGLD (for example 0.1).`);
   return BigInt(match[1]) * 10n ** 18n + BigInt((match[2] ?? "").padEnd(18, "0"));
+}
+function feeUnits(text: string | undefined): bigint {
+  const units = egldUnits(text);
+  if (units > FEE_CAP) throw new Error(`${egldText(units)} is above the contract's cap of 1 EGLD.`);
+  return units;
 }
 function wholeNumber(text: string | undefined, what: string): bigint {
   if (!/^\d+$/.test(text ?? "")) throw new Error(`The ${what} "${text}" must be a whole number of the token's smallest units.`);
@@ -222,12 +242,65 @@ function describeArgs(endpoint: string, args: Buffer[]): string {
   }
 }
 
+/**
+ * What the contract would refuse in an owner call, found before two
+ * signatures are spent on it: a failed perform uses the action up (fourth
+ * audit, OPS-2).
+ */
+function argumentProblems(endpoint: string, args: Buffer[]): string[] {
+  const [least, most] = ARGUMENTS[endpoint] ?? [0, 0];
+  if (args.length < least || args.length > most) {
+    const takes = least === most ? `${least}` : most === Infinity ? `at least ${least}` : `${least} or ${most}`;
+    return [`${endpoint} takes ${takes} argument(s), not ${args.length}: the contract would refuse it and the action would be used up`];
+  }
+  const problems: string[] = [];
+  const refused = (what: string) => problems.push(`${what}: the contract would refuse it and the action would be used up`);
+  const isKind = (b: Buffer) => b.length === 0 || (b.length === 1 && b[0] === 1);
+  if (endpoint === "setFee" && bigOf(args[0]) > FEE_CAP) refused(`${egldText(bigOf(args[0]))} is above the cap of 1 EGLD`);
+  if (endpoint === "setTokenFee" && bigOf(args[0]) > TOKEN_FEE_CAP) refused(`${bigOf(args[0])} basis points is above the cap of 200 (2%)`);
+  if ((endpoint === "setKeyDisplay" && !isKind(args[0])) || (endpoint === "recoverBouncedKey" && !isKind(args[1]))) {
+    refused("the key kind is neither Claim (0) nor Cancel (1)");
+  }
+  if (endpoint === "recoverBouncedKey" && args[0].length > 8) refused("the vesting id is longer than a u64");
+  if ((endpoint === "recoverBouncedKey" && args[2].length !== 32) || (endpoint === "recoverSurplus" && args[1].length !== 32)) {
+    refused("the recipient is not an address");
+  }
+  return problems;
+}
+
+/**
+ * Whom a bounced key was made for, read from its vesting: the beneficiary
+ * for a claim key, the creator for a cancel key. A second signer sees when
+ * the proposed recipient is someone else (fourth audit, OPS-1); a later
+ * holder can own the key too, and the transaction that bounced it says so.
+ */
+async function bouncedKeyOwner(args: Buffer[]): Promise<{ lines: string[]; problems: string[] }> {
+  const id = bigOf(args[0]);
+  const [view] = await query("getVesting", [args[0].toString("hex")], contractAddress());
+  // VestingView: id (u64), then the vesting's creator and beneficiary.
+  const bytes = Buffer.from(view ?? "", "base64");
+  if (bytes.length < 72) return { lines: [], problems: [`vesting ${id} could not be read (the contract refuses an unknown vesting); try again`] };
+  const claim = bigOf(args[1]) === 0n;
+  const role = claim ? "beneficiary" : "creator";
+  const owner = bech32Of(claim ? bytes.subarray(40, 72) : bytes.subarray(8, 40));
+  const to = bech32Of(args[2]);
+  const lines = [`  the ${claim ? "claim" : "cancel"} key of vesting ${id} was made for its ${role} ${owner}`];
+  if (to !== owner) {
+    lines.push(`  WARNING: the recipient ${to} is not that ${role}: sign only if the transaction that bounced the key shows ${to} held it`);
+  }
+  return { lines, problems: [] };
+}
+
 interface SourceFacts {
   address: string;
+  /** blake2b-256 of the code the API returned: what the source holds. */
   hash: string;
+  /** The code hash the API states for the account. */
+  label: string;
   bytes: number;
   shard?: number;
-  upgradeable: boolean;
+  /** Undefined when the API's answer does not say. */
+  upgradeable?: boolean;
 }
 async function sourceFacts(address: string): Promise<SourceFacts> {
   const account = (await (await fetch(`${api()}/accounts/${address}`)).json()) as {
@@ -236,16 +309,21 @@ async function sourceFacts(address: string): Promise<SourceFacts> {
     shard?: number;
     isUpgradeable?: boolean;
   };
+  // The code is hashed here, not taken from the API's label: a wrong or
+  // tampered answer could label any code as the release (fourth audit, RT2).
+  const code = Buffer.from(account.code ?? "", "hex");
   return {
     address,
-    hash: account.codeHash ? Buffer.from(account.codeHash, "base64").toString("hex") : "",
-    bytes: (account.code?.length ?? 0) / 2,
+    hash: code.length ? Buffer.from(blake2b(code, { dkLen: 32 })).toString("hex") : "",
+    label: account.codeHash ? Buffer.from(account.codeHash, "base64").toString("hex") : "",
+    bytes: code.length,
     shard: account.shard,
-    upgradeable: account.isUpgradeable === true,
+    // A missing field is not "frozen" (fourth audit, OPS-3).
+    upgradeable: typeof account.isUpgradeable === "boolean" ? account.isUpgradeable : undefined,
   };
 }
 const describeSource = (f: SourceFacts) =>
-  `  source ${f.address}: code hash ${f.hash || "(none)"}, ${f.bytes} bytes, shard ${f.shard ?? "?"}, ${f.upgradeable ? "UPGRADEABLE" : "not upgradeable"}`;
+  `  source ${f.address}: code hash ${f.hash || "(none)"}, ${f.bytes} bytes, shard ${f.shard ?? "?"}, ${f.upgradeable === undefined ? "upgradeable or not: unknown" : f.upgradeable ? "UPGRADEABLE" : "not upgradeable"}`;
 
 /**
  * What must hold of an upgrade's source: the release's code (MVXVEST_EXPECT_HASH,
@@ -255,17 +333,22 @@ const describeSource = (f: SourceFacts) =>
 async function sourceProblems(f: SourceFacts): Promise<string[]> {
   const problems: string[] = [];
   const expected = (process.env.MVXVEST_EXPECT_HASH ?? "").toLowerCase();
-  if (!f.hash) problems.push(`the source ${f.address} holds no code`);
+  if (!f.label && !f.hash) problems.push(`the source ${f.address} holds no code`);
   // The upgrade's gas is budgeted from the code's size: without the code the
   // budget would silently fall to about 15.7M and the perform could fail,
   // using the action up (third audit, C3).
-  else if (f.bytes === 0) problems.push(`the API did not return the source's code, so its size (and the upgrade's gas) is unknown; try again`);
+  else if (!f.hash) problems.push(`the API did not return the source's code, so its hash and size (and the upgrade's gas) are unknown; try again`);
+  else if (f.label !== f.hash) {
+    problems.push(`the API states code hash ${f.label || "(none)"} for the source, but the code it returned hashes to ${f.hash}: do not trust this answer`);
+  }
   if (!/^[0-9a-f]{64}$/.test(expected)) {
     problems.push("MVXVEST_EXPECT_HASH is not set to the release's code hash (64 hex characters), so the source cannot be checked");
   } else if (f.hash !== expected) {
     problems.push(`the source's code hash ${f.hash} is not the release's ${expected}`);
   }
-  if (f.upgradeable) problems.push("the source is upgradeable: its code could change before the upgrade is carried out");
+  if (f.upgradeable === undefined) {
+    problems.push("the API did not say whether the source is upgradeable, so its code could change before the upgrade is carried out; try again");
+  } else if (f.upgradeable) problems.push("the source is upgradeable: its code could change before the upgrade is carried out");
   const multisigShard = ((await (await fetch(`${api()}/accounts/${multisig.toBech32()}`)).json()) as { shard?: number }).shard;
   if (f.shard === undefined || f.shard !== multisigShard) {
     problems.push(`the source is in shard ${f.shard ?? "?"}, not the multisig's shard ${multisigShard ?? "?"}: the upgrade would fail and use the action up`);
@@ -322,8 +405,15 @@ async function inspectAction(id: number): Promise<Inspection> {
         );
       }
       if (at !== bytes.length) problems.push("the action holds bytes this tool does not understand");
+      problems.push(...argumentProblems(name, args));
+      const lines = [`action #${id}: call ${name}(${describeArgs(name, args)}) on ${to}`];
+      if (name === "recoverBouncedKey" && !problems.length) {
+        const owner = await bouncedKeyOwner(args);
+        lines.push(...owner.lines);
+        problems.push(...owner.problems);
+      }
       return {
-        lines: [`action #${id}: call ${name}(${describeArgs(name, args)}) on ${to}`],
+        lines,
         problems,
         need: INNER_GAS[name] ?? 0n,
         kind: name,

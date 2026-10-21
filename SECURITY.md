@@ -19,5 +19,5 @@ test that shows it. We answer within a few days and credit you if you wish.
 
 ## What has been reviewed
 
-Three adversarial audits by Claude Fable 5.1, in `docs/reviews/`. Each finding was proven (by a test where one fits) and then fixed or accepted, as each report records; the proofs are the `audit_*`, `audit2_*` and `audit3_*` tests. The deployed code is a reproducible build: rebuild it with the command
+Four adversarial audits by Claude Fable 5.1, in `docs/reviews/`. Each finding was proven (by a test where one fits) and then fixed, accepted or left open, as each report records; the proofs are the `audit_*`, `audit2_*`, `audit3_*` and `audit4_*` tests. The deployed code is a reproducible build: rebuild it with the command
 in `README.md` and compare the code hash with the one on chain.

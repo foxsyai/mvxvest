@@ -2,15 +2,30 @@
 // transfer: a single key whose token cannot move (frozen for this wallet,
 // paused, a transfer role) makes the network refuse all of them, in words that
 // name a token, not a vesting (red team RT7). This finds the key that blocks
-// and offers to claim the others.
+// and offers to claim the others. When every key passes on its own, the
+// whole set was too much for one transaction (a claim's gas grows with the
+// schedule it reads): it offers smaller groups, never the same set again
+// (fourth audit, DT-6).
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { prepare } from 'chain/send';
 import { vesting as client } from 'chain/vesting';
 import { Button } from 'components/ui';
 import type { Vesting } from 'vesting/client';
+import { CreatorLabel } from './CreatorLabel';
 
-const named = (v: Vesting) => `#${v.id}${v.label ? ` (${v.label})` : ''}`;
+/** A vesting's number, and its label quoted as the creator's (WEB-9). */
+const Named = ({ vesting }: { vesting: Vesting }) => (
+  <>
+    #{vesting.id}
+    {vesting.label && (
+      <>
+        {' '}
+        <CreatorLabel text={vesting.label} />
+      </>
+    )}
+  </>
+);
 
 export const BlockingKeys = ({
   problems,
@@ -48,6 +63,9 @@ export const BlockingKeys = ({
       ? vestings.filter((v) => !byToken.includes(v))
       : [];
 
+  const allPass = checked !== null && checked.blocked.length === 0;
+  const half = Math.ceil(vestings.length / 2);
+
   const checkEach = async () => {
     const result: NonNullable<typeof checked> = { blocked: [], ok: [] };
     setProgress(0);
@@ -75,21 +93,33 @@ export const BlockingKeys = ({
         <>
           <p>
             {blocked.length === 1 ? 'Vesting ' : 'Vestings '}
-            {blocked.map(({ vesting }) => named(vesting)).join(', ')}{' '}
+            {blocked.map(({ vesting }, index) => (
+              <Fragment key={vesting.id}>
+                {index > 0 && ', '}
+                <Named vesting={vesting} />
+              </Fragment>
+            ))}{' '}
             {blocked.length === 1 ? 'blocks' : 'block'} the others: its token
             cannot move to this wallet now.
           </p>
           {checked &&
             blocked.map(({ vesting, reason }) => (
               <p key={vesting.id} className='text-xs'>
-                {named(vesting)}: {reason}
+                <Named vesting={vesting} />: {reason}
               </p>
             ))}
         </>
-      ) : checked ? (
-        <p>Each of them is refused on its own too.</p>
+      ) : allPass ? (
+        <p>
+          Each of them passes on its own: together they are more than one
+          transaction can carry. Claim them in smaller groups.
+        </p>
       ) : null}
-      {rest.length > 0 ? (
+      {allPass ? (
+        <Button onClick={() => onClaim(vestings.slice(0, half))}>
+          Claim the first {half}
+        </Button>
+      ) : rest.length > 0 ? (
         <Button onClick={() => onClaim(rest)}>
           Claim the other {rest.length}
         </Button>
