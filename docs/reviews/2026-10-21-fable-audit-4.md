@@ -104,6 +104,12 @@ Each finding was proven by a test that fails on 322cb43 or by exact evidence whe
 - **Web:** no injected HTML or scripts anywhere; the CSV export guards formulas; WalletConnect's relay refuses other origins, so a copy cannot use the project; a local build of the deployed commit reproduces the live files byte for byte.
 - **Operations:** the review gate held against about 60 new escape probes (`audit4_ops_review_gate_test.py`); results are posted only by the checks App from main; no secret in the history; the multisig tool never signs on mainnet; the live owner, board, quorum, fees and limits match MAINNET.md.
 
+## The agent review of the fixes
+
+The merge gate's Claude review passed the fixes and found two more gaps, both Low, fixed with a test each:
+- the start page still sent "#07" and "0" to the vesting page, which now refuses them: "#07" opens vesting 7 and 0 gets the start page's own message (`audit4_redteam_key_buyer.test.tsx`);
+- the notice of a key that blocks Claim all still put a label inside the site's sentence: it is quoted there too (`audit4_web_label_marked.test.tsx`).
+
 ## Noted while fixing
 
 - `pnpm typecheck` in `scripts/` fails on three devnet helpers (`csv120.ts`, `fund-demo.ts`, `v2-batches.ts`) that import the dApp's code with a second copy of sdk-core. CI does not type check the scripts; the owner's tool and the tests are clean. In the backlog.

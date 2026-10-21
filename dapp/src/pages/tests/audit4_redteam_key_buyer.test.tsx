@@ -153,6 +153,15 @@ describe('audit 4, red team: a buyer of a claim key', () => {
     expect(lookupTarget('FOXSY-5d5f3e')).toBe('/t/FOXSY-5d5f3e');
   });
 
+  it('sends a vesting number only where the vesting page accepts it', () => {
+    // The review of the fix: the vesting page refuses "07", so the start page
+    // must not send it there; there is no vesting 0.
+    expect(lookupTarget('#07')).toBe('/v/7');
+    expect(lookupTarget('007')).toBe('/v/7');
+    expect(lookupTarget('0')).toBeNull();
+    expect(lookupTarget('#0')).toBeNull();
+  });
+
   it('is not told "the network did not answer" when a collection is pasted as a token', async () => {
     jest.spyOn(Date, 'now').mockReturnValue((T + 200) * 1000);
     render(

@@ -9,6 +9,7 @@
 
 import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { BlockingKeys } from 'components/vesting/BlockingKeys';
 import { VestingCard } from 'components/vesting/VestingCard';
 import type { Vesting } from 'vesting/client';
 import { VestingPage } from '../Vesting';
@@ -127,4 +128,23 @@ it('the vesting page quotes it and says in words whose it is', async () => {
   await flush();
   expect(shownLabel().quoted).toBe(`“${LABEL}”`);
   expect(screen.getByText(/the creator's label/)).toBeTruthy();
+});
+
+it('the notice of a key that blocks Claim all quotes it too', async () => {
+  // The review of the fix: BlockingKeys put the label inside the site's own
+  // sentence, "Vesting #9 (…) blocks the others".
+  const other = { ...vesting, id: 10, label: '', token: 'OTHER-123456' };
+  render(
+    <BlockingKeys
+      problems={['FOXSY-5d5f3e is frozen for this account']}
+      vestings={[vesting, other]}
+      address={vesting.beneficiary}
+      collection='VESTKEY-f56bea'
+      onClaim={() => undefined}
+    />
+  );
+  await flush();
+  const { quoted, title } = shownLabel();
+  expect(quoted).toBe(`“${LABEL}”`);
+  expect(title).toMatch(/creator/i);
 });

@@ -7,13 +7,25 @@
 // schedule it reads): it offers smaller groups, never the same set again
 // (fourth audit, DT-6).
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { prepare } from 'chain/send';
 import { vesting as client } from 'chain/vesting';
 import { Button } from 'components/ui';
 import type { Vesting } from 'vesting/client';
+import { CreatorLabel } from './CreatorLabel';
 
-const named = (v: Vesting) => `#${v.id}${v.label ? ` (${v.label})` : ''}`;
+/** A vesting's number, and its label quoted as the creator's (WEB-9). */
+const Named = ({ vesting }: { vesting: Vesting }) => (
+  <>
+    #{vesting.id}
+    {vesting.label && (
+      <>
+        {' '}
+        <CreatorLabel text={vesting.label} />
+      </>
+    )}
+  </>
+);
 
 export const BlockingKeys = ({
   problems,
@@ -81,14 +93,19 @@ export const BlockingKeys = ({
         <>
           <p>
             {blocked.length === 1 ? 'Vesting ' : 'Vestings '}
-            {blocked.map(({ vesting }) => named(vesting)).join(', ')}{' '}
+            {blocked.map(({ vesting }, index) => (
+              <Fragment key={vesting.id}>
+                {index > 0 && ', '}
+                <Named vesting={vesting} />
+              </Fragment>
+            ))}{' '}
             {blocked.length === 1 ? 'blocks' : 'block'} the others: its token
             cannot move to this wallet now.
           </p>
           {checked &&
             blocked.map(({ vesting, reason }) => (
               <p key={vesting.id} className='text-xs'>
-                {named(vesting)}: {reason}
+                <Named vesting={vesting} />: {reason}
               </p>
             ))}
         </>

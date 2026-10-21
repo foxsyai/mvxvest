@@ -4,7 +4,7 @@ import { vesting } from 'chain/vesting';
 import { Card, inputClass } from 'components/ui';
 import { keyCollections } from 'config';
 import { useAsync } from 'hooks';
-import { keyId, parseKeyId } from 'vesting/identifiers';
+import { isVestingNumber, keyId, parseKeyId } from 'vesting/identifiers';
 
 /**
  * Where a lookup goes: an address, a token, a vesting number or a key's NFT
@@ -16,7 +16,10 @@ export const lookupTarget = (raw: string): string | null => {
   if (key) return `/k/${keyId(key.collection, key.nonce)}`;
   if (/^erd1[02-9ac-hj-np-z]{58}$/i.test(value))
     return `/a/${value.toLowerCase()}`;
-  if (/^#?\d+$/.test(value)) return `/v/${value.replace('#', '')}`;
+  // Only a number the vesting page accepts: "#07" is vesting 7, 0 is none.
+  const digits = /^#?(\d+)$/.exec(value)?.[1].replace(/^0+/, '');
+  if (digits !== undefined)
+    return isVestingNumber(digits) ? `/v/${digits}` : null;
   if (/^EGLD$/i.test(value)) return '/t/EGLD-000000';
   if (/^[A-Z0-9]{3,10}-[0-9a-f]{6}$/i.test(value)) {
     const [ticker, suffix] = value.split('-');
