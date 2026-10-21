@@ -215,7 +215,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 
 ## Version 3 on mainnet: the runbook
 
-Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet comes first (below, once done).
+Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet came first (below).
 
 **The release:** the reproducible build of the merged commit, 29,327 bytes, code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d` (CHANGELOG.md). Each signer can rebuild it with the command in "Version 2 on mainnet" or take it from CI's "Reproducible build" job of the merged commit; never from a message alone. A plain `sc-meta all build` gives another hash.
 
@@ -225,8 +225,32 @@ Every step on mainnet needs Sebastian's go. Every signing step works from a phon
 4. **Each signer checks, then signs:** the target is `erd1…gmllsu`, the metadata stays 0500, the source's hash is green against the pasted release hash, the source is not upgradeable and is in shard 1.
 5. **Perform** with the measured budget: 7.5M for the multisig, about 11.8M for the upgrade of 29,327 bytes and 7M for the callback, about 26M in all (version 2 used 8.50M for its upgrade). A failed perform uses the action up.
 6. **Verify on chain:** the code hash is the release's; the owner is still the multisig, the contract upgradeable, readable and not payable; `getLimits` 49/32, `getTokenFee` 10, `getFee` 10^17, `isCreationPaused` false; `getVesting(1)` and `getVesting(2)` unchanged; `getTokenTotals` and `getSurplus` unchanged for FOXSY-5d5f3e and EGLD, `getDeficit` 0 for both; `isKeyStamping` true; `getClaimKeyStatus(1)` equals `getVesting(1)`. Record the transactions in MAINNET.md and the date in CHANGELOG.md.
-7. **The first stamp on mainnet.** Mainnet's one live claim key (vesting #1) is fully vested, so its next claim pays the rest and burns it: no stamp. Create a small vesting of a few minutes, claim it once before the end and read `/nfts/VESTKEY-f56bea-<nonce>`: the name ends `, <p>% claimed`, the attributes `;claimed:<units>`, the URIs are the two mvxvest.io images, the creator is the contract. If that claim fails on the stamp, vote `setKeyStamping` off (`pnpm tsx src/multisig.ts propose stamping off`, about 19M to perform, like a fee vote): claims then work as in version 2 while the cause is found.
+7. **The first stamp on mainnet.** Mainnet's one live claim key (vesting #1) is fully vested, so its next claim pays the rest and burns it: no stamp. Create a small vesting of a few minutes for a wallet in another shard than the contract's (shard 0), claim it once before the end and read `/nfts/VESTKEY-f56bea-<nonce>` and the holder's own copy (`/accounts/<holder>/nfts?identifiers=...`): the name ends `, <p>% claimed`, the attributes `;claimed:<units>`, the URIs are the two mvxvest.io images, the creator is the contract. If that claim fails on the stamp, vote `setKeyStamping` off (`pnpm tsx src/multisig.ts propose stamping off`, about 19M to perform, like a fee vote): claims then work as in version 2 while the cause is found.
 8. **Afterwards:** remove version 2's hash from both configs and deploy the sites again; README and CONTRACT_SPEC say version 3 is live.
+
+## Version 3 rehearsed on devnet (21 Oct 2026)
+
+The upgrade to version 3 (branch `v3`, the release above: 29,327 bytes, `65c689b9…6101d`) went end to end through mvxvest's devnet contract and its 2-of-2 multisig, with `scripts/src/multisig.ts` and `scripts/src/v3-rehearsal.ts`:
+
+| Step | Transaction | Gas |
+|---|---|---|
+| Source deployed in shard 1 (not upgradeable), hash checked from the chain | `026fe80b4b5caabc05f3c8809d8c48b38a4249b28dc721e7534965b26e87c42a` | 116.6M, charged in full |
+| Propose the upgrade (action #13) | `7a374c9f4feb802a449124300c614945ac5cec8cb00f58796769ffe2a9719187` | 5.2M |
+| Sign | `dc9e68d23e4c2dab6a5bf72bc03005ae482b74beb9c5227caa0dd5b64c456794` | 4.2M |
+| Perform | `bb2eed378633434bc6a8312f064c698a222482432b3498086e0f7391cf1940ae` | 26.26M (7.5M + 11.76M + 7M) |
+| Claim #539, same shard as the contract: a key minted by version 2, now `Vesting #539 claim key, cancelable, 26% claimed` | `983db234b8927151df3d566280d8f0d15be9b87f58ddcc6cafb5d23c693b455b` | 8.57M |
+| Claim #540 from shard 1: the holder's own copy shows the stamp | `3cb32592c3aff55aa95fe3355eb70da5ccf256ae214cde59bd563710fab38d63` | 8.42M |
+| `setKeyStamping` off (action #14), perform | `35820db4ec01c5bf146404c19f7ea731260ae386847802d3d2f0a5001bdb82f0` | 19.1M |
+| Claim #539 with the stamp off: paid, key unchanged | `51405298b5b2247fd1ba179014825ade064f816b9ed28c2e425590c50f0def4b` | 6.73M |
+| `setKeyStamping` on (action #15), perform | `e5b4c0a608785e05ac48fd6d22e18fb3f7b2f828bee4de4552c47ddf5269d686` | 19.1M |
+| Claim #539 again: stamped again (`claimed` moved) | `726b5d9376399fc80edd8414ee72df2a1740eb78180e644a7b6a1974bc5e601a` | 8.11M |
+
+After the upgrade:
+- the code hash is the release's; owner, upgradeable, readable and not payable unchanged;
+- fees, token fee, limits, pause, accrued fees, the vesting count, the totals and the surplus of TFOX and EGLD byte for byte as before; every vesting view the same but for the time it was read;
+- `isKeyStamping` answered true, false after the vote, true again; `getDeficit` 0;
+- a stamp keeps the key's URIs (the two devnet.mvxvest.io images), creator (the contract) and owner;
+- one stamped key costs about 1.8M gas more than an unstamped claim (8.6M against 6.7M).
 
 ## Upgrades
 

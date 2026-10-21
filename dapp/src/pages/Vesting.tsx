@@ -251,8 +251,9 @@ const VestingView = () => {
           ). Read this page right before paying:{' '}
           {stamping === true ? (
             <>
-              the key&apos;s name shows what had been claimed at its last claim;
-              it never shows a cancel.
+              the key&apos;s name shows what had been claimed at its last
+              stamped claim (a name without “% claimed” tells nothing about what
+              was paid); it never shows a cancel.
             </>
           ) : stamping === false ? (
             <>

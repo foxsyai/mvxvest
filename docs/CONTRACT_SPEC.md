@@ -134,8 +134,9 @@ to the creator in one transfer.
 Payable with one or more claim keys: at most 99 per transaction (each
 finished key is burned and, since version 3, each key that paid and goes back
 is stamped, a built-in call each; the network allows 100) and in practice
-fewer, as each key costs about 7M gas, more with the stamp; the dApp sends at
-most 50 and splits further when the network refuses a set. For each key: pays `vested(now) -
+fewer, as each key costs about 7M gas, more with the stamp (8.6M for one
+stamped key on devnet); the dApp sends at most 50. When the network refuses a
+set whose keys each pass alone, the dApp offers to claim half of them. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
 the key or burns it when nothing more can ever be claimed (`claimed` equals
 the total or what had vested at the cancel). Each key that paid or burned

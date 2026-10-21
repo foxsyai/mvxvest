@@ -73,7 +73,8 @@ const KeyNameOnSale = () => {
   if (stamping === null) return <>The key itself never changes either:</>;
   return (
     <>
-      Its name shows what had been claimed at its last claim, but never a cancel
+      Its name shows what had been claimed at its last stamped claim, never a
+      cancel; a name without “% claimed” tells nothing about what was paid
       {stamping === false &&
         ' (the owner has turned that stamp off for now, so a name may be out of date)'}
       :

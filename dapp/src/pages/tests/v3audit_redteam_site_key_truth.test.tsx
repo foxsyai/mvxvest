@@ -200,3 +200,34 @@ describe('version 3 audit, red team: what the site says about a claim key', () =
     expect(sentenceWith(text, /cancelable/i, /\bname\b/i)).toBe(true);
   });
 });
+
+// The merge gate's review of version 3 (PR #5): a key whose paying claims all
+// came before version 3 carries no stamp at all (mainnet's VESTKEY-f56bea-01
+// paid 10.11 FOXSY under version 1 and still reads "Vesting #1 claim key").
+// So "the name shows what had been claimed" must not let a buyer read a name
+// without "% claimed" as a key that paid nothing.
+describe('version 3 review: a key without a stamp', () => {
+  const unstampedSaysNothing = (text: string) =>
+    sentenceWith(
+      text,
+      /without/i,
+      /claimed/i,
+      /(says|tells|shows) nothing|nothing about/i
+    );
+
+  it('the vesting page says a name without a stamp tells nothing', async () => {
+    stamping = true;
+    expect(unstampedSaysNothing(await renderVesting())).toBe(true);
+  });
+
+  it('the guide says it too', async () => {
+    stamping = true;
+    render(
+      <MemoryRouter>
+        <Guide />
+      </MemoryRouter>
+    );
+    await settle(4);
+    expect(unstampedSaysNothing(document.body.textContent ?? '')).toBe(true);
+  });
+});
