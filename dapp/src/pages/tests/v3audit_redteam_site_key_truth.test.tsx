@@ -231,3 +231,26 @@ describe('version 3 review: a key without a stamp', () => {
     expect(unstampedSaysNothing(document.body.textContent ?? '')).toBe(true);
   });
 });
+
+// The second review of PR #5: a key minted before version 3 keeps its old
+// name, without ", cancelable", until its first claim that pays under
+// version 3. Step 6 must not let a buyer take such a key for one that cannot
+// be cancelled.
+it('the guide says an older key shows "cancelable" in its name only from its next claim', async () => {
+  stamping = true;
+  render(
+    <MemoryRouter>
+      <Guide />
+    </MemoryRouter>
+  );
+  await settle(4);
+  expect(
+    sentenceWith(
+      document.body.textContent ?? '',
+      /cancelable/i,
+      /\bname\b/i,
+      /older|earlier|before/i,
+      /next claim|first claim/i
+    )
+  ).toBe(true);
+});

@@ -65,7 +65,10 @@ const KeyNameOnCancelable = () =>
   useKeyStamping() === null ? (
     <> (keys made since 14 October 2026 also say so in their attributes).</>
   ) : (
-    <>; its claim key says so in its name too.</>
+    <>
+      ; its claim key says so in its name too (a key made before this change,
+      only from its next claim that pays).
+    </>
   );
 
 const KeyNameOnSale = () => {
