@@ -6,5 +6,6 @@ export enum RouteNamesEnum {
   vesting = '/v/:id',
   token = '/t/:token',
   account = '/a/:address',
+  key = '/k/:key',
   guide = '/guide'
 }

@@ -14,11 +14,14 @@ import {
   Progress,
   Spinner
 } from 'components/ui';
+import { CreatorLabel } from 'components/vesting/CreatorLabel';
 import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { keyCollections } from 'config';
 import { useAsync, useToken } from 'hooks';
 import { unlockCalendar } from 'vesting/calendar';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
 import { formatAmount } from 'vesting/format';
+import { isTokenId, keyId } from 'vesting/identifiers';
 import { vestedWithCancel } from 'vesting/schedule';
 
 const monthLabel = new Intl.DateTimeFormat(undefined, {
@@ -27,9 +30,36 @@ const monthLabel = new Intl.DateTimeFormat(undefined, {
   timeZone: 'UTC'
 });
 
-/** Every vesting of one token: what is locked, vested and claimed, and when it unlocks. */
+/**
+ * The token page's address segment, checked before anything is read or shown:
+ * text that is not a token identifier is never echoed (fourth audit, WEB-1),
+ * and mvxvest's own key collections, pasted from a wallet, say what they are
+ * (RT1).
+ */
 export const Token = () => {
   const identifier = useParams().token ?? '';
+  const keys =
+    identifier === keyCollections.claim
+      ? 'claim'
+      : identifier === keyCollections.cancel
+        ? 'cancel'
+        : null;
+  if (!isTokenId(identifier) || keys)
+    return (
+      <div className='space-y-4'>
+        <PageTitle back title='Token' />
+        <Notice tone='warn'>
+          {keys
+            ? `This is mvxvest's collection of ${keys} keys, not a token. Look a key up by its full identifier, such as ${keyId(identifier, 7)}, or by its vesting number.`
+            : 'Not a token identifier. One looks like FOXSY-5d5f3e: a ticker, a dash and six letters or digits.'}
+        </Notice>
+      </div>
+    );
+  return <TokenView key={identifier} identifier={identifier} />;
+};
+
+/** Every vesting of one token: what is locked, vested and claimed, and when it unlocks. */
+const TokenView = ({ identifier }: { identifier: string }) => {
   const token = useToken(identifier);
   const [shown, setShown] = useState(50);
   const data = useAsync(async () => {
@@ -45,7 +75,9 @@ export const Token = () => {
     return (
       <div className='space-y-4'>
         <PageTitle back title={identifier} />
-        {failed ? (
+        {token.missing ? (
+          <Notice tone='warn'>No such token on this network.</Notice>
+        ) : failed ? (
           <>
             <Notice tone='warn'>
               This token could not be read right now: the network did not
@@ -207,7 +239,7 @@ export const Token = () => {
                       #{v.id}{' '}
                       {v.label && (
                         <span className='text-muted'>
-                          <bdi>{v.label}</bdi>
+                          <CreatorLabel text={v.label} />
                         </span>
                       )}
                     </Link>

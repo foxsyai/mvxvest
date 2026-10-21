@@ -4,6 +4,7 @@ import { Create } from 'pages/Create';
 import { Created } from 'pages/Created';
 import { Guide } from 'pages/Guide';
 import { Home } from 'pages/Home';
+import { KeyPage } from 'pages/Key';
 import { Mine } from 'pages/Mine';
 import { Token } from 'pages/Token';
 import { VestingPage } from 'pages/Vesting';
@@ -23,5 +24,6 @@ export const routes: RouteWithTitleType[] = [
   { path: RouteNamesEnum.vesting, title: 'Vesting', component: VestingPage },
   { path: RouteNamesEnum.token, title: 'Token', component: Token },
   { path: RouteNamesEnum.account, title: 'Address', component: Account },
+  { path: RouteNamesEnum.key, title: 'Key', component: KeyPage },
   { path: RouteNamesEnum.guide, title: 'How it works', component: Guide }
 ];

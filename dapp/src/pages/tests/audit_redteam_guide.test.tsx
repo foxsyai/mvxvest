@@ -43,8 +43,9 @@ describe('red team: what the Guide lets a reader verify', () => {
   });
 
   it('names the two key collections', () => {
-    expect(screen.queryByText(/VESTKEY-[0-9a-f]{6}/)).not.toBeNull();
-    expect(screen.queryByText(/VESTCANCEL-[0-9a-f]{6}/)).not.toBeNull();
+    // All: step 9 also shows a key's identifier as an example (fourth audit).
+    expect(screen.queryAllByText(/VESTKEY-[0-9a-f]{6}/)).not.toHaveLength(0);
+    expect(screen.queryAllByText(/VESTCANCEL-[0-9a-f]{6}/)).not.toHaveLength(0);
   });
 
   it('names the owner multisig and its quorum', () => {

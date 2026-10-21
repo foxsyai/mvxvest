@@ -7,6 +7,11 @@ export type ShownToken = Omit<TokenInfo, 'decimals'> & {
   known: boolean;
   /** The read failed: offer to try again. */
   failed: boolean;
+  /**
+   * The API answered that there is no such token (404): not an outage, so
+   * no "try again" (fourth audit, RT1 and WEB-1).
+   */
+  missing: boolean;
   reload: () => void;
 };
 
@@ -21,7 +26,8 @@ export const useToken = (identifier: string | undefined): ShownToken => {
     async () => (identifier ? tokenInfo(identifier) : EGLD_INFO),
     [identifier]
   );
-  if (data) return { ...data, known: true, failed: false, reload };
+  if (data)
+    return { ...data, known: true, failed: false, missing: false, reload };
   return {
     identifier: identifier ?? '',
     ticker: identifier ? identifier.split('-')[0] : '',
@@ -29,6 +35,7 @@ export const useToken = (identifier: string | undefined): ShownToken => {
     decimals: undefined,
     known: false,
     failed: Boolean(error),
+    missing: (error as { status?: number } | undefined)?.status === 404,
     reload
   };
 };

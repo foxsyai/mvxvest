@@ -16,11 +16,14 @@ import {
   VestingGrid
 } from 'components/vesting/VestingList';
 import { useAsync } from 'hooks';
+import { isAddress } from 'vesting/identifiers';
 
 /** Any address, read-only: what it created and which claim keys it holds. */
 export const Account = () => {
   const address = (useParams().address ?? '').toLowerCase();
   const data = useAsync(async () => {
+    // Nothing is asked of the API for text that is not an address.
+    if (!isAddress(address)) return null;
     const collections = await client.collections();
     const [created, held] = await Promise.all([
       createdVestings(address),
@@ -37,15 +40,19 @@ export const Account = () => {
         back
         title='Address'
         lead={
-          <span className='flex flex-wrap items-center gap-2'>
-            <AddressText address={address} link={false} />
-            <ExplorerLink path={`/accounts/${address}`}>
-              on the explorer
-            </ExplorerLink>
-          </span>
+          // Only an address is shown back: other text in the link is never
+          // echoed (fourth audit, WEB-1).
+          isAddress(address) && (
+            <span className='flex flex-wrap items-center gap-2'>
+              <AddressText address={address} link={false} />
+              <ExplorerLink path={`/accounts/${address}`}>
+                on the explorer
+              </ExplorerLink>
+            </span>
+          )
         }
       />
-      {!/^erd1[02-9ac-hj-np-z]{58}$/.test(address) ? (
+      {!isAddress(address) ? (
         <Notice tone='warn'>This is not a MultiversX address.</Notice>
       ) : data.error && !data.data ? (
         <ReadFailed

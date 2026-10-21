@@ -2,11 +2,18 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { vesting } from 'chain/vesting';
 import { Card, inputClass } from 'components/ui';
+import { keyCollections } from 'config';
 import { useAsync } from 'hooks';
+import { keyId, parseKeyId } from 'vesting/identifiers';
 
-/** Where a lookup goes: an address, a token or a vesting number. */
+/**
+ * Where a lookup goes: an address, a token, a vesting number or a key's NFT
+ * identifier as a wallet or a marketplace shows it (fourth audit, RT1).
+ */
 export const lookupTarget = (raw: string): string | null => {
   const value = raw.trim();
+  const key = parseKeyId(value);
+  if (key) return `/k/${keyId(key.collection, key.nonce)}`;
   if (/^erd1[02-9ac-hj-np-z]{58}$/i.test(value))
     return `/a/${value.toLowerCase()}`;
   if (/^#?\d+$/.test(value)) return `/v/${value.replace('#', '')}`;
@@ -30,7 +37,7 @@ export const Home = () => {
     if (target) navigate(target);
     else
       setProblem(
-        'Enter an erd1 address, a token identifier such as FOXSY-123abc or a vesting number.'
+        `Enter an erd1 address, a token identifier such as FOXSY-123abc, a vesting number or a key such as ${keyId(keyCollections.claim, 7)}.`
       );
   };
 
@@ -70,7 +77,7 @@ export const Home = () => {
               setQuery(event.target.value);
               setProblem('');
             }}
-            placeholder='Address, token or vesting number'
+            placeholder='Address, token, vesting number or key'
             aria-label='Look up an address, a token or a vesting'
           />
           <button
