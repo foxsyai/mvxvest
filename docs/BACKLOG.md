@@ -21,9 +21,10 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 ## From the fourth audit
 
-- **Contract version 3**, if the owner wants it (SCK-1, SCK-2, SCM-1): stamp what a claim paid into the returned key, mark cancelable keys in their name, a key status view and a deficit view. Then an audit of its own, a devnet rehearsal and a multisig vote. No new fields in stored structures. The failing proof waits in `audit4_sck_market_stale_key.rs` (ignored).
+- ~~**Contract version 3**~~ (SCK-1, SCK-2, SCM-1): live on mainnet since 22 Oct 2026, audited by three reviewers and rehearsed on devnet; see [MAINNET.md](MAINNET.md#version-3-22-october-2026).
+- **The first stamp on mainnet** (version 3 runbook, step 7): a small vesting for a wallet in another shard than the contract's, claimed once before its end; then record the key's name and attributes in MAINNET.md.
 - **Owner decisions:** the merge rules (a second approving maintainer or no required approval; strict results), DNS for mvxvest.io (SPF `-all`, DMARC `p=reject`, a null MX) and HSTS preload. See the report's last section.
-- **After the CI change is on main:** turn on "require actions to be pinned to a full-length commit SHA" (every action and the actions they use are pinned).
+- ~~**Require actions pinned to a full-length commit SHA**~~: turned on for the repository on 21 Oct 2026, once the CI change was on main.
 - **Renew `dapp/public/.well-known/security.txt`** before its `Expires` (1 July 2027).
 - **Guide pictures** that show a vesting card or page predate the "cancelable" mark and the quoted labels; retake them with the next interface change.
 - **`pnpm typecheck` in `scripts/`** fails on `csv120.ts`, `fund-demo.ts` and `v2-batches.ts` (they import the dApp's code with a second copy of sdk-core).

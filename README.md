@@ -13,7 +13,8 @@ Status:
 - **Live on mainnet** since 12 Oct 2026, at [mvxvest.io](https://mvxvest.io).
   The contract is `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`,
   owned by a 2-of-3 mvxsafe multisig.
-- **Version 2** since 14 Oct 2026.
+- **Version 3** since 22 Oct 2026: a claim key's name shows what has been
+  claimed and whether it can be cancelled.
 - **Audited four times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),

@@ -20,11 +20,8 @@ export const contractAddress =
  * add the new build's hash and deploy the site; after it, remove the old one.
  */
 export const contractCodeHashes = [
-  // Version 2, live since 14 Oct 2026 (MAINNET.md). Version 1's fd32f4e1… was
-  // removed after the upgrade.
-  'a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a',
-  // Version 3 (CHANGELOG.md), listed before the multisig's vote; version 2's
-  // hash goes once the upgrade is done.
+  // Version 3, live since 22 Oct 2026 (MAINNET.md). The hashes of versions 1
+  // and 2 were removed after their upgrades.
   '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
 ];
 export const keyCollections = {
