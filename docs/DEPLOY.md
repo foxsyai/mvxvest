@@ -215,7 +215,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 
 ## Version 3 on mainnet: the runbook
 
-Carried out on 22 Oct 2026 (MAINNET.md, "Version 3"). Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet came first (below).
+Carried out on 22 Oct 2026 up to step 6 (MAINNET.md, "Version 3"); step 7, the first stamp on mainnet, waits for a test vesting. Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet came first (below).
 
 **The release:** the reproducible build of the merged commit, 29,327 bytes, code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d` (CHANGELOG.md). Each signer can rebuild it with the command in "Version 2 on mainnet" or take it from CI's "Reproducible build" job of the merged commit; never from a message alone. A plain `sc-meta all build` gives another hash.
 

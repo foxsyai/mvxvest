@@ -16,9 +16,9 @@ Both collections are owned by the contract. They cannot be frozen, wiped or paus
 
 The roles, as read on 13 Oct 2026 (audit L4):
 - **The contract holds every NFT role on both collections**, because `issue_and_set_all_roles` gives them all: NFTCreate, NFTBurn, NFTUpdateAttributes, NFTAddURI, NFTRecreate, ModifyCreator, ModifyRoyalties, SetNewURI and NFTUpdate.
-- **Its code uses only NFTCreate and NFTBurn.** The others could be used only by new code, which means an upgrade voted by the multisig.
+- **Its code uses NFTCreate and NFTBurn, and since version 3 NFTUpdate** (`ESDTMetaDataUpdate`, to stamp a claim key while a claim holds it). The others could be used only by new code, which means an upgrade voted by the multisig.
 - **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, again only through new code.
-- **What these roles cannot do:** updating attributes acts on the caller's own NFT. The contract therefore cannot add the cancelable marker (RT3) to keys its holders own, so version 2 marks new keys only.
+- **What these roles cannot do:** updating a key acts on the caller's own NFT. The contract therefore cannot change keys its holders own: version 2 marks new keys only, and version 3 stamps a key only while a claim holds it.
 
 ## Transactions
 
@@ -134,6 +134,8 @@ The contract was upgraded to version 3 by a vote of the owner multisig through m
 **Checked on chain after the upgrade:**
 - the code hash is the release's; the owner is still the multisig; the contract is still upgradeable, readable and not payable;
 - the vesting count is still 2; `getClaimKeyStatus(1)` answers what `getVesting(1)` does;
-- the FOXSY totals are unchanged (deposited 200, claimed 63.5, refunded 60.277777777777777778, owed 76.222222222222222223, the contract's balance); surplus and deficit 0 for FOXSY and EGLD;
+- the FOXSY totals are unchanged (deposited 200, claimed 63.499999999999999999, refunded 60.277777777777777778, owed 76.222222222222222223, the contract's balance); surplus and deficit 0 for FOXSY and EGLD;
 - the fee (0.1 EGLD), the token fee (10), the fees accrued (0), the pause flag (off) and the limits (120, 49, 32, 64, 30 years, 100) are unchanged;
 - `isKeyStamping` answers true.
+
+The runbook's step 7, the first stamp on a mainnet key, waits for a small test vesting claimed once from another shard (BACKLOG).
