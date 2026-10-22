@@ -16,9 +16,9 @@ Both collections are owned by the contract. They cannot be frozen, wiped or paus
 
 The roles, as read on 13 Oct 2026 (audit L4):
 - **The contract holds every NFT role on both collections**, because `issue_and_set_all_roles` gives them all: NFTCreate, NFTBurn, NFTUpdateAttributes, NFTAddURI, NFTRecreate, ModifyCreator, ModifyRoyalties, SetNewURI and NFTUpdate.
-- **Its code uses NFTCreate and NFTBurn, and since version 3 NFTUpdate** (`ESDTMetaDataUpdate`, to stamp a claim key while a claim holds it). The others could be used only by new code, which means an upgrade voted by the multisig.
+- **Its code uses NFTCreate and NFTBurn; since version 3 also NFTUpdate** (`ESDTMetaDataUpdate`, to stamp a claim key while a claim holds it). The others could be used only by new code, which means an upgrade voted by the multisig.
 - **The collections keep `canUpgrade` and `canAddSpecialRoles`.** Only their owner, the contract, can use these properties, again only through new code.
-- **What these roles cannot do:** updating a key acts on the caller's own NFT. The contract therefore cannot change keys its holders own: version 2 marks new keys only, and version 3 stamps a key only while a claim holds it.
+- **What these roles cannot do:** updating a key acts on the caller's own NFT. The contract therefore cannot change keys its holders own: version 2 marks new keys only; version 3 stamps a key only while a claim holds it.
 
 ## Transactions
 
