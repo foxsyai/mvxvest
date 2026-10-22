@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 3 (not deployed yet; audited 21 Oct 2026)
+## Version 3 (mainnet since 22 Oct 2026, audited and rehearsed on devnet on 21 Oct 2026)
 
 Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash
 `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, 29,327 bytes.

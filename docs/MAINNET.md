@@ -5,7 +5,7 @@ Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet
 | | |
 |---|---|
 | Contract | `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu` |
-| Code hash | Version 2 since 14 Oct 2026: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, the reproducible build (`multiversx/sdk-rust-contract-builder:v12.0.0`). Version 1, 12 to 14 Oct: `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32`. |
+| Code hash | Version 3 since 22 Oct 2026: `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, the reproducible build (`multiversx/sdk-rust-contract-builder:v12.0.0`). Version 2, 14 to 22 Oct: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`. Version 1, 12 to 14 Oct: `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32`. |
 | Code metadata | upgradeable, readable, not payable, not payable by smart contracts |
 | Owner | the mvxsafe multisig `erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3`, quorum 2 of 3 |
 | Claim keys | `VESTKEY-f56bea` (MvxVestClaimKey), green image `https://mvxvest.io/nft/claim-key-2.png` / `.svg` |
@@ -115,3 +115,25 @@ Proposed by `erd1q83m…r3s7j4`; signed and carried out by `erd1u05m…gw5esx`. 
 Then `getTokenFee` read 10, `getFee` 100000000000000000 and `isCreationPaused` 0.
 
 Version 1's code hash was then removed from the site's list (c64fa34, the runbook's step 8).
+
+## Version 3 (22 October 2026)
+
+The contract was upgraded to version 3 by a vote of the owner multisig through mvxsafe.io, following DEPLOY.md's version 3 runbook. The version had been audited by three reviewers (contract, red team, operations), passed three rounds of the merge gate's review and was rehearsed on devnet the day before (DEPLOY.md).
+
+| Step | By | Transaction | Gas |
+|---|---|---|---|
+| Source deployed: `erd1qqqqqqqqqqqqqpgqnf44gv7pz2nm8gxh4cw5nvys4wemtns86qlsw5gwjs` (shard 1, not upgradeable) | `erd1u05m…gw5esx` | `e6dda87829e49fd136a435298d9a34e46b2265cc51b243c051ca261949621a12` | 116.7M, 0.0884 EGLD |
+| Upgrade proposed (safe action #5) | `erd1u05m…gw5esx` | `072e1c7d937ad061001f352ec9b34dac6f0da856eef2a3a6d2b62310c1db4adc` | 5.3M |
+| Signed | `erd1q83m…r3s7j4` | `38f26a05778ff03f6eb579563c5fd8f783d16040009f01d6ddef20ec2ee21cf1` | 4.3M |
+| Performed | `erd1q83m…r3s7j4` | `de19ced6d30680521f816ca9bb7573c11739521bebfe6de8ee0f0b97b82bfaca` | 26.35M, 0.0004 EGLD |
+
+**The code:** code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, 29,327 bytes: the reproducible build of `main` at 846afbe, also built by CI. The source's 29,327 bytes, read from the chain and hashed, are byte for byte the release file.
+
+**Gas:** the upgrade itself used 9.10M; the callback answered `@00`.
+
+**Checked on chain after the upgrade:**
+- the code hash is the release's; the owner is still the multisig; the contract is still upgradeable, readable and not payable;
+- the vesting count is still 2; `getClaimKeyStatus(1)` answers what `getVesting(1)` does;
+- the FOXSY totals are unchanged (deposited 200, claimed 63.5, refunded 60.277777777777777778, owed 76.222222222222222223, the contract's balance); surplus and deficit 0 for FOXSY and EGLD;
+- the fee (0.1 EGLD), the token fee (10), the fees accrued (0), the pause flag (off) and the limits (120, 49, 32, 64, 30 years, 100) are unchanged;
+- `isKeyStamping` answers true.

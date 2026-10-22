@@ -1,8 +1,8 @@
 # Contract specification
 
-The rules the vesting contract implements. This is **version 3**, not deployed
-yet: mainnet runs version 2 since 14 October 2026 (code hash a7acbf22…,
-[MAINNET.md](MAINNET.md)). Version 3 differs from version 2 in what a claim key
+The rules the vesting contract implements. This is **version 3**, live on
+mainnet since 22 October 2026 (code hash 65c689b9…, [MAINNET.md](MAINNET.md));
+version 2 ran from 14 to 22 October. Version 3 differs from version 2 in what a claim key
 shows: a cancelable vesting's claim key says so in its name; each claim that
 pays rewrites the returned key's name and attributes with what has been
 claimed (the fourth audit's SCK-1 and SCK-2). It adds the owner's switch for
