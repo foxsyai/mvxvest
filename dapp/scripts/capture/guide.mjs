@@ -208,12 +208,22 @@ const go = async (path, site = SITE) => {
   if (site === SITE) await onTestNetwork();
   await drawBanner();
 };
-/** Stops the script unless the page shows the test network's strip. */
+/**
+ * Stops the script unless the page shows the test network's strip. It waits
+ * for it: right after a wallet connects the page renders again, and a check
+ * at that moment found no strip on the test network itself (23 Oct 2026).
+ */
 const onTestNetwork = async () => {
-  const strip = await page.evaluate(() =>
-    document.body.textContent.includes('test network, no real money')
-  );
+  const strip = await page
+    .waitForFunction(
+      () => document.body.textContent.includes('test network, no real money'),
+      null,
+      { timeout: 20000 }
+    )
+    .then(() => true)
+    .catch(() => false);
   if (!strip) {
+    await page.screenshot({ path: `${OUT}not-test-network.png` }).catch(() => {});
     console.error('This page is not on the test network: stopping.');
     process.exit(1);
   }
