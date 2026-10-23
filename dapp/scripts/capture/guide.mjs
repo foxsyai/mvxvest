@@ -20,7 +20,8 @@
 // NOTHING IS SIGNED BY THIS SCRIPT. It fills forms, waits and photographs.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DEVNET = 'https://devnet.mvxvest.io';
@@ -210,20 +211,22 @@ const go = async (path, site = SITE) => {
 };
 /**
  * Stops the script unless the page shows the test network's strip. It waits
- * for it: right after a wallet connects the page renders again, and a check
- * at that moment found no strip on the test network itself (23 Oct 2026).
+ * for it (polled with `until`, as the site's content policy wants): right
+ * after a wallet connects the page renders again, and a check at that moment
+ * found no strip on the test network itself (23 Oct 2026).
  */
 const onTestNetwork = async () => {
-  const strip = await page
-    .waitForFunction(
-      () => document.body.textContent.includes('test network, no real money'),
-      null,
-      { timeout: 20000 }
-    )
-    .then(() => true)
-    .catch(() => false);
+  const strip = await until(
+    (needle) => document.body.textContent.includes(needle),
+    'test network, no real money',
+    "the test network's strip",
+    20000
+  );
   if (!strip) {
-    await page.screenshot({ path: `${OUT}not-test-network.png` }).catch(() => {});
+    // Outside public/shots/, which ships with the site.
+    await page
+      .screenshot({ path: join(tmpdir(), 'mvxvest-not-test-network.png') })
+      .catch(() => {});
     console.error('This page is not on the test network: stopping.');
     process.exit(1);
   }
