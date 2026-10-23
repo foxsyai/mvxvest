@@ -12,7 +12,7 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 6. **One or two more large adversarial audit rounds**, then the **official announcement** on FOXSY's channels. A third round covered what changed after the second, on 14 Oct 2026 ([report](reviews/2026-10-14-fable-audit-3.md)). The fourth covered the whole system again on 20 and 21 Oct 2026 ([report](reviews/2026-10-21-fable-audit-4.md)); its open items are below.
 7. ~~**New pictures for How it works**~~ Done on 14 Oct 2026 (all 22), taken with a fresh devnet-only wallet (`WALLET=erd1... node dapp/scripts/capture/guide.mjs`), so no picture shows a wallet with a history (third audit, O1). This also retakes the pictures that still show the old wording (W5). Needs Sebastian's xPortal for the four approvals.
 
-8. **Agent review and CI as merge gates, on mvxvest and mvxsafe** (Sebastian, 14 Oct 2026). Port foxsyai/foxleague-agent's setup:
+8. ~~**Agent review and CI as merge gates, on mvxvest and mvxsafe**~~ (Sebastian, 14 Oct 2026). Live on both repositories since 15 Oct 2026. Ported from foxsyai/foxleague-agent's setup:
    - CI and a Claude Code review (Opus 5.5, effort xhigh) start only when a maintainer adds the label `merge-check`, so nobody can spend tokens or CI minutes by opening pull requests;
    - the reviewer's settings, verdict script and workspace gate come from main; it only reads and comments; a pull request that changes CI or the review is checked by hand;
    - a small GitHub App posts the `ci` and `review` results; a ruleset makes main require a pull request with one approval and both results, admins may bypass; no force push or deletion for anyone;
@@ -23,11 +23,11 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 - ~~**Contract version 3**~~ (SCK-1, SCK-2, SCM-1): live on mainnet since 22 Oct 2026, audited by three reviewers and rehearsed on devnet; see [MAINNET.md](MAINNET.md#version-3-22-october-2026).
 - ~~**The first stamp on mainnet**~~ (version 3 runbook, step 7): done on 22 Oct 2026, vesting #3 (MAINNET.md).
-- **Owner decisions:** the merge rules (a second approving maintainer or no required approval; strict results), DNS for mvxvest.io (SPF `-all`, DMARC `p=reject`, a null MX) and HSTS preload. See the report's last section.
+- **Owner decisions** (the report's last section), taken by Sebastian on 21 Oct 2026: the merge rules stay as they are, merging with the admin bypass; no HSTS preload. Still to do, later: DNS for mvxvest.io (SPF `-all`, DMARC `p=reject`, a null MX).
 - ~~**Require actions pinned to a full-length commit SHA**~~: turned on for the repository on 21 Oct 2026, once the CI change was on main.
 - **Renew `dapp/public/.well-known/security.txt`** before its `Expires` (1 July 2027).
-- **Guide pictures** that show a vesting card or page predate the "cancelable" mark and the quoted labels; retake them with the next interface change.
-- **`pnpm typecheck` in `scripts/`** fails on `csv120.ts`, `fund-demo.ts` and `v2-batches.ts` (they import the dApp's code with a second copy of sdk-core).
+- **Guide pictures** that show a vesting card or page predate the "cancelable" mark, the quoted labels and the claim keys' new names; retake them before the announcement.
+- ~~**`pnpm typecheck` in `scripts/`**~~ passes since 23 Oct 2026: the devnet helpers' `.ts` imports are allowed and every file uses the scripts' one copy of sdk-core.
 
 ## Product
 

@@ -6,7 +6,15 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    // The devnet helpers (csv120.ts, fund-demo.ts, v2-batches.ts) import the
+    // dApp's own modules by their .ts path; those modules import sdk-core:
+    // one copy for every file, the scripts' (tsx follows the same mapping),
+    // so its classes are one type and not two.
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@multiversx/sdk-core": ["./node_modules/@multiversx/sdk-core"]
+    }
   },
   "include": ["src"]
 }
