@@ -180,6 +180,13 @@ class Policy(unittest.TestCase):
                 self.assertRegex(text, r"location = /index\.html \{ expires -1; \}")
                 self.assertRegex(text, r"try_files \$uri \$uri/ /index\.html;")
 
+    def test_version_file_revalidated(self):
+        # OPZ-05: deploy.sh compares the live version.txt after the upload and people read it to
+        # see which build answers: a cached answer is a wrong answer.
+        for host in HOSTS:
+            with self.subTest(host=host):
+                self.assertRegex(app_block(host), r"location = /version\.txt \{ expires -1; \}")
+
     def test_http_redirects_to_same_host(self):
         for name, text in blocks():
             if "listen 80;" in text:
@@ -215,6 +222,13 @@ class Live(unittest.TestCase):
                 self.assertEqual(h.get("cache-control"), "no-cache")
                 _, _, body = self.fetch(f"https://{host}/version.txt")
                 self.assertRegex(body.decode(), r"^[0-9a-f]{40} (mainnet|devnet)\n?$")
+
+    def test_live_version_file_not_cached(self):
+        # OPZ-05: red until the file in the repository is applied on the server.
+        for host in HOSTS:
+            with self.subTest(host=host):
+                _, h, _ = self.fetch(f"https://{host}/version.txt")
+                self.assertEqual(h.get("cache-control"), "no-cache")
 
 
 if __name__ == "__main__":
