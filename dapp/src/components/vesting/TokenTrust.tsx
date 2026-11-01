@@ -2,8 +2,9 @@
 // token it really is, and what its issuer can still do to it. Neither is
 // mvxvest's to change; both are the token's own settings.
 
+import { ReactNode } from 'react';
 import type { TokenInfo } from 'chain/reads';
-import { AddressText, Info, Notice } from 'components/ui';
+import { AddressText, Amount, Info, Notice } from 'components/ui';
 
 /**
  * The identifier, and "unverified" when the token has no registered assets:
@@ -44,6 +45,48 @@ export const issuerPowers = (token: Omit<TokenInfo, 'decimals'>): string[] => {
   else if (token.canUpgrade) powers.push('change its settings');
   return powers;
 };
+
+/**
+ * The contract's own answer that it holds less of a token than it owes, in
+ * place of figures that would read as a lock or as money ready to claim
+ * (fifth audit, RT-3). A failed read says so.
+ */
+export const ShortfallNotice = ({
+  shortfall,
+  failed,
+  decimals,
+  ticker,
+  children
+}: {
+  shortfall?: bigint;
+  failed: boolean;
+  decimals?: number;
+  ticker: string;
+  /** What this page's reader should do about it. */
+  children?: ReactNode;
+}) =>
+  shortfall ? (
+    <Notice tone='danger'>
+      <p className='font-semibold'>
+        The contract no longer holds all it owes of {ticker}: it holds{' '}
+        <Amount units={shortfall} decimals={decimals} ticker={ticker} /> less
+        than it owes.
+        <Info label='How this can happen'>
+          A token&apos;s issuer can freeze the contract&apos;s balance and wipe
+          it. That is a setting of the token itself: the contract cannot prevent
+          it. Claims and cancels of this token can fail until the balance is
+          made good.
+        </Info>
+      </p>
+      {children}
+    </Notice>
+  ) : failed ? (
+    <Notice tone='warn'>
+      It could not be checked whether the contract still holds all it owes of{' '}
+      {ticker}: the network did not answer. The figures here are the
+      contract&apos;s books, not its balance.
+    </Notice>
+  ) : null;
 
 /**
  * The issuer's powers over the token, which the contract cannot prevent: a

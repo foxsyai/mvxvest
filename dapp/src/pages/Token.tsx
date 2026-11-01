@@ -15,10 +15,11 @@ import {
   Spinner
 } from 'components/ui';
 import { CreatorLabel } from 'components/vesting/CreatorLabel';
-import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { IssuerPowers, ShortfallNotice } from 'components/vesting/TokenTrust';
 import { keyCollections } from 'config';
-import { useAsync, useToken } from 'hooks';
+import { useAsync, useDeficit, useToken } from 'hooks';
 import { unlockCalendar } from 'vesting/calendar';
+import type { Vesting } from 'vesting/client';
 import { STATUS_LABEL, statusOf } from 'vesting/describe';
 import { formatAmount } from 'vesting/format';
 import { isTokenId, keyId } from 'vesting/identifiers';
@@ -58,9 +59,12 @@ export const Token = () => {
   return <TokenView key={identifier} identifier={identifier} />;
 };
 
+const runsCancelable = (v: Vesting) => v.cancelable && v.cancelledAt === 0;
+
 /** Every vesting of one token: what is locked, vested and claimed, and when it unlocks. */
 const TokenView = ({ identifier }: { identifier: string }) => {
   const token = useToken(identifier);
+  const { shortfall, failed: shortfallUnread } = useDeficit(identifier);
   const [shown, setShown] = useState(50);
   const data = useAsync(async () => {
     const [totals, { list, count }] = await Promise.all([
@@ -113,6 +117,12 @@ const TokenView = ({ identifier }: { identifier: string }) => {
   // With more vestings than are read, what is vested and when it unlocks is
   // computed from the newest ones only; the contract's totals are exact.
   const partial = count > list.length;
+  // A lock its creator can undo is not a lock (fifth audit, RT-2): what the
+  // holders of the cancel keys can still pull back.
+  const pullable = list.reduce(
+    (sum, v) => (runsCancelable(v) ? sum + v.total - v.vested : sum),
+    0n
+  );
   const claimedListed = list.reduce((sum, v) => sum + v.claimed, 0n);
   const calendar = unlockCalendar(list, now);
   const biggest = calendar.reduce(
@@ -128,6 +138,12 @@ const TokenView = ({ identifier }: { identifier: string }) => {
         title={token.ticker || identifier}
         lead={`${identifier}${token.verified === false ? ' (unverified: no registered logo or description)' : ''} · ${count.toLocaleString('en-US')} vestings`}
         info='Every vesting of this token, read from the contract.'
+      />
+      <ShortfallNotice
+        shortfall={shortfall}
+        failed={shortfallUnread}
+        decimals={d}
+        ticker={token.ticker}
       />
       {token.known && <IssuerPowers token={token} />}
       <Card className='space-y-4'>
@@ -146,12 +162,30 @@ const TokenView = ({ identifier }: { identifier: string }) => {
           <div>
             <dt className='text-xs text-muted'>Still in the contract</dt>
             <dd className='font-semibold'>
-              <Amount
-                digits={2}
-                units={locked}
-                decimals={d}
-                ticker={token.ticker}
-              />
+              {shortfall ? (
+                <span className='text-danger'>less than it owes, see above</span>
+              ) : (
+                <>
+                  <Amount
+                    digits={2}
+                    units={locked}
+                    decimals={d}
+                    ticker={token.ticker}
+                  />
+                  {pullable > 0n && (
+                    <span className='block text-xs font-normal text-warn'>
+                      {partial && 'at least '}
+                      <Amount
+                        digits={2}
+                        units={pullable}
+                        decimals={d}
+                        ticker={token.ticker}
+                      />{' '}
+                      can still be pulled back by cancel key holders
+                    </span>
+                  )}
+                </>
+              )}
             </dd>
           </div>
           <div>
@@ -216,6 +250,19 @@ const TokenView = ({ identifier }: { identifier: string }) => {
             </div>
           ))}
         </div>
+        {pullable > 0n && (
+          <p className='mt-3 text-xs text-warn'>
+            This calendar counts up to{' '}
+            <Amount
+              digits={2}
+              units={pullable}
+              decimals={d}
+              ticker={token.ticker}
+            />{' '}
+            of cancelable vestings as if it will vest. Whoever holds their cancel
+            keys can stop them before it does and keep it.
+          </p>
+        )}
       </Card>
 
       <Card>
@@ -255,6 +302,14 @@ const TokenView = ({ identifier }: { identifier: string }) => {
                   </td>
                   <td className='py-1.5'>
                     <Badge>{STATUS_LABEL[statusOf(v, now)]}</Badge>
+                    {runsCancelable(v) && (
+                      <span
+                        className='ml-2 text-xs text-warn'
+                        title='Whoever holds the cancel key can stop it'
+                      >
+                        cancelable
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

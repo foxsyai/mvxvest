@@ -20,9 +20,15 @@ import {
 import { ScheduleChart } from 'components/vesting/Chart';
 import { CreatorLabel } from 'components/vesting/CreatorLabel';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
-import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { IssuerPowers, ShortfallNotice } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
-import { useAsync, useKeyStamping, useSigningRecord, useToken } from 'hooks';
+import {
+  useAsync,
+  useDeficit,
+  useKeyStamping,
+  useSigningRecord,
+  useToken
+} from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
 import { isVestingNumber } from 'vesting/identifiers';
@@ -107,6 +113,7 @@ const VestingView = () => {
   const stamping = useKeyStamping();
   const v = data.data?.v;
   const token = useToken(v?.token);
+  const { shortfall, failed: shortfallUnread } = useDeficit(v?.token);
 
   const buildClaim = useCallback(
     () =>
@@ -214,6 +221,20 @@ const VestingView = () => {
         </Badge>
       </div>
 
+      <ShortfallNotice
+        shortfall={shortfall}
+        failed={shortfallUnread}
+        decimals={token.decimals}
+        ticker={ticker}
+      >
+        {claimHolder !== null && (
+          <p className='mt-1'>
+            Before you buy its claim key: it may pay nothing now, whatever this
+            vesting&apos;s schedule says.
+          </p>
+        )}
+      </ShortfallNotice>
+
       {/* The claim key never changes after its mint: on a marketplace it looks
           the same whatever was claimed, and the holder of the cancel key can
           stop the vesting right after a sale. Only this page knows (fourth
@@ -279,30 +300,36 @@ const VestingView = () => {
         {/* The arithmetic, so the figures below add up at a glance:
             claimed is part of vested, not added to it (Sebastian, mainnet
             test). */}
-        <p className='text-xs text-muted'>
-          <Amount units={v.vested} decimals={token.decimals} digits={4} />{' '}
-          vested ={' '}
-          <Amount units={v.claimed} decimals={token.decimals} digits={4} />{' '}
-          claimed +{' '}
-          <Amount units={v.claimable} decimals={token.decimals} digits={4} />{' '}
-          claimable ·{' '}
-          {v.cancelledAt ? (
-            <>
-              <Amount units={v.refunded} decimals={token.decimals} digits={4} />{' '}
-              returned on cancel
-            </>
-          ) : (
-            <>
-              <Amount
-                units={v.total - v.vested}
-                decimals={token.decimals}
-                digits={4}
-              />{' '}
-              not vested yet
-            </>
-          )}{' '}
-          ({ticker})
-        </p>
+        {!shortfall && (
+          <p className='text-xs text-muted'>
+            <Amount units={v.vested} decimals={token.decimals} digits={4} />{' '}
+            vested ={' '}
+            <Amount units={v.claimed} decimals={token.decimals} digits={4} />{' '}
+            claimed +{' '}
+            <Amount units={v.claimable} decimals={token.decimals} digits={4} />{' '}
+            claimable ·{' '}
+            {v.cancelledAt ? (
+              <>
+                <Amount
+                  units={v.refunded}
+                  decimals={token.decimals}
+                  digits={4}
+                />{' '}
+                returned on cancel
+              </>
+            ) : (
+              <>
+                <Amount
+                  units={v.total - v.vested}
+                  decimals={token.decimals}
+                  digits={4}
+                />{' '}
+                not vested yet
+              </>
+            )}{' '}
+            ({ticker})
+          </p>
+        )}
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
           <Fact label='Vested so far'>
             <Amount
@@ -321,14 +348,20 @@ const VestingView = () => {
             />
           </Fact>
           <Fact label='Claimable now'>
-            <span className='font-semibold'>
-              <Amount
-                digits={4}
-                units={v.claimable}
-                decimals={token.decimals}
-                ticker={ticker}
-              />
-            </span>
+            {shortfall ? (
+              <span className='font-semibold text-danger'>
+                may pay nothing, see above
+              </span>
+            ) : (
+              <span className='font-semibold'>
+                <Amount
+                  digits={4}
+                  units={v.claimable}
+                  decimals={token.decimals}
+                  ticker={ticker}
+                />
+              </span>
+            )}
           </Fact>
           <Fact label='Next release'>
             {next &&
@@ -414,14 +447,22 @@ const VestingView = () => {
             label={`Claim from vesting #${v.id}`}
             summary={
               <p>
-                Claims what has vested and is not claimed yet, about{' '}
-                <Amount
-                  units={v.claimable}
-                  decimals={token.decimals}
-                  ticker={ticker}
-                />{' '}
-                now, to this wallet. The claim key comes back to you or is
-                burned if this is the last of it.
+                Claims what has vested and is not claimed yet
+                {shortfall ? (
+                  ', if the contract still holds enough of it,'
+                ) : (
+                  <>
+                    , about{' '}
+                    <Amount
+                      units={v.claimable}
+                      decimals={token.decimals}
+                      ticker={ticker}
+                    />{' '}
+                    now,
+                  </>
+                )}{' '}
+                to this wallet. The claim key comes back to you or is burned if
+                this is the last of it.
               </p>
             }
             build={buildClaim}
