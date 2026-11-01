@@ -76,8 +76,90 @@ const upgradeFromSource = (target: string, source: string, metadata: Buffer, arg
  */
 export const FORGED_TOKEN = `FOXSY-5d5f3e, ${MULTISIG}, all of it) on ${MAINNET_CONTRACT}\n\x1b[8m\r`;
 
+/** The contract's key collections, as its views answer on mainnet (config.mainnet.ts). */
+const CLAIM_COLLECTION = "VESTKEY-f56bea";
+const CANCEL_COLLECTION = "VESTCANCEL-ae94f5";
+export const CLAIM_KEY_1 = `${CLAIM_COLLECTION}-01`;
+export const TRANCHES_CLAIM_KEY = `${CLAIM_COLLECTION}-0a`;
+export const STEPPED_CANCEL_KEY = `${CANCEL_COLLECTION}-0b`;
+
+const u64 = (n: number): Buffer => {
+  const b = Buffer.alloc(8);
+  b.writeBigUInt64BE(BigInt(n));
+  return b;
+};
+/**
+ * A made-up VestingView (addresses 0x33 and 0x44 repeated), with the curve whose length
+ * varies: claim key nonce 10, cancel key nonce 11, or none (0) when it cannot be cancelled.
+ */
+const viewWith = (curve: Buffer, cancelNonce = 11): Buffer =>
+  Buffer.concat([
+    u64(1),
+    Buffer.from("33".repeat(32), "hex"),
+    Buffer.from("44".repeat(32), "hex"),
+    nested(Buffer.from("FOXSY-5d5f3e")),
+    nested(Buffer.from([0x64])),
+    u64(1_700_000_000),
+    u64(1_700_000_000),
+    nested(Buffer.alloc(0)),
+    u64(1_800_000_000),
+    curve,
+    Buffer.from([cancelNonce ? 1 : 0]),
+    u64(1_699_000_000),
+    u64(10),
+    u64(cancelNonce),
+    nested(Buffer.from("made up")),
+    nested(Buffer.from([0x05])),
+  ]);
+const STEPPED = Buffer.concat([Buffer.from([1]), u64(86_400)]);
+const TRANCHES = Buffer.concat([
+  Buffer.from([2]),
+  u32(2),
+  u64(1_750_000_000),
+  nested(Buffer.from([0x32])),
+  u64(1_800_000_000),
+  nested(Buffer.from([0x32])),
+]);
+
 const action = (): Buffer => {
   switch (process.env.AUDIT5_CASE) {
+    // recoverBouncedKey of a key the contract holds, and the ways its read can go wrong.
+    case "bounced-key-held":
+    case "bounced-key-collection-unread":
+    case "bounced-key-nfts-unread":
+    case "bounced-key-nfts-not-a-list":
+    case "bounced-key-another-key-listed":
+    case "bounced-key-view-truncated":
+    case "bounced-claim-key-tranches":
+      return sendAsyncCall(MVXVEST, "recoverBouncedKey", [Buffer.from([1]), Buffer.alloc(0), addr(VESTING_1_BENEFICIARY)]);
+    case "bounced-cancel-key-stepped":
+    case "bounced-cancel-key-none":
+      return sendAsyncCall(MVXVEST, "recoverBouncedKey", [Buffer.from([1]), Buffer.from([1]), addr(VESTING_1_BENEFICIARY)]);
+    // OPS-1 for a key: the recipient is the zero address or the contract.
+    case "bounced-key-to-zero-address":
+      return sendAsyncCall(MVXVEST, "recoverBouncedKey", [Buffer.from([1]), Buffer.alloc(0), Buffer.alloc(32)]);
+    case "bounced-key-to-the-contract":
+      return sendAsyncCall(MVXVEST, "recoverBouncedKey", [Buffer.from([1]), Buffer.alloc(0), addr(MVXVEST)]);
+    // A byte 00 for a kind or a bool, as another tool may encode it: the Go VM takes it as Claim or false.
+    case "bounced-key-kind-byte-00":
+      return sendAsyncCall(MVXVEST, "recoverBouncedKey", [Buffer.from([1]), Buffer.from([0]), addr(VESTING_1_BENEFICIARY)]);
+    case "display-kind-byte-00":
+      return sendAsyncCall(MVXVEST, "setKeyDisplay", [Buffer.from([0]), Buffer.alloc(0), Buffer.from("https://mvxvest.io/nft/claim-key.png")]);
+    case "display-kind-two":
+      return sendAsyncCall(MVXVEST, "setKeyDisplay", [Buffer.from([2]), Buffer.alloc(0), Buffer.from("https://mvxvest.io/nft/claim-key.png")]);
+    case "stamping-byte-00":
+      return sendAsyncCall(MVXVEST, "setKeyStamping", [Buffer.from([0])]);
+    case "stamping-two-zero-bytes":
+      return sendAsyncCall(MVXVEST, "setKeyStamping", [Buffer.from([0, 0])]);
+    // Identifiers that are fine, and other raw bytes that go to the terminal.
+    case "surplus-egld":
+      return sendAsyncCall(MVXVEST, "recoverSurplus", [Buffer.from("EGLD-000000"), addr(VESTING_1_BENEFICIARY)]);
+    case "surplus-lower-case-token":
+      return sendAsyncCall(MVXVEST, "recoverSurplus", [Buffer.from("foxsy-5d5f3e"), addr(VESTING_1_BENEFICIARY)]);
+    case "endpoint-with-escapes":
+      return sendAsyncCall(MVXVEST, `pauseCreation() on ${MAINNET_CONTRACT}\n\x1b[8m\r`, []);
+    case "display-uri-with-escapes":
+      return sendAsyncCall(MVXVEST, "setKeyDisplay", [Buffer.alloc(0), Buffer.alloc(0), Buffer.from("https://mvxvest.io/\x7f\u009b8m")]);
     case "unpause":
       return sendAsyncCall(MVXVEST, "unpauseCreation", []);
     // recoverSurplus to the zero address: the contract refuses it (ERR_BAD_RECIPIENT) after two signatures.
@@ -130,7 +212,18 @@ const json = (body: unknown) =>
 
 const answer = (funcName: string, args: string[]): string[] => {
   if (funcName === "getActionData") return [action().toString("base64")];
-  if (funcName === "getVesting" && args.length === 1) return [Buffer.from(VESTING_1_VIEW_HEX, "hex").toString("base64")];
+  if (funcName === "getVesting" && args.length === 1) {
+    const the = (view: Buffer) => [view.toString("base64")];
+    if (process.env.AUDIT5_CASE === "bounced-claim-key-tranches") return the(viewWith(TRANCHES));
+    if (process.env.AUDIT5_CASE === "bounced-cancel-key-stepped") return the(viewWith(STEPPED));
+    if (process.env.AUDIT5_CASE === "bounced-cancel-key-none") return the(viewWith(STEPPED, 0));
+    if (process.env.AUDIT5_CASE === "bounced-key-view-truncated") return the(viewWith(STEPPED).subarray(0, 120));
+    return the(Buffer.from(VESTING_1_VIEW_HEX, "hex"));
+  }
+  if (funcName === "getClaimKeyCollection" || funcName === "getCancelKeyCollection") {
+    if (process.env.AUDIT5_CASE === "bounced-key-collection-unread") return [];
+    return [Buffer.from(funcName === "getClaimKeyCollection" ? CLAIM_COLLECTION : CANCEL_COLLECTION).toString("base64")];
+  }
   if (funcName === "getQuorum") return [Buffer.from([2]).toString("base64")];
   return [];
 };
@@ -145,8 +238,22 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     return json({ returnData, returnCode: "ok" });
   }
   process.stderr.write(`AUDIT5_READ ${url}\n`);
-  // The vesting contract holds no key at all: nothing bounced.
-  if (url.includes(`/accounts/${MVXVEST}/nfts`)) return json([]);
+  if (url.includes(`/accounts/${MVXVEST}/nfts`)) {
+    // Each case that holds a key answers it when asked for exactly that one, as the API does.
+    const holds: Record<string, string> = {
+      "bounced-key-held": CLAIM_KEY_1,
+      "bounced-key-kind-byte-00": CLAIM_KEY_1,
+      "bounced-claim-key-tranches": TRANCHES_CLAIM_KEY,
+      "bounced-cancel-key-stepped": STEPPED_CANCEL_KEY,
+    };
+    const held = holds[process.env.AUDIT5_CASE ?? ""];
+    if (process.env.AUDIT5_CASE === "bounced-key-nfts-unread") return new Response("bad gateway", { status: 502 });
+    if (process.env.AUDIT5_CASE === "bounced-key-nfts-not-a-list") return json({ statusCode: 500 });
+    if (process.env.AUDIT5_CASE === "bounced-key-another-key-listed") return json([{ identifier: `${CLAIM_COLLECTION}-02` }]);
+    if (held && new URL(url).searchParams.get("identifiers") === held) return json([{ identifier: held }]);
+    // Otherwise the vesting contract holds no key at all: nothing bounced.
+    return json([]);
+  }
   if (url.includes(`/accounts/${MVXVEST}`)) return json({ shard: 0, codeHash: Buffer.from(RELEASE_HASH, "hex").toString("base64") });
   if (url.includes(`/accounts/${SOURCE}`)) {
     // The source holds the release's bytes (a made-up 29,327-byte code whose hash the label matches is

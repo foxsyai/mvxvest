@@ -35,7 +35,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { LOOKALIKE, MAINNET_CONTRACT, MULTISIG, RELEASE_HASH } from "./audit5_ops_multisig_mock.js";
+import { CLAIM_KEY_1, LOOKALIKE, MAINNET_CONTRACT, MULTISIG, RELEASE_HASH, STEPPED_CANCEL_KEY, TRANCHES_CLAIM_KEY } from "./audit5_ops_multisig_mock.js";
 
 /** Runs `multisig.ts <command> 7` with the crafted action #7 pending. */
 const run = (command: string, audit5Case: string, extra: Record<string, string> = {}) => {
@@ -66,7 +66,7 @@ test("baseline: an unpauseCreation is described and may be signed (the stand-in 
 
 test("FAILS (OPS-1): sign recoverSurplus(FOXSY, zero address): the contract refuses the recipient, so refuse before two signatures are spent", () => {
   const { status, all } = run("sign", "surplus-to-zero-address");
-  assert.match(all, /recoverSurplus\(FOXSY-5d5f3e, erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq[0-9a-z]*/);
+  assert.match(all, /recoverSurplus\(FOXSY-5d5f3e, erd1q{52}6gq4hu/);
   assert.notEqual(status, 0, "recoverSurplus to the zero address: ERR_BAD_RECIPIENT at perform time, action used up");
   assert.doesNotMatch(all, /data: {3}sign@07/);
 });
@@ -174,4 +174,98 @@ test("sign an upgrade whose metadata makes mvxvest payable (0502), payable by co
     assert.match(all, new RegExp(`metadata is ${metadata}, not 0500`));
     assert.doesNotMatch(all, /data: {3}sign@07/);
   }
+});
+
+// ------------------------------------- what the fix added, failing first
+
+test("OPS-1: sign recoverBouncedKey to the zero address or to the contract: refused like a surplus", () => {
+  for (const name of ["bounced-key-to-zero-address", "bounced-key-to-the-contract"]) {
+    const { status, all } = run("sign", name);
+    assert.notEqual(status, 0, `${name}: ${all}`);
+    assert.match(all, /the recipient is/);
+    assert.doesNotMatch(all, /data: {3}sign@07/);
+  }
+});
+
+test("OPS-2: EGLD-000000 is an identifier, a lower case ticker is not", () => {
+  const egld = run("sign", "surplus-egld");
+  assert.equal(egld.status, 0, egld.err);
+  assert.match(egld.out, /data: {3}sign@07/);
+  const lower = run("sign", "surplus-lower-case-token");
+  assert.notEqual(lower.status, 0);
+  assert.match(lower.all, /not a token identifier/);
+});
+
+test("OPS-2: an endpoint name and a display URI print no raw control byte, on either stream", () => {
+  for (const name of ["endpoint-with-escapes", "display-uri-with-escapes"]) {
+    const { all } = run("sign", name);
+    assert.doesNotMatch(all, /[\x00-\x08\x0b-\x1f\x7f-\x9f]/, `${name}: control bytes reached the terminal`);
+  }
+  const { status, all } = run("sign", "endpoint-with-escapes");
+  assert.notEqual(status, 0);
+  assert.doesNotMatch(all, new RegExp(`call pauseCreation\\(\\) on ${MAINNET_CONTRACT}$`, "m"), "no forged line");
+});
+
+test("OPS-3: a key the contract holds may be signed, and the read names exactly that key", () => {
+  const { status, out, err, reads } = run("sign", "bounced-key-held");
+  assert.equal(status, 0, err);
+  assert.ok(reads.some((read) => read.endsWith(`/nfts?identifiers=${CLAIM_KEY_1}`)), JSON.stringify(reads));
+  assert.match(out, /data: {3}sign@07/);
+});
+
+test("OPS-3: the key's nonce is found behind every curve (tranches and stepped)", () => {
+  for (const [name, key] of [
+    ["bounced-claim-key-tranches", TRANCHES_CLAIM_KEY],
+    ["bounced-cancel-key-stepped", STEPPED_CANCEL_KEY],
+  ]) {
+    const { status, err, reads } = run("sign", name);
+    assert.equal(status, 0, `${name}: ${err}`);
+    assert.ok(reads.some((read) => read.endsWith(`/nfts?identifiers=${key}`)), `${name}: ${JSON.stringify(reads)}`);
+  }
+});
+
+test("OPS-3: a vesting that cannot be cancelled has no cancel key: refused", () => {
+  const { status, all } = run("sign", "bounced-cancel-key-none");
+  assert.notEqual(status, 0, all);
+  assert.match(all, /has no cancel key/);
+  assert.doesNotMatch(all, /data: {3}sign@07/);
+});
+
+test("OPS-3: a read that fails refuses, it never passes", () => {
+  for (const name of ["bounced-key-collection-unread", "bounced-key-nfts-unread", "bounced-key-nfts-not-a-list", "bounced-key-view-truncated"]) {
+    const { status, all } = run("sign", name);
+    assert.notEqual(status, 0, `${name}: ${all}`);
+    assert.match(all, /could not be read/, name);
+    assert.doesNotMatch(all, /data: {3}sign@07/, name);
+  }
+});
+
+test("OPS-3: an answer that lists some other key is not this key", () => {
+  const { status, all } = run("sign", "bounced-key-another-key-listed");
+  assert.notEqual(status, 0, all);
+  assert.doesNotMatch(all, /data: {3}sign@07/);
+});
+
+test("the Go VM takes a byte 00 as Claim or false (argument decode of KeyKind and bool, 1 Nov 2026): such an action may be signed", () => {
+  for (const name of ["bounced-key-kind-byte-00", "display-kind-byte-00", "stamping-byte-00"]) {
+    const { status, err, out } = run("sign", name);
+    assert.equal(status, 0, `${name}: ${err}`);
+    assert.match(out, /data: {3}sign@07/, name);
+  }
+  assert.match(run("sign", "stamping-byte-00").out, /setKeyStamping\(off\)/);
+  assert.match(run("sign", "display-kind-byte-00").out, /setKeyDisplay\(Claim,/);
+});
+
+test("the Go VM refuses a bool of two bytes (input too long) and a kind of 2 (invalid value): still refused", () => {
+  for (const name of ["stamping-two-zero-bytes", "display-kind-two"]) {
+    const { status, all } = run("sign", name);
+    assert.notEqual(status, 0, `${name}: ${all}`);
+    assert.doesNotMatch(all, /data: {3}sign@07/, name);
+  }
+});
+
+test("OPS-4: on mainnet the refusal names the look-alike as what the action calls, and the state file that disagrees", () => {
+  const { all } = run("sign", "pause-the-state-files-contract", { MVXVEST_NETWORK: "mainnet" });
+  assert.match(all, new RegExp(`it calls ${LOOKALIKE}, not the vesting contract ${MAINNET_CONTRACT}`));
+  assert.match(all, new RegExp(`state/mainnet\\.json names ${LOOKALIKE}`));
 });

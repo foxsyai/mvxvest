@@ -1,7 +1,7 @@
 // Owner actions on mvxvest through its multisig: the legacy mx-contracts-rs
 // multisig that mvxsafe deploys (the mainnet owner erd1...ul78u3 runs exactly
-// that code, hash f5658529...). mvxsafe cannot propose contract calls or
-// upgrades yet, so this builds them.
+// that code, hash f5658529...). mvxsafe.io proposes contract calls and upgrades
+// too (docs/DEPLOY.md); this builds the same owner actions from a terminal.
 //
 //   pnpm tsx src/multisig.ts status
 //   pnpm tsx src/multisig.ts propose pause | unpause | fee <egld> | tokenfee <bps> | claimfees
@@ -37,7 +37,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Address, Transaction, TransactionComputer } from "@multiversx/sdk-core";
 import { blake2b } from "@noble/hashes/blake2b";
-import { ROOT, abi, api, contractAddress, entrypoint, network, onNetwork, send, signer } from "./lib.js";
+import { MAINNET_CONTRACT, ROOT, abi, api, contractAddress, entrypoint, network, onNetwork, send, signer } from "./lib.js";
 
 const multisigAddress = process.env.MVXVEST_MULTISIG ?? "";
 if (!Address.isValid(multisigAddress)) throw new Error("Set MVXVEST_MULTISIG to the owner multisig's address.");
@@ -79,6 +79,8 @@ const ARGUMENTS: Record<string, [number, number]> = {
 /** The contract's caps (contracts/vesting/src/admin.rs): 1 EGLD a vesting, 200 basis points. */
 const FEE_CAP = 10n ** 18n;
 const TOKEN_FEE_CAP = 200n;
+/** A token the contract could hold: EGLD, or a ticker and its six hex characters. */
+const TOKEN_IDENTIFIER = /^EGLD(-000000)?$|^[A-Z0-9]{3,10}-[0-9a-f]{6}$/;
 /**
  * An upgrade from source compiles the new code in the contract's shard, at
  * about 300 gas a byte, and runs its `upgrade` (which does nothing in
@@ -227,6 +229,14 @@ const egldText = (units: bigint) => {
   return `${whole}${fraction ? `.${fraction}` : ""} EGLD`;
 };
 
+/**
+ * Raw bytes from an action, for the terminal. Whoever proposed the action wrote
+ * them, so a carriage return or an escape in them could forge what a second
+ * signer reads (fifth audit, OPS-2): anything but plain ASCII is shown as \xNN.
+ */
+const printable = (bytes: Buffer) =>
+  [...bytes].map((b) => (b >= 0x20 && b < 0x7f && b !== 0x5c ? String.fromCharCode(b) : `\\x${b.toString(16).padStart(2, "0")}`)).join("");
+
 /** The arguments of an mvxvest owner call, in words. */
 function describeArgs(endpoint: string, args: Buffer[]): string {
   const kind = (b?: Buffer) => (bigOf(b ?? Buffer.alloc(0)) === 0n ? "Claim" : "Cancel");
@@ -239,14 +249,14 @@ function describeArgs(endpoint: string, args: Buffer[]): string {
     }
     case "recoverSurplus":
       return [
-        args[0]?.toString("latin1"),
+        args[0] && printable(args[0]),
         args[1]?.length === 32 ? bech32Of(args[1]) : `?${args[1]?.toString("hex")}`,
         ...(args[2] ? [`${bigOf(args[2])} units`] : ["all of it"]),
       ].join(", ");
     case "recoverBouncedKey":
       return `vesting ${bigOf(args[0] ?? Buffer.alloc(0))}, ${kind(args[1])} key, to ${args[2]?.length === 32 ? bech32Of(args[2]) : "?"}`;
     case "setKeyDisplay":
-      return [kind(args[0]), ...args.slice(1).map((b) => JSON.stringify(b.toString("utf8")))].join(", ");
+      return [kind(args[0]), ...args.slice(1).map((b) => `"${printable(b)}"`)].join(", ");
     case "setKeyStamping":
       return bigOf(args[0] ?? Buffer.alloc(0)) === 0n ? "off" : "on";
     default:
@@ -259,26 +269,80 @@ function describeArgs(endpoint: string, args: Buffer[]): string {
  * signatures are spent on it: a failed perform uses the action up (fourth
  * audit, OPS-2).
  */
-function argumentProblems(endpoint: string, args: Buffer[]): string[] {
-  const [least, most] = ARGUMENTS[endpoint] ?? [0, 0];
+function argumentProblems(endpoint: string, args: Buffer[], mvxvest: string): string[] {
+  const [least, most] = Object.hasOwn(ARGUMENTS, endpoint) ? ARGUMENTS[endpoint] : [0, 0];
   if (args.length < least || args.length > most) {
     const takes = least === most ? `${least}` : most === Infinity ? `at least ${least}` : `${least} or ${most}`;
-    return [`${endpoint} takes ${takes} argument(s), not ${args.length}: the contract would refuse it and the action would be used up`];
+    return [`${printable(Buffer.from(endpoint, "latin1"))} takes ${takes} argument(s), not ${args.length}: the contract would refuse it and the action would be used up`];
   }
   const problems: string[] = [];
   const refused = (what: string) => problems.push(`${what}: the contract would refuse it and the action would be used up`);
-  const isKind = (b: Buffer) => b.length === 0 || (b.length === 1 && b[0] === 1);
+  // What the contract decodes, on the Go VM (1 Nov 2026): a KeyKind is a number
+  // of any length, so 00 and 0001 pass; a bool is at most one byte.
+  const isKind = (b: Buffer) => bigOf(b) <= 1n;
+  const isBool = (b: Buffer) => b.length <= 1 && bigOf(b) <= 1n;
   if (endpoint === "setFee" && bigOf(args[0]) > FEE_CAP) refused(`${egldText(bigOf(args[0]))} is above the cap of 1 EGLD`);
   if (endpoint === "setTokenFee" && bigOf(args[0]) > TOKEN_FEE_CAP) refused(`${bigOf(args[0])} basis points is above the cap of 200 (2%)`);
   if ((endpoint === "setKeyDisplay" && !isKind(args[0])) || (endpoint === "recoverBouncedKey" && !isKind(args[1]))) {
     refused("the key kind is neither Claim (0) nor Cancel (1)");
   }
   if (endpoint === "recoverBouncedKey" && args[0].length > 8) refused("the vesting id is longer than a u64");
-  if (endpoint === "setKeyStamping" && !isKind(args[0])) refused("the value is not a bool (on 1, off 0)");
-  if ((endpoint === "recoverBouncedKey" && args[2].length !== 32) || (endpoint === "recoverSurplus" && args[1].length !== 32)) {
-    refused("the recipient is not an address");
+  if (endpoint === "setKeyStamping" && !isBool(args[0])) refused("the value is not a bool (on 1, off 0)");
+  if (endpoint === "recoverSurplus" && !TOKEN_IDENTIFIER.test(args[0].toString("latin1"))) refused("the token is not a token identifier");
+  const recipient = endpoint === "recoverBouncedKey" ? args[2] : endpoint === "recoverSurplus" ? args[1] : undefined;
+  if (recipient) {
+    // require_valid_recipient in contracts/vesting/src/claim.rs (fifth audit, OPS-1).
+    if (recipient.length !== 32) refused("the recipient is not an address");
+    else if (bigOf(recipient) === 0n) refused("the recipient is the zero address");
+    else if (bech32Of(recipient) === mvxvest) refused("the recipient is the vesting contract itself");
   }
   return problems;
+}
+
+/**
+ * The nonces of a vesting's two keys, from its VestingView: after the id, the
+ * creator and the beneficiary come the token, the total and the schedule, whose
+ * curve has a length of its own (Curve in contracts/vesting/src/schedule.rs).
+ * Throws on a view too short to hold them.
+ */
+function keyNoncesOf(view: Buffer): { claim: bigint; cancel: bigint } {
+  let at = readNested(view, 72).next; // the token
+  at = readNested(view, at).next; // the total
+  at = readNested(view, at + 16).next; // start and cliff, then the cliff amount
+  at += 8; // end
+  const curve = view.readUInt8(at);
+  at += 1;
+  if (curve === 1) at += 8; // Stepped { interval }
+  else if (curve === 2) {
+    const count = view.readUInt32BE(at);
+    at += 4;
+    for (let i = 0; i < count; i++) at = readNested(view, at + 8).next; // Tranche { time, amount }
+  } else if (curve !== 0) throw new Error(`curve ${curve}`);
+  at += 9; // cancelable and created_at
+  return { claim: view.readBigUInt64BE(at), cancel: view.readBigUInt64BE(at + 8) };
+}
+
+/**
+ * Whether the contract holds this key, what recoverBouncedKey requires
+ * (holds_key, ERR_NO_HELD_KEY): a failed perform uses the action up (fifth
+ * audit, OPS-3). Any answer that does not say so refuses.
+ */
+async function heldKeyProblems(claim: boolean, nonce: bigint, id: bigint): Promise<string[]> {
+  const name = claim ? "claim" : "cancel";
+  if (nonce === 0n) return [`vesting ${id} has no ${name} key: the contract would refuse it and the action would be used up`];
+  const unread = `what the contract holds could not be read, so vesting ${id}'s ${name} key cannot be checked; try again`;
+  const [answer] = await query(claim ? "getClaimKeyCollection" : "getCancelKeyCollection", [], contractAddress());
+  const collection = Buffer.from(answer ?? "", "base64").toString("latin1");
+  if (!TOKEN_IDENTIFIER.test(collection)) return [unread];
+  const nonceHex = nonce.toString(16);
+  const identifier = `${collection}-${nonceHex.padStart(nonceHex.length + (nonceHex.length % 2), "0")}`;
+  const response = await fetch(`${api()}/accounts/${contractAddress().toBech32()}/nfts?identifiers=${identifier}`);
+  const held: unknown = response.ok ? await response.json() : undefined;
+  if (!Array.isArray(held)) return [unread];
+  if (!held.some((key: { identifier?: string }) => key.identifier === identifier)) {
+    return [`the contract does not hold ${identifier}: it would refuse this and the action would be used up`];
+  }
+  return [];
 }
 
 /**
@@ -294,6 +358,12 @@ async function bouncedKeyOwner(args: Buffer[]): Promise<{ lines: string[]; probl
   const bytes = Buffer.from(view ?? "", "base64");
   if (bytes.length < 72) return { lines: [], problems: [`vesting ${id} could not be read (the contract refuses an unknown vesting); try again`] };
   const claim = bigOf(args[1]) === 0n;
+  let nonces: { claim: bigint; cancel: bigint };
+  try {
+    nonces = keyNoncesOf(bytes);
+  } catch {
+    return { lines: [], problems: [`vesting ${id} could not be read: its view is not what this tool knows; try again`] };
+  }
   const role = claim ? "beneficiary" : "creator";
   const owner = bech32Of(claim ? bytes.subarray(40, 72) : bytes.subarray(8, 40));
   const to = bech32Of(args[2]);
@@ -301,7 +371,7 @@ async function bouncedKeyOwner(args: Buffer[]): Promise<{ lines: string[]; probl
   if (to !== owner) {
     lines.push(`  WARNING: the recipient ${to} is not that ${role}: sign only if the transaction that bounced the key shows ${to} held it`);
   }
-  return { lines, problems: [] };
+  return { lines, problems: await heldKeyProblems(claim, claim ? nonces.claim : nonces.cancel, id) };
 }
 
 interface SourceFacts {
@@ -390,8 +460,15 @@ async function inspectAction(id: number): Promise<Inspection> {
   const [raw] = await query("getActionData", [u32(id).padStart(2, "0")]);
   const bytes = Buffer.from(raw ?? "", "base64");
   if (bytes.length === 0) throw new Error(`No pending action ${id}`);
-  const mvxvest = contractAddress().toBech32();
   const problems: string[] = [];
+  // A mainnet state file that disagrees is a refusal, with the action still said in words.
+  let mvxvest = MAINNET_CONTRACT;
+  try {
+    mvxvest = contractAddress().toBech32();
+  } catch (failure) {
+    if (network() !== "mainnet") throw failure;
+    problems.push((failure as Error).message);
+  }
   try {
     if (bytes[0] === 6) {
       // SendAsyncCall(CallActionData { to, egld_amount, endpoint_name, arguments })
@@ -410,16 +487,18 @@ async function inspectAction(id: number): Promise<Inspection> {
         at = arg.next;
       }
       const name = endpoint.value.toString("latin1");
+      const shown = printable(endpoint.value);
+      const known = Object.hasOwn(INNER_GAS, name);
       if (to !== mvxvest) problems.push(`it calls ${to}, not the vesting contract ${mvxvest}`);
       if (bigOf(egld.value) !== 0n) problems.push(`it sends ${egldText(bigOf(egld.value))} with the call`);
-      if (!(name in INNER_GAS)) {
+      if (!known) {
         problems.push(
-          `"${name}" is not one of mvxvest's owner calls (${Object.keys(INNER_GAS).join(", ")}): an upgrade or an owner change must never come as a plain call`,
+          `"${shown}" is not one of mvxvest's owner calls (${Object.keys(INNER_GAS).join(", ")}): an upgrade or an owner change must never come as a plain call`,
         );
       }
       if (at !== bytes.length) problems.push("the action holds bytes this tool does not understand");
-      problems.push(...argumentProblems(name, args));
-      const lines = [`action #${id}: call ${name}(${describeArgs(name, args)}) on ${to}`];
+      problems.push(...argumentProblems(name, args, mvxvest));
+      const lines = [`action #${id}: call ${shown}(${describeArgs(name, args)}) on ${to}`];
       if (name === "recoverBouncedKey" && !problems.length) {
         const owner = await bouncedKeyOwner(args);
         lines.push(...owner.lines);
@@ -428,8 +507,8 @@ async function inspectAction(id: number): Promise<Inspection> {
       return {
         lines,
         problems,
-        need: INNER_GAS[name] ?? 0n,
-        kind: name,
+        need: known ? INNER_GAS[name] : 0n,
+        kind: shown,
       };
     }
     if (bytes[0] === 8) {
@@ -529,12 +608,13 @@ async function stage() {
 async function run() {
   if (command === "status") return status();
   if (command === "stage") return stage();
-  const { data, perform } = await proposal();
+  // A key that may not sign here stops the tool before anything is read.
   const from = process.env.MVXVEST_SEND
     ? (await signer(process.env.MVXVEST_SEND)).address
     : process.env.MVXVEST_FROM
       ? Address.newFromBech32(process.env.MVXVEST_FROM)
       : undefined;
+  const { data, perform } = await proposal();
   const tx = new Transaction({
     sender: from ?? multisig,
     receiver: multisig,
