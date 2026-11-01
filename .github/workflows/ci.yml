@@ -108,11 +108,12 @@ jobs:
       # image, to code the mainnet site knows: its contractCodeHashes (which
       # also drive the site's red banner) list the deployed hash and, before an
       # upgrade, the next one (audit M3). The hash mainnet runs must be listed
-      # too, read from the chain (third audit, C4).
+      # too, read from the chain (third audit, C4). The image is v12.0.0, by its digest: a tag can be moved
+      # (fifth audit, OPS-5).
       - name: Reproducible build matches a known mainnet code hash
         if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         run: |
-          sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+          sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963 \
             --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
           python3 - <<'PY'
           import base64, json, re, time, urllib.request
@@ -156,6 +157,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: dapp/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # No high advisory with a fix in what ships, as deploy.sh asks (fifth audit, OPZ-01).
+      - run: pnpm audit --prod --audit-level=high
       - name: Lint
         run: pnpm lint
       - name: Types
@@ -164,6 +167,45 @@ jobs:
         run: pnpm test
       - name: Build (devnet)
         run: pnpm build-devnet
+
+  # The owner's tool, which proposes, signs and performs multisig actions (fifth audit, WEB-2). Its tests run it
+  # against stand-ins for the network: no key and no network. They need only a contract address (a state file git
+  # ignores) and the contract's ABI, the dApp's copy, which the contract job checks against the build.
+  scripts:
+    needs: gate
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.28.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: scripts/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --prod --audit-level=high
+      - name: Types
+        run: pnpm -s typecheck
+      - name: What the tests read
+        run: |
+          mkdir -p state ../contracts/vesting/output
+          echo '{"contract":"erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp"}' > state/devnet.json
+          cp ../dapp/src/vesting/mvxvest.abi.json ../contracts/vesting/output/mvxvest.abi.json
+      - name: Tests
+        run: pnpm test
+      - name: The release path and the server's policy
+        working-directory: .
+        run: |
+          python3 scripts/ci/audit5_ops_release_path_test.py
+          python3 scripts/ci/audit5_web_nginx_test.py
+          python3 scripts/ci/audit5_ops_docs_test.py
 
   secrets:
     needs: gate
