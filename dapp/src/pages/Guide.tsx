@@ -377,8 +377,9 @@ export const Guide = () => (
       <p>
         My vestings lists every vesting whose claim key is in your wallet. A
         linear vesting grows every second. Claim takes what has vested; Claim
-        all takes it from every key at once. The key comes back to you or is
-        burned once there is nothing left to pay.
+        all takes it from every key, with one transaction per token, and leaves
+        out a token that cannot reach your wallet. The key comes back to you or
+        is burned once there is nothing left to pay.
       </p>
       <Shot
         src='17-mine'
@@ -462,7 +463,11 @@ export const Guide = () => (
         <b className='text-ink'>The token&apos;s own issuer.</b> A token whose
         issuer can pause, freeze or wipe it can still be blocked by that issuer,
         whatever the vesting says. The vesting, token and create pages show what
-        each issuer can do.
+        each issuer can do. A claim or a refund of a token paused or frozen for
+        your wallet is refused at your wallet, and what it paid and the claim
+        key can come back to the contract: the money is safe there, but only the
+        owner multisig can send it on, by a vote. The page reads this before you
+        sign and warns you, and a key that came back says so on its vesting.
         <Shot
           src='22-issuer'
           caption="FOXSY's issuer can pause its transfers, add a transfer role and change these settings."

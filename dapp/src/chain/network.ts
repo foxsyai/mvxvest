@@ -16,6 +16,13 @@ const API_BY_NETWORK: Record<string, string> = {
   testnet: 'https://testnet-api.multiversx.com'
 };
 
+// The API does not say whether a wallet is frozen for a token; a gateway does.
+const GATEWAY_BY_NETWORK: Record<string, string> = {
+  mainnet: 'https://gateway.multiversx.com',
+  devnet: 'https://devnet-gateway.multiversx.com',
+  testnet: 'https://testnet-gateway.multiversx.com'
+};
+
 const CHAIN_ID_BY_NETWORK: Record<string, string> = {
   mainnet: '1',
   devnet: 'D',
@@ -24,6 +31,8 @@ const CHAIN_ID_BY_NETWORK: Record<string, string> = {
 
 export const networkName = String(environment);
 export const apiUrl = API_BY_NETWORK[networkName] ?? API_BY_NETWORK.mainnet;
+const gatewayUrl =
+  GATEWAY_BY_NETWORK[networkName] ?? GATEWAY_BY_NETWORK.mainnet;
 export const chainId = CHAIN_ID_BY_NETWORK[networkName] ?? '1';
 export const explorerUrl =
   networkName === 'mainnet'
@@ -297,6 +306,10 @@ export const forget = (address: string) => {
  */
 export const fresh = (path: string): Promise<Response> =>
   schedule(() => fetchWithTimeout(`${apiUrl}${path}`));
+
+/** The same on a gateway: what is about to be signed is checked at its latest. */
+export const freshGateway = (path: string): Promise<Response> =>
+  schedule(() => fetchWithTimeout(`${gatewayUrl}${path}`));
 
 /**
  * A GET on the public API, queued, retried and cached for a minute by path.

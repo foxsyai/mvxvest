@@ -137,7 +137,7 @@
       <h2>Claim</h2>
       <ul>
         <li>Press <strong>Claim</strong> on one card. <strong>Claim all</strong> collects from every
-          vesting at once.</li>
+          vesting, with one transaction per token.</li>
         <li>The page first checks with the network and shows the most the network fee can be. Then press
           <strong>Sign in your wallet</strong> and approve in your wallet. A Ledger asks you to confirm
           each transaction on the device.</li>
@@ -173,6 +173,10 @@
         release.</li>
       <li>If the creator can cancel your vesting, what has vested by then stays yours.</li>
       <li>Sending the claim key to another wallet gives that wallet the right to claim. Only do it on purpose.</li>
+      <li>A token's issuer can freeze it or pause it. If a token is frozen for your wallet, the page warns you and
+        leaves it out of Claim all: a claim of it could send your tokens and key back to the contract. They are safe
+        there, and the owners' multisig can send them back by a vote. Ask through an issue at
+        github.com/foxsyai/mvxvest/issues.</li>
       <li>Nobody from mvxvest will ever ask for your secret words or your keys.</li>
     </ul>
   </div>
