@@ -256,6 +256,32 @@ After the upgrade:
 - a stamp keeps the key's URIs (the two devnet.mvxvest.io images), creator (the contract) and owner;
 - one stamped key costs about 1.8M gas more than an unstamped claim (8.6M against 6.7M).
 
+## Version 4 on mainnet: the runbook
+
+Not carried out yet: every step on mainnet needs Sebastian's go and the vote is the owners'. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. Same steps as [version 3's](#version-3-on-mainnet-the-runbook), with these facts:
+
+**The release:** the reproducible build of commit e41b19f, 29,464 bytes, code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246` (CHANGELOG.md). Each signer derives it alone, with the command in [Build](#1-build) or from CI's "Reproducible build" step, never from another signer's message.
+
+1. **The site comes first.** Mainnet's config lists both hashes, so `./deploy.sh mainnet` passes before the vote and the site shows no banner after it. The site's bounce handling works on both versions.
+2. **Deploy the source** from a shard 1 wallet: the release's `mvxvest.wasm`, not upgradeable, no arguments. About 117M gas, charged in full, about 0.09 EGLD.
+3. **Propose, check, sign, perform** as for version 3: target `erd1…gmllsu`, metadata 0500, source hash green, source not upgradeable, shard 1. Perform budget about 26.3M.
+4. **Verify on chain:** the code hash is the release's; the owner is still the multisig, the contract upgradeable, readable and not payable; `getLimits` 49/32, `getTokenFee` 10, `getFee` 10^17, `isCreationPaused` false, `isKeyStamping` true; `getVesting` 1 to 3 unchanged; `getSurplus` and `getDeficit` 0 for each token held.
+5. **A first claim:** claim a small vesting from a wallet in another shard than the contract's. Read that the payout and the key came in separate transfers.
+6. **Afterwards:** remove version 3's hash from mainnet's config and deploy the site again; README, CONTRACT_SPEC, CHANGELOG and MAINNET say version 4 is live.
+
+## Version 4 rehearsed on devnet (1 Nov 2026)
+
+The upgrade to version 4 went end to end through mvxvest's devnet contract and its 2 of 2 multisig, with `scripts/src/multisig.ts` and `scripts/src/audit5-bounce-rehearsal.ts`. The attack on version 3 and on version 4 is in the [fifth audit's report](reviews/2026-11-01-fable-audit-5.md).
+
+| Step | Transaction | Gas |
+|---|---|---|
+| Source deployed in shard 1 (not upgradeable), hash checked from the chain | `bb0b0a3b8d112e0d2647bb197e750c5f559bbafb7ab6dc21770e9aea3aaa6e4f` | 117.12M, charged in full |
+| Propose the upgrade (action #18) | `a1ca141e346834d19699f60aaa1ad392fa1fd79771b0628065b771ce75140401` | 5.21M |
+| Sign | `564db2fb51b30ab5f7628780a4d0adf433dd82599437752f28fa9410a842f10a` | 4.14M |
+| Perform | `a48e9a4b03192d41157e46f93a70657c474a1658a7c91235e9a1505ba6829022` | 26.31M (7.5M + 11.81M + 7M) |
+
+The same run also returned a bounced key and a surplus through the multisig (actions #16 and #17, 24.5M each) and collected the accrued fees (action #19, 20.5M).
+
 ## Upgrades
 
 `scripts/src/deploy.ts upgrade` on devnet; a multisig proposal on mainnet.

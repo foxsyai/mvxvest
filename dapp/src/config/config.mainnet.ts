@@ -22,7 +22,10 @@ export const contractAddress =
 export const contractCodeHashes = [
   // Version 3, live since 22 Oct 2026 (MAINNET.md). The hashes of versions 1
   // and 2 were removed after their upgrades.
-  '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
+  '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d',
+  // Version 4, the fifth audit's release, listed ahead of the owners' vote
+  // (DEPLOY.md). Mainnet runs version 3 until then.
+  '0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246'
 ];
 export const keyCollections = {
   claim: 'VESTKEY-f56bea',

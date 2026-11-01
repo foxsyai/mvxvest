@@ -9,8 +9,8 @@ export const contractAddress =
 
 /** What the guide shows and every page checks; see config.mainnet.ts. */
 export const contractCodeHashes = [
-  // Version 3, upgraded on devnet 21 Oct 2026 in its rehearsal (DEPLOY.md).
-  '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
+  // Version 4, upgraded on devnet 1 Nov 2026 in its rehearsal (DEPLOY.md).
+  '0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246'
 ];
 export const keyCollections = {
   claim: 'VESTKEY-8f217c',

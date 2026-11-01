@@ -15,13 +15,15 @@ Status:
   owned by a 2-of-3 mvxsafe multisig.
 - **Version 3** since 22 Oct 2026: a claim key's name shows what has been
   claimed and whether it can be cancelled.
-- **Audited four times** by Claude Fable 5.1, in adversarial reviews:
+- **Audited five times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),
   [third audit](docs/reviews/2026-10-14-fable-audit-3.md) (what changed after the second),
-  [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again).
+  [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again),
+  [fifth audit](docs/reviews/2026-11-01-fable-audit-5.md) (everything, before the announcement).
 - **Not yet announced.** The source has been public since 14 Oct 2026.
-  More audit rounds come before the announcement.
+- **Version 4** is the fifth audit's candidate, rehearsed on devnet. Mainnet
+  runs version 3 until the owners' multisig votes.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
   describes.
 

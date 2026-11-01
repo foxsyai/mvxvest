@@ -1,0 +1,134 @@
+{
+  "name": "audit5review FIXR: a KeyKind or a bps written on more than 8 bytes with leading zeros is taken by the VM at its value",
+  "comment": "Fifth audit, review of the fixes. multisig.ts passes a KeyKind by its value and a setTokenFee by the cap. An endpoint argument is decoded by the VM (smallIntGetUnsignedArgument), which takes any length whose value fits: 0001 and nine zero-led bytes are both 1. So the tool's measure by value is the contract's. (ManagedBuffer::parse_as_u64 refuses more than 8 bytes, but that is not the path an argument takes.)",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "setKeyDisplay with the kind Cancel on two bytes (0001): the fix's claim, it passes",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setKeyDisplay",
+        "arguments": [
+          "0x0001",
+          "0x",
+          "str:https://mvxvest.io/nft/cancel-key.png"
+        ],
+        "gasLimit": "20,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "setKeyDisplay with the kind 1 on nine bytes: taken at its value, like the tool does",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setKeyDisplay",
+        "arguments": [
+          "0x000000000000000001",
+          "0x",
+          "str:https://mvxvest.io/nft/cancel-key.png"
+        ],
+        "gasLimit": "20,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "setTokenFee with 10 basis points on one byte: passes",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setTokenFee",
+        "arguments": [
+          "10"
+        ],
+        "gasLimit": "20,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "setTokenFee with 10 basis points on ten bytes: taken at its value, like the tool does",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setTokenFee",
+        "arguments": [
+          "0x0000000000000000000a"
+        ],
+        "gasLimit": "20,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "the four calls all ran: the token fee is 10 and the Cancel display was set twice",
+      "accounts": {
+        "address:owner": {
+          "nonce": "*",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456",
+            "str:tokenFeeBps": "10",
+            "+": ""
+          }
+        }
+      }
+    }
+  ]
+}
