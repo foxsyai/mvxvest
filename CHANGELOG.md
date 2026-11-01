@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 4 (candidate: audited and rehearsed on devnet on 1 Nov 2026, not on mainnet until the owners vote)
+## Version 4 (mainnet since 1 Nov 2026, audited and rehearsed on devnet the same day)
 
 Reproducible build `multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963`,
 code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, 29,464 bytes. Endpoints, views, events and stored layouts are the same as version 3's.
@@ -15,7 +15,7 @@ code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, 29
 ### Fixed
 - The stamp keeps a key's minted metadata whatever the amount (KEYS-1).
 
-## Version 3 (mainnet since 22 Oct 2026, audited and rehearsed on devnet on 21 Oct 2026)
+## Version 3 (mainnet 22 Oct to 1 Nov 2026, audited and rehearsed on devnet on 21 Oct 2026)
 
 Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash
 `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, 29,327 bytes.

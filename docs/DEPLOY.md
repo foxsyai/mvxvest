@@ -258,7 +258,7 @@ After the upgrade:
 
 ## Version 4 on mainnet: the runbook
 
-Not carried out yet: every step on mainnet needs Sebastian's go and the vote is the owners'. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. Same steps as [version 3's](#version-3-on-mainnet-the-runbook), with these facts:
+Carried out on 1 Nov 2026 (MAINNET.md, "Version 4"). Every step on mainnet needs Sebastian's go and the vote is the owners'. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. Same steps as [version 3's](#version-3-on-mainnet-the-runbook), with these facts:
 
 **The release:** the reproducible build of commit a281583, 29,464 bytes, code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246` (CHANGELOG.md). Each signer derives it alone, with the command in [Build](#1-build) or from CI's "Reproducible build" step, never from another signer's message.
 
@@ -319,7 +319,7 @@ If the site itself is at fault and not the contract, the fix is a site deploy. A
 
 A rollback can be refused: `OLD_COMMIT=1` skips only the check for the tip of main, so the old commit must still pass today's `pnpm audit` and its config must list the hash the network runs. Never weaken a gate to get past it. Instead revert the bad change in a new commit on main (it keeps today's overrides and hash list) and run `./deploy.sh mainnet` from the tip. Until that is live, tell holders not to sign from the site.
 
-**A stuck key or a bounced payout.** In another shard than the contract, a payout is refused by a wallet frozen for the token and by a smart contract that cannot receive. Under version 3, live on mainnet, the key comes back with the payout, since one transfer carries both: that takes two votes, one for the key and one for the tokens. Under a version 4 only the refused token comes back and the holder keeps the key. The contract then holds what came back and nobody but the owner can send it on.
+**A stuck key or a bounced payout.** In another shard than the contract, a payout is refused by a wallet frozen for the token and by a smart contract that cannot receive. Since version 4 only the refused token comes back and a wallet keeps its key: that takes one vote. A smart contract that cannot receive refuses its key as well, which takes a second vote. Under version 3, until 1 Nov 2026, the key came back with the payout, since one transfer carried both. The contract then holds what came back and nobody but the owner can send it on.
 
 1. **The holder reaches the team** through a private report on the repository's Security tab (**Report a vulnerability**) or an issue at https://github.com/foxsyai/mvxvest/issues if nothing about it is sensitive. They give the vesting's id and the transaction. No key, seed or signature is ever needed.
 2. **Establish whose it is from the events.** Read the transaction that bounced on the explorer: its events name the vesting, the key or the amount and the address it was going to. A key may have been sold: the holder at the time of the transaction is whom it belongs to, not always the vesting's beneficiary or creator. A surplus may have two owners when two payouts bounced: `getSurplus` gives the total and the events give each share.

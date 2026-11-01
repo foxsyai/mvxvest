@@ -13,8 +13,10 @@ Status:
 - **Live on mainnet** since 12 Oct 2026, at [mvxvest.io](https://mvxvest.io).
   The contract is `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu`,
   owned by a 2-of-3 mvxsafe multisig.
-- **Version 3** since 22 Oct 2026: a claim key's name shows what has been
-  claimed and whether it can be cancelled.
+- **Version 4** since 1 Nov 2026: each token and the returned keys leave a
+  claim in separate transfers, so a token that cannot reach a wallet comes back
+  alone. A claim key's name shows what has been claimed and whether it can be
+  cancelled (since version 3).
 - **Audited five times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),
@@ -22,8 +24,6 @@ Status:
   [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again),
   [fifth audit](docs/reviews/2026-11-01-fable-audit-5.md) (everything, before the announcement).
 - **Not yet announced.** The source has been public since 14 Oct 2026.
-- **Version 4** is the fifth audit's candidate, rehearsed on devnet. Mainnet
-  runs version 3 until the owners' multisig votes.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
   describes.
 

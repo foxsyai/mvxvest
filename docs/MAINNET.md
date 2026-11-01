@@ -5,7 +5,7 @@ Launched on 12 October 2026 with [scripts/src/mainnet.ts](../scripts/src/mainnet
 | | |
 |---|---|
 | Contract | `erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu` |
-| Code hash | Version 3 since 22 Oct 2026: `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`, the reproducible build (`multiversx/sdk-rust-contract-builder:v12.0.0`). Version 2, 14 to 22 Oct: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`. Version 1, 12 to 14 Oct: `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32`. |
+| Code hash | Version 4 since 1 Nov 2026: `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, the reproducible build (`multiversx/sdk-rust-contract-builder` v12.0.0, by digest). Version 3, 22 Oct to 1 Nov: `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d`. Version 2, 14 to 22 Oct: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`. Version 1, 12 to 14 Oct: `fd32f4e161653fe2f5c5b673dc8f2786d718a21f4ec25b663c365afcf5a67d32`. |
 | Code metadata | upgradeable, readable, not payable, not payable by smart contracts |
 | Owner | the mvxsafe multisig `erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3`, quorum 2 of 3 |
 | Claim keys | `VESTKEY-f56bea` (MvxVestClaimKey), green image `https://mvxvest.io/nft/claim-key-2.png` / `.svg` |
@@ -139,3 +139,22 @@ The contract was upgraded to version 3 by a vote of the owner multisig through m
 - `isKeyStamping` answers true.
 
 **The first stamp on mainnet (the runbook's step 7, 22 Oct 2026).** `erd1u05m…gw5esx` (shard 1, the contract is in shard 0) created vesting #3 for itself: 0.05 EGLD, linear over one hour, cancelable, label "Stamp test", paying 0.15005 EGLD in all (`1aff41d87764057467abc33fe937424fe9945866b277a77dbe6df6deac9dc5ad`, 14.07M gas). Its claim key `VESTKEY-f56bea-03` was minted as "Vesting #3 claim key, cancelable". About ten minutes later one claim (`717e7f89014c355712865652a9e14cc1c445a2dbc0ed7f2df0eef307d3846ba6`, 7.99M gas) paid 0.013916666666666666 EGLD and returned the key as "Vesting #3 claim key, cancelable, 27% claimed", attributes `tags:mvxvest,vesting;vesting:3;token:EGLD-000000;cancelable:1;claimed:13916666666666666`, the same two mvxvest.io images and the contract as creator; the holder's own copy in shard 1 shows the same. `getDeficit` for EGLD stayed 0.
+
+## Version 4 (1 November 2026)
+
+The contract was upgraded to version 4 by a vote of the owner multisig through mvxsafe.io, following DEPLOY.md's version 4 runbook. The version came from the [fifth audit](reviews/2026-11-01-fable-audit-5.md), was audited on its own and rehearsed on devnet first. Each signer checked the source's hash against CI's printed hash in mvxsafe.io.
+
+| Step | By | Transaction | Gas |
+|---|---|---|---|
+| Source deployed: `erd1qqqqqqqqqqqqqpgqtlxzq4a6p9qj0k95ecsxnfjy2ks9zsj56qlsg3wlxu` (shard 1, not upgradeable) | `erd1u05m…gw5esx` | `89cebf9f2266b0edb6dddc9af7f6242c74a7cbb1bc64d2c6ff7fbc88acdf0f76` | 117.23M, 0.0888 EGLD |
+| Upgrade proposed (safe action #6) | `erd1u05m…gw5esx` | `c680d8fcfe7bd166d2e7ed65be3cc7eac5dd7263267af5e54c5a453b9b4ebba4` | 5.26M |
+| Signed | `erd1q83m…r3s7j4` | `d80fb93ee90207eebe139f0cae03ac7bf805e5f5a19143451fd47248c1288cc8` | 4.26M |
+| Performed | `erd1q83m…r3s7j4` | `69fa1b43a0e5e3f738bf1afe219c8692c446f61fff9ee2cc2ceb4c1734f43170` | 26.45M, 0.0004 EGLD |
+
+**The code:** code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, 29,464 bytes: the reproducible build of `main` at a281583 (tag `contract-v4`), also built by CI. The live code, read from the chain and hashed, is byte for byte the release file.
+
+**Checked on chain after the upgrade:**
+- the code hash is the release's; the owner is still the multisig; the contract is still upgradeable, readable and not payable;
+- the vesting count is still 3; `getClaimKeyStatus(1)` answers what `getVesting(1)` does; the live claim keys are where they were, with their names;
+- the balances are unchanged: 76.222222222222222223 FOXSY and 0.136083333333333334 EGLD; surplus and deficit 0 for both;
+- the fee (0.1 EGLD), the token fee (10), the fees accrued (0.1 EGLD), the pause flag (off) and the stamp (on) are unchanged.

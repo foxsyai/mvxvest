@@ -357,10 +357,11 @@ describe('the words before signing, on both versions', () => {
     return (container.textContent ?? '').replace(/\s+/g, ' ');
   };
 
-  it('a claim: the tokens could come back and the key only perhaps', () => {
+  it('a claim: the tokens could come back and the key stays (version 4, mainnet since 1 Nov 2026)', () => {
     const text = warning('frozen', 'claim');
     expect(text).toMatch(/tokens could come back to the contract/);
-    expect(text).toMatch(/perhaps with the claim key/);
+    expect(text).toMatch(/claim key stays in your wallet/);
+    expect(text).not.toMatch(/perhaps with the claim key/);
     expect(text).not.toMatch(/the tokens and the claim key/);
   });
 
@@ -373,7 +374,8 @@ describe('the words before signing, on both versions', () => {
     await flush();
     const text = (container.textContent ?? '').replace(/\s+/g, ' ');
     expect(text).not.toMatch(/what it paid and the claim key can come back/);
-    expect(text).toMatch(/perhaps with the claim key/);
+    expect(text).toMatch(/claim key stays in your wallet/);
+    expect(text).not.toMatch(/perhaps with the claim key/);
   });
 
   it('nor does the guide for beneficiaries', () => {
@@ -382,6 +384,7 @@ describe('the words before signing, on both versions', () => {
       'utf8'
     ).replace(/\s+/g, ' ');
     expect(html).not.toMatch(/send your tokens and key back/);
-    expect(html).toMatch(/perhaps with the claim key/);
+    expect(html).toMatch(/claim key stays in your wallet/);
+    expect(html).not.toMatch(/perhaps with the claim key/);
   });
 });

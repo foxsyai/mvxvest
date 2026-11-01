@@ -21,12 +21,12 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 ## From the fifth audit
 
-- **The upgrade to version 4** (RT-1, PROTO-1, KEYS-1): audited and rehearsed on devnet on 1 Nov 2026, waiting for Sebastian's go and the owners' vote. The runbook is in [DEPLOY.md](DEPLOY.md#version-4-on-mainnet-the-runbook).
+- ~~**The upgrade to version 4**~~ (RT-1, PROTO-1, KEYS-1): live on mainnet since 1 Nov 2026, voted by the owners (MAINNET.md).
 - **Look at xPortal and a Ledger once:** the guide's words on what a wallet shows for a token transfer rest on the transaction's fields, not on a device's screen.
 - ~~**Guide pictures**~~ Pictures 1 to 4 and 22 retaken on 1 Nov 2026 with the new wording. Pictures 5 to 21 are still true and were left.
-- ~~**Tag each release**~~ Done on 1 Nov 2026: `contract-v3` and `contract-v4` (the candidate).
+- ~~**Tag each release**~~ Done on 1 Nov 2026: `contract-v3` and `contract-v4`.
 - ~~**Dependabot security updates**~~ On since 1 Nov 2026.
-- **Two factor requirement for the organisation:** a setting only the web page can change. Every member already has two factors.
+- ~~**Two factor requirement for the organisation**~~ On since 1 Nov 2026. Requiring secure methods only waits for one collaborator to leave SMS.
 
 ## From the fourth audit
 

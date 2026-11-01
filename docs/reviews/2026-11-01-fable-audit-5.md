@@ -18,7 +18,7 @@ The rule of every round: a finding is a test that fails on the audited code or e
 - **Nobody can take funds and no wallet can call what it should not.** AUTH ran 72 unauthorized calls on the owner's endpoints and every payment shape on claim and cancel: all refused. A random walk of 2,000 steps over every money path keeps the books exact after every step. Mainnet's books were read again on 1 Nov: balance and debts match to the last unit, surplus and deficit 0. A clean rebuild gives the exact code hash mainnet runs.
 - **One High, RT-1: a griefer could disturb a running vesting.** For about 0.15 EGLD a griefer could send a victim's real claim keys and payout back into the contract. Nothing was lost, but only votes of the owner's multisig could return them. It was proven on devnet with real transactions, then fixed in the site and in a contract version 4. The same attack on devnet now moves only the griefer's own dust.
 - **Two Medium findings about what the Token page says** (RT-2, RT-3) and the deploy script's missing gates (OPZ-01), all fixed.
-- Version 4 is a candidate until the owner's multisig votes. **Mainnet runs version 3 until then.** The site's fixes protect its users on either version.
+- **Version 4 is live on mainnet since 1 November 2026,** by a vote of the owner's multisig ([MAINNET.md](../MAINNET.md)).
 
 ## RT-1 in detail
 
@@ -117,7 +117,6 @@ Sound: live headers equal the repository's file; no way found to run code on the
 
 ## For the owner to decide
 
-- **The upgrade to version 4:** release `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, 29,464 bytes, rehearsed on devnet.
 - **SPF, DMARC, null MX and HSTS preload:** as decided on 21 Oct, for later.
 
 ## Running the proofs

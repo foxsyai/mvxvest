@@ -1,13 +1,11 @@
 # Contract specification
 
-The rules the vesting contract implements. **Version 3** is live on mainnet
-since 22 October 2026 (code hash 65c689b9…, [MAINNET.md](MAINNET.md)). This page
-describes **version 4**, the code in this repository, which runs on mainnet only
-once the owner's multisig upgrades to it; until then what the page marks as
-version 3's is what happens. Version 4 differs from version 3 in how `claim` and
-`cancel` pay: each token and the returned keys leave in separate transfers, so a
-token that refuses in another shard bounces alone (the fifth audit's RT-1). It
-also keeps a key's `metadata` through the stamp for any amount (KEYS-1). No
+The rules the vesting contract implements. **Version 4** is live on mainnet
+since 1 November 2026 (code hash 0e9ebff7…, [MAINNET.md](MAINNET.md)). It differs
+from version 3 in how `claim` and `cancel` pay: each token and the returned keys
+leave in separate transfers, so a token that refuses in another shard bounces
+alone (the fifth audit's RT-1). It also keeps a key's `metadata` through the stamp
+for any amount (KEYS-1). No
 stored layout, endpoint or view changes.
 
 Version 2 ran from 14 to 22 October. Version 3 differs from version 2 in what a claim key
@@ -162,7 +160,7 @@ other tokens and the keys arrive and that amount shows up as surplus (section
 5). In the contract's own shard the same refusal reverts the whole call, with
 nothing booked and every key back with the caller.
 
-**Version 3, live until an upgrade:** one transfer carries every token and every
+**Version 3, until 1 November 2026:** one transfer carries every token and every
 returned key, so one refused token sends all of it back to the contract, already
 booked. Only the owner can then return the keys and the money (seen on devnet,
 1 November 2026, with a griefer's dust token).
@@ -181,7 +179,7 @@ key. What had vested stays claimable with the claim key. Allowed at any time,
 also after the end (refund 0). A non-cancelable vesting has no cancel key and
 cannot be stopped. Refunds of the same token are merged and each token leaves in
 its own transfer, as in `claim`, so a token refused in another shard comes back
-alone. (Version 3, live until an upgrade: one transfer of all refunds.)
+alone. (Version 3, until 1 November 2026: one transfer of all refunds.)
 
 ### Owner endpoints
 
@@ -206,7 +204,7 @@ itself holds it. That happens when sending the key bounced: in another shard, to
 a beneficiary, creator or holder that is a smart contract that cannot receive
 tokens from contracts. A wallet can bounce too, when it is frozen for a token,
 but nobody can freeze a key, so since version 4 a wallet never bounces a key: the
-token comes back alone. Under version 3, live until an upgrade, a key shares its
+token comes back alone. Under version 3, until 1 November 2026, a key shares its
 transfer with the payouts, so a wallet frozen for one of those tokens bounces the
 key as well. The transaction that sent it shows whom it belongs to (its transfer log or the contract's
 `vestingCreated`/`vestingClaimed` events); the owner returns it there.

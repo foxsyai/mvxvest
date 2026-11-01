@@ -1,8 +1,8 @@
 // Before a claim or a cancel that pays a token: can that token reach this
 // wallet? From a wallet in another shard than the contract the simulation
 // passes, the contract books it, the wallet refuses it and what it paid goes
-// back to the contract until the owners vote; whether a key goes with it depends
-// on the contract's version, so the words say "perhaps" (fifth audit, RT-1). A
+// back to the contract until the owners vote. The wallet keeps its key: since
+// version 4 a key never shares a transfer with a token (fifth audit, RT-1). A
 // read that failed says so, in words that never read as fine.
 
 import { ReactNode, useState } from 'react';
@@ -19,7 +19,7 @@ const whyNot = (block: PayoutBlock, token: string) =>
 
 const THEN: Record<Action, string> = {
   claim:
-    'so the payout would be refused. From most wallets the claim still runs: the tokens could come back to the contract, perhaps with the claim key. They stay there until the owners vote to send them on. Wait until the issuer lifts it.',
+    'so the payout would be refused. From most wallets the claim still runs: the tokens could come back to the contract and stay there until the owners vote to send them on. Your claim key stays in your wallet. Wait until the issuer lifts it.',
   cancel:
     'so the refund would be refused. From most wallets the cancel still runs: the vesting stops for good, the cancel key is burned and the refund could come back to the contract and stay there until the owners vote to send it on. Wait until the issuer lifts it.'
 };
@@ -139,9 +139,9 @@ export const LeftOut = ({
         ))}
       </ul>
       <p className='mt-1'>
-        Claimed now, its tokens could come back to the contract, perhaps with
-        the claim key. They stay there until the owners vote to send them on.
-        Its own Claim says the same once more.
+        Claimed now, its tokens could come back to the contract and stay there
+        until the owners vote to send them on. Its claim key stays in your
+        wallet. Its own Claim says the same once more.
       </p>
     </Notice>
   );
