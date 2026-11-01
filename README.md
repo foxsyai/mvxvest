@@ -88,7 +88,7 @@ sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-bui
 cat output-docker/mvxvest/mvxvest.codehash.txt
 ```
 
-The image is named by its digest (it is version v12.0.0): a tag can be moved, and a moved tag would give every signer the same other bytes.
+The image is named by its digest (it is version v12.0.0): a tag can be moved and a moved tag would give every signer the same other bytes.
 
 ## Keys and secrets
 

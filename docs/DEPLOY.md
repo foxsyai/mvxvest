@@ -31,7 +31,7 @@ sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-bui
 cat output-docker/mvxvest/mvxvest.codehash.txt
 ```
 
-The image is v12.0.0, named by its digest: a tag can be moved, and a moved tag would give every signer the same other bytes. Deploy only `output-docker/mvxvest/mvxvest.wasm`. Record the code hash.
+The image is v12.0.0, named by its digest: a tag can be moved and a moved tag would give every signer the same other bytes. Deploy only `output-docker/mvxvest/mvxvest.wasm`. Record the code hash.
 
 ## 2. Deploy, then pause creation
 
@@ -291,11 +291,13 @@ Who does what when something goes wrong after the announcement. Sebastian decide
 
 If the site itself is at fault and not the contract, the fix is a site deploy. A rollback is `OLD_COMMIT=1 ./deploy.sh mainnet` from the good commit of main.
 
-**A stuck key or a bounced payout.** A wallet never bounces; a smart contract that cannot receive can. The contract then holds the key or the tokens and nobody but the owner can send them on.
+A rollback can be refused: `OLD_COMMIT=1` skips only the check for the tip of main, so the old commit must still pass today's `pnpm audit` and its config must list the hash the network runs. Never weaken a gate to get past it. Instead revert the bad change in a new commit on main (it keeps today's overrides and hash list) and run `./deploy.sh mainnet` from the tip. Until that is live, tell holders not to sign from the site.
+
+**A stuck key or a bounced payout.** In another shard than the contract, a payout is refused by a wallet frozen for the token and by a smart contract that cannot receive. Under version 3, live on mainnet, the key comes back with the payout, since one transfer carries both: that takes two votes, one for the key and one for the tokens. Under a version 4 only the refused token comes back and the holder keeps the key. The contract then holds what came back and nobody but the owner can send it on.
 
 1. **The holder reaches the team** through a private report on the repository's Security tab (**Report a vulnerability**) or an issue at https://github.com/foxsyai/mvxvest/issues if nothing about it is sensitive. They give the vesting's id and the transaction. No key, seed or signature is ever needed.
 2. **Establish whose it is from the events.** Read the transaction that bounced on the explorer: its events name the vesting, the key or the amount and the address it was going to. A key may have been sold: the holder at the time of the transaction is whom it belongs to, not always the vesting's beneficiary or creator. A surplus may have two owners when two payouts bounced: `getSurplus` gives the total and the events give each share.
-3. **Give a recipient that can receive:** a wallet of theirs. The zero address and the contract itself are refused.
+3. **Give a recipient that can receive:** a wallet of theirs that is not frozen for the token. The zero address and the contract itself are refused.
 4. **Vote it:**
    - a key: `propose recover-bounced <id> <Claim|Cancel> <erd1 to>`;
    - tokens: `propose recover-surplus <token> <erd1 to> [amount]`, in the token's smallest units. With two owners, one vote each with its amount.

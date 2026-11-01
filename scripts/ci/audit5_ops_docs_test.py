@@ -103,6 +103,13 @@ class Runbook(unittest.TestCase):
         self.assertRegex(text, r"events")
         self.assertRegex(text, r"Report a vulnerability|security/advisories|github\.com/foxsyai/mvxvest/issues")
 
+    def test_a_rollback_can_be_refused_and_what_to_do_then(self):
+        # OLD_COMMIT=1 skips only the tip check: today's audit and the live hash gate still judge the old commit.
+        text = runbook()
+        self.assertIn("A rollback can be refused", text)
+        self.assertIn("revert", text)
+        self.assertIn("Never weaken a gate", text)
+
     def test_the_upgrade_runbook_says_the_same_about_the_hash(self):
         match = re.search(r"\*\*Each signer checks, then signs:\*\*(.*?)(?=^\d+\. \*\*)", DEPLOY, re.M | re.S)
         self.assertIsNotNone(match)
