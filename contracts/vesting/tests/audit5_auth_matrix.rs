@@ -423,6 +423,14 @@ fn safe_every_owner_endpoint_refuses_every_other_caller() {
     assert!(stamping);
 }
 
+/// Who sends what, and the error a refusal gives.
+type PaymentCase = (
+    &'static str,
+    TestAddress<'static>,
+    ManagedVec<StaticApi, Payment<StaticApi>>,
+    &'static str,
+);
+
 /// SAFE: `claim` and `cancel` move nothing for anyone who does not send the
 /// right key: no payment, EGLD, a fungible token, another NFT, a look-alike
 /// collection, a never minted nonce, the collection at nonce 0, the wrong
@@ -434,12 +442,7 @@ fn safe_every_owner_endpoint_refuses_every_other_caller() {
 fn safe_only_the_current_key_holder_moves_value() {
     let mut f = world();
     f.set_time(T0 + 500);
-    let claim_cases: Vec<(
-        &str,
-        TestAddress,
-        ManagedVec<StaticApi, Payment<StaticApi>>,
-        &str,
-    )> = vec![
+    let claim_cases: Vec<PaymentCase> = vec![
         ("creator, no payment", CREATOR, none(), ERR_NOT_CLAIM_KEY),
         ("owner, no payment", OWNER, none(), ERR_NOT_CLAIM_KEY),
         (
@@ -518,12 +521,7 @@ fn safe_only_the_current_key_holder_moves_value() {
         Err(ERR_NOT_CLAIM_KEY.to_string()),
         "claim: FOX next to the key"
     );
-    let cancel_cases: Vec<(
-        &str,
-        TestAddress,
-        ManagedVec<StaticApi, Payment<StaticApi>>,
-        &str,
-    )> = vec![
+    let cancel_cases: Vec<PaymentCase> = vec![
         ("creator, no payment", CREATOR, none(), ERR_NOT_CANCEL_KEY),
         ("owner, no payment", OWNER, none(), ERR_NOT_CANCEL_KEY),
         (

@@ -53,11 +53,7 @@ impl Rng {
         x.wrapping_mul(0x2545_F491_4F6C_DD1D)
     }
     fn below(&mut self, n: u64) -> u64 {
-        if n == 0 {
-            0
-        } else {
-            self.next() % n
-        }
+        if n == 0 { 0 } else { self.next() % n }
     }
     fn chance(&mut self, percent: u64) -> bool {
         self.below(100) < percent
@@ -663,11 +659,7 @@ impl State {
         let count = if !batch {
             1
         } else if self.rng.chance(8) {
-            if cancelable {
-                32
-            } else {
-                49
-            }
+            if cancelable { 32 } else { 49 }
         } else {
             1 + self.rng.below(6) as usize
         };
@@ -1720,19 +1712,18 @@ impl State {
                 // On the edge: the keys of this vesting act at once, so a
                 // claim or a cancel lands exactly on it.
                 let m = self.vestings[&id].clone();
-                if self.rng.chance(70) {
-                    if let Some(&(holder, _)) = self.claim_keys.get(&m.claim_nonce) {
-                        if holder != Acct::Contract {
-                            self.claim_chosen(holder, vec![(m.claim_nonce, id)]);
-                        }
-                    }
+                if self.rng.chance(70)
+                    && let Some(&(holder, _)) = self.claim_keys.get(&m.claim_nonce)
+                    && holder != Acct::Contract
+                {
+                    self.claim_chosen(holder, vec![(m.claim_nonce, id)]);
                 }
-                if m.cancelable && self.rng.chance(40) {
-                    if let Some(&(holder, _)) = self.cancel_keys.get(&m.cancel_nonce) {
-                        if holder != Acct::Contract {
-                            self.cancel_chosen(holder, vec![(m.cancel_nonce, id)]);
-                        }
-                    }
+                if m.cancelable
+                    && self.rng.chance(40)
+                    && let Some(&(holder, _)) = self.cancel_keys.get(&m.cancel_nonce)
+                    && holder != Acct::Contract
+                {
+                    self.cancel_chosen(holder, vec![(m.cancel_nonce, id)]);
                 }
                 return;
             }
