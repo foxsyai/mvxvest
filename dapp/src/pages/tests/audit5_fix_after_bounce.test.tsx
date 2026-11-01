@@ -14,10 +14,8 @@ import { Guide } from '../Guide';
 import { Mine } from '../Mine';
 import { VestingPage } from '../Vesting';
 
-const SENDER = 'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl';
 const A = 'erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u';
 const TOKEN = 'TFOX-d61b09';
-const UNIT = 10n ** 18n;
 const T = 1_767_225_600;
 
 const sendMock = jest.fn();

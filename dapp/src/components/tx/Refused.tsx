@@ -32,7 +32,7 @@ const WORDS: Record<BookedKind, string> = {
   cancelled:
     'The vesting is cancelled and its cancel key is burned, but the network refused to pay the refund to this wallet: the tokens are held by the contract.',
   created:
-    'The vestings of this transaction were created and their tokens are locked. Do not create them again. A key could not be delivered to the address it was for: it is held by the contract, and each vesting’s page shows which.'
+    'The vestings of this transaction were created and their tokens are locked. Do not create them again. A key could not be delivered to the address it was for: it is held by the contract and each vesting’s page shows which.'
 };
 
 export const RefusedNotice = ({ kind }: { kind: BookedKind }) => (

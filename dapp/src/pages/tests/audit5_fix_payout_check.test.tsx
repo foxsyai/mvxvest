@@ -5,7 +5,7 @@
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { MAX_KEYS_PER_CALL, claimBatches } from 'vesting/batches';
+import { claimBatches, MAX_KEYS_PER_CALL } from 'vesting/batches';
 import { Created } from '../Created';
 import { Mine } from '../Mine';
 import { VestingPage } from '../Vesting';
@@ -201,7 +201,9 @@ describe('claimBatches', () => {
       MAX_KEYS_PER_CALL + 3
     );
     for (const batch of batches)
-      expect(batch.every((nonce) => nonce >= 100) || batch.every((n) => n < 100)).toBe(true);
+      expect(
+        batch.every((nonce) => nonce >= 100) || batch.every((n) => n < 100)
+      ).toBe(true);
   });
 });
 

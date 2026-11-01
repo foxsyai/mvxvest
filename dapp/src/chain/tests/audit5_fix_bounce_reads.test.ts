@@ -195,7 +195,8 @@ describe('payoutsOf', () => {
 
 describe('historyOf', () => {
   const hex = (text: string) => Buffer.from(text).toString('hex');
-  const caller = 'ae7c205a80157c9e785ea0f6c10c4ba619b4a7259fa1e8ebc532f56bf1e5c8ed';
+  const caller =
+    'ae7c205a80157c9e785ea0f6c10c4ba619b4a7259fa1e8ebc532f56bf1e5c8ed';
   const claimedEvent = (txHash: string) => ({
     txHash,
     identifier: 'claim',
@@ -203,12 +204,13 @@ describe('historyOf', () => {
     data: '0000000203e8',
     timestamp: 1_791_809_588
   });
-  const eventsThenStatuses = (statuses: () => unknown) => async (path: string) =>
-    path.startsWith('/events')
-      ? path.includes('identifier=claim')
-        ? [claimedEvent('refusedtx'), claimedEvent('paidtx')]
-        : []
-      : statuses();
+  const eventsThenStatuses =
+    (statuses: () => unknown) => async (path: string) =>
+      path.startsWith('/events')
+        ? path.includes('identifier=claim')
+          ? [claimedEvent('refusedtx'), claimedEvent('paidtx')]
+          : []
+        : statuses();
 
   it('marks a claim the wallet refused, and only that one', async () => {
     net.api = eventsThenStatuses(() => [
@@ -263,9 +265,13 @@ describe('the site lets the browser read it', () => {
       join(__dirname, '../../../../scripts/server/nginx-mvxvest.io.conf'),
       'utf8'
     );
-    const connect = [...conf.matchAll(/connect-src ([^;]*);/g)].map((m) => m[1]);
+    const connect = [...conf.matchAll(/connect-src ([^;]*);/g)].map(
+      (m) => m[1]
+    );
     expect(connect.join(' ')).toContain('https://gateway.multiversx.com');
-    expect(connect.join(' ')).toContain('https://devnet-gateway.multiversx.com');
+    expect(connect.join(' ')).toContain(
+      'https://devnet-gateway.multiversx.com'
+    );
     const network = readFileSync(join(__dirname, '../network.ts'), 'utf8');
     expect(network).toContain('https://gateway.multiversx.com');
     expect(network).toContain('https://devnet-gateway.multiversx.com');

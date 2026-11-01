@@ -15,12 +15,10 @@ import { Schedule } from '../schedule';
 
 const CONTRACT =
   'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp';
-const SENDER =
-  'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl';
+const SENDER = 'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl';
 const BENEFICIARY =
   'erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u';
-const OTHER =
-  'erd1knjjk9nvl6tey3k0w0wfq964zpfu3gdm84ex6nqmz7plvq69je5sgkalrf';
+const OTHER = 'erd1knjjk9nvl6tey3k0w0wfq964zpfu3gdm84ex6nqmz7plvq69je5sgkalrf';
 const TOKEN = 'TFOX-d61b09';
 const CLAIM_KEYS = 'VESTKEY-8f217c';
 const CANCEL_KEYS = 'VESTCANCEL-bd731d';
@@ -87,7 +85,7 @@ describe('audit5 DAPP: create bytes', () => {
     // argument. No EGLD on the transaction itself.
     expect(tx.sender.toBech32()).toBe(SENDER);
     expect(tx.receiver.toBech32()).toBe(SENDER);
-    expect(tx.value.toString()).toBe("0");
+    expect(tx.value.toString()).toBe('0');
     expect(tx.chainID).toBe('D');
     const tokenFee = (total * BigInt(bps)) / 10_000n;
     const expected = [
@@ -235,8 +233,8 @@ describe('audit5 DAPP: createBatch bytes', () => {
     // Rounding per vesting is what the contract charges: here it is 0 for
     // every entry (500..836 at 0.1% round to 0), while the sum's 0.1% would
     // be 32.
-    expect(tokenFee.toString()).toBe("0");
-    expect(((sum * BigInt(bps)) / 10_000n).toString()).toBe("32");
+    expect(tokenFee.toString()).toBe('0');
+    expect(((sum * BigInt(bps)) / 10_000n).toString()).toBe('32');
     const parts = dataOf(tx).split('@');
     expect(parts.slice(0, 9)).toEqual([
       'MultiESDTNFTTransfer',
@@ -291,7 +289,7 @@ describe('audit5 DAPP: claim and cancel bytes', () => {
   it('one claim key: ESDTNFTTransfer of exactly one unit of that nonce to the contract, function claim, nothing else', async () => {
     const tx = await client.claim(SENDER, CLAIM_KEYS, [7]);
     expect(tx.receiver.toBech32()).toBe(SENDER);
-    expect(tx.value.toString()).toBe("0");
+    expect(tx.value.toString()).toBe('0');
     expect(dataOf(tx)).toBe(
       [
         'ESDTNFTTransfer',
@@ -341,7 +339,7 @@ describe('audit5 DAPP: claim and cancel bytes', () => {
 
   it('a key transaction carries no EGLD and no gas yet (the simulation sets it)', async () => {
     const tx = await client.claim(SENDER, CLAIM_KEYS, [1]);
-    expect(tx.value.toString()).toBe("0");
-    expect(tx.gasLimit.toString()).toBe("0");
+    expect(tx.value.toString()).toBe('0');
+    expect(tx.gasLimit.toString()).toBe('0');
   });
 });

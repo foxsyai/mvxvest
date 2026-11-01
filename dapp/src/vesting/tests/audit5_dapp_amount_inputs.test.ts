@@ -6,7 +6,8 @@
 import { amountProblem, parseAmount, plainAmount } from '../format';
 
 const refused = (text: string, decimals = 18) =>
-  parseAmount(text, decimals) === null && amountProblem(text, decimals) !== null;
+  parseAmount(text, decimals) === null &&
+  amountProblem(text, decimals) !== null;
 
 describe('audit5 DAPP: amounts that are not plain decimal numbers are refused', () => {
   const inputs: [string, string][] = [
@@ -61,8 +62,12 @@ describe('audit5 DAPP: amounts that are not plain decimal numbers are refused', 
   }
 
   it('reads the few accepted spellings as exactly what they say', () => {
-    expect(parseAmount('1,500.', 18)?.toString()).toBe((1500n * 10n ** 18n).toString());
-    expect(parseAmount('1 000', 18)?.toString()).toBe((1000n * 10n ** 18n).toString());
+    expect(parseAmount('1,500.', 18)?.toString()).toBe(
+      (1500n * 10n ** 18n).toString()
+    );
+    expect(parseAmount('1 000', 18)?.toString()).toBe(
+      (1000n * 10n ** 18n).toString()
+    );
     expect(parseAmount('1.', 18)?.toString()).toBe((10n ** 18n).toString());
     expect(parseAmount('1_000', 6)?.toString()).toBe('1000000000');
     expect(parseAmount('0.000001', 6)?.toString()).toBe('1');

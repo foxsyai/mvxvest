@@ -10,16 +10,19 @@ const B = 'erd1knjjk9nvl6tey3k0w0wfq964zpfu3gdm84ex6nqmz7plvq69je5sgkalrf';
 const SC = 'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp';
 const E18 = 10n ** 18n;
 
-const only = (text: string, decimals = 18) => parseBeneficiaries(text, decimals);
+const only = (text: string, decimals = 18) =>
+  parseBeneficiaries(text, decimals);
 
 describe('audit5 DAPP: crafted cells', () => {
   it('a BOM, CRLF line ends and a header: every line read, none lost', () => {
     const r = only(`﻿address,amount\r\n${A},1000\r\n${B},2500.5\r\n`);
     expect(r.errors).toEqual([]);
-    expect(r.rows.map((x) => [x.line, x.address, x.amount.toString()])).toEqual([
-      [2, A, (1000n * E18).toString()],
-      [3, B, (25005n * E18 / 10n).toString()]
-    ]);
+    expect(r.rows.map((x) => [x.line, x.address, x.amount.toString()])).toEqual(
+      [
+        [2, A, (1000n * E18).toString()],
+        [3, B, ((25005n * E18) / 10n).toString()]
+      ]
+    );
   });
 
   it('an address with a hidden character is an error for that line, not another address', () => {
@@ -43,7 +46,7 @@ describe('audit5 DAPP: crafted cells', () => {
     // The quoted upper case one is read lowercased; the apostrophes are not
     // quotes, so that line is an error, never a different address.
     expect(r.rows.map((x) => [x.address, x.amount.toString()])).toEqual([
-      [A, (100025n * E18 / 100n).toString()]
+      [A, ((100025n * E18) / 100n).toString()]
     ]);
     expect(r.errors.map((e) => e.line)).toEqual([2]);
   });
@@ -143,17 +146,25 @@ describe('audit5 DAPP: crafted cells', () => {
     expect(ok.errors).toEqual([]);
     expect(ok.rows).toHaveLength(MAX_CSV_LINES);
     // A header line does not count toward the limit.
-    const headed = only(['address,amount', ...lines.slice(0, MAX_CSV_LINES)].join('\n'));
+    const headed = only(
+      ['address,amount', ...lines.slice(0, MAX_CSV_LINES)].join('\n')
+    );
     expect(headed.rows).toHaveLength(MAX_CSV_LINES);
   });
 
   it('a zero amount, a dust amount and the smallest unit are told apart', () => {
-    const r = only(`${A},0\n${A},0.0\n${A},0.000000000000000001\n${A},00001`, 18);
+    const r = only(
+      `${A},0\n${A},0.0\n${A},0.000000000000000001\n${A},00001`,
+      18
+    );
     expect(r.errors.map((e) => [e.line, e.message])).toEqual([
       [1, 'The amount must be more than zero.'],
       [2, 'The amount must be more than zero.']
     ]);
-    expect(r.rows.map((x) => x.amount.toString())).toEqual(['1', (1n * E18).toString()]);
+    expect(r.rows.map((x) => x.amount.toString())).toEqual([
+      '1',
+      (1n * E18).toString()
+    ]);
   });
 });
 

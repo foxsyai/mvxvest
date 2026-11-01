@@ -43,7 +43,9 @@ export const CodeCheck = () => {
   const codeChanged =
     Boolean(data?.code) && !contractCodeHashes.includes(data!.code);
   const ownerChanged =
-    ownerMultisig !== '' && Boolean(data?.owner) && data!.owner !== ownerMultisig;
+    ownerMultisig !== '' &&
+    Boolean(data?.owner) &&
+    data!.owner !== ownerMultisig;
   // What is known to have changed comes first. Otherwise an answer without the
   // code or the owner checks nothing: changeOwnerAddress moves the owner
   // without touching the code (fifth audit, DAPP-2).

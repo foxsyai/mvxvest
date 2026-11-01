@@ -163,7 +163,9 @@ const TokenView = ({ identifier }: { identifier: string }) => {
             <dt className='text-xs text-muted'>Still in the contract</dt>
             <dd className='font-semibold'>
               {shortfall ? (
-                <span className='text-danger'>less than it owes, see above</span>
+                <span className='text-danger'>
+                  less than it owes, see above
+                </span>
               ) : (
                 <>
                   <Amount
@@ -259,8 +261,8 @@ const TokenView = ({ identifier }: { identifier: string }) => {
               decimals={d}
               ticker={token.ticker}
             />{' '}
-            of cancelable vestings as if it will vest. Whoever holds their cancel
-            keys can stop them before it does and keep it.
+            of cancelable vestings as if it will vest. Whoever holds their
+            cancel keys can stop them before it does and keep it.
           </p>
         )}
       </Card>

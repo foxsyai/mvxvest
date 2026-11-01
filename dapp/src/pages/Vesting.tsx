@@ -20,8 +20,8 @@ import {
 } from 'components/ui';
 import { ScheduleChart } from 'components/vesting/Chart';
 import { CreatorLabel } from 'components/vesting/CreatorLabel';
-import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { PayoutGate } from 'components/vesting/PayoutCheck';
+import { ReleaseTable } from 'components/vesting/ReleaseTable';
 import { IssuerPowers, ShortfallNotice } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
 import {
@@ -250,7 +250,7 @@ const VestingView = () => {
         <Notice tone='warn'>
           <b>The contract itself holds this claim key.</b> It came back because
           the wallet or smart contract it went to could not receive it or a
-          payout with it, and nobody can claim from this vesting until it moves.{' '}
+          payout with it. Nobody can claim from this vesting until it moves.{' '}
           <OwnersOnly />
         </Notice>
       )}
