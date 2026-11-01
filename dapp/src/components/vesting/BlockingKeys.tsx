@@ -44,6 +44,8 @@ export const BlockingKeys = ({
   const [checked, setChecked] = useState<{
     blocked: { vesting: Vesting; reason: string }[];
     ok: Vesting[];
+    /** The check itself could not run: this says nothing about these keys. */
+    unread: Vesting[];
   } | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
 
@@ -57,17 +59,25 @@ export const BlockingKeys = ({
     (byToken.length > 0 && byToken.length < vestings.length
       ? byToken.map((vesting) => ({ vesting, reason: '' }))
       : null);
+  const unread = checked?.unread ?? [];
   const rest = checked
-    ? checked.ok
+    ? checked.blocked.length > 0
+      ? checked.ok
+      : []
     : blocked
       ? vestings.filter((v) => !byToken.includes(v))
       : [];
 
-  const allPass = checked !== null && checked.blocked.length === 0;
+  const allPass =
+    checked !== null && checked.blocked.length === 0 && unread.length === 0;
   const half = Math.ceil(vestings.length / 2);
 
   const checkEach = async () => {
-    const result: NonNullable<typeof checked> = { blocked: [], ok: [] };
+    const result: NonNullable<typeof checked> = {
+      blocked: [],
+      ok: [],
+      unread: []
+    };
     setProgress(0);
     for (const [index, v] of vestings.entries()) {
       try {
@@ -75,11 +85,8 @@ export const BlockingKeys = ({
         const [problem] = (await prepare(address, [tx])).problems;
         if (problem) result.blocked.push({ vesting: v, reason: problem });
         else result.ok.push(v);
-      } catch (failure) {
-        result.blocked.push({
-          vesting: v,
-          reason: String((failure as any)?.message ?? failure)
-        });
+      } catch {
+        result.unread.push(v);
       }
       setProgress(index + 1);
     }
@@ -115,15 +122,25 @@ export const BlockingKeys = ({
           transaction can carry. Claim them in smaller groups.
         </p>
       ) : null}
+      {unread.length > 0 && (
+        <p>
+          {unread.map(({ id }) => `#${id}`).join(', ')} could not be checked:
+          the network did not answer. That says nothing about{' '}
+          {unread.length === 1 ? 'it' : 'them'}.
+        </p>
+      )}
       {allPass ? (
         <Button onClick={() => onClaim(vestings.slice(0, half))}>
           Claim the first {half}
         </Button>
-      ) : rest.length > 0 ? (
-        <Button onClick={() => onClaim(rest)}>
-          Claim the other {rest.length}
-        </Button>
-      ) : !checked ? (
+      ) : (
+        rest.length > 0 && (
+          <Button onClick={() => onClaim(rest)}>
+            Claim the other {rest.length}
+          </Button>
+        )
+      )}
+      {!allPass && ((!checked && rest.length === 0) || unread.length > 0) && (
         <Button
           variant='secondary'
           disabled={progress !== null}
@@ -133,7 +150,7 @@ export const BlockingKeys = ({
             ? 'Check each vesting on its own'
             : `Checked ${progress} of ${vestings.length}`}
         </Button>
-      ) : null}
+      )}
     </div>
   );
 };
