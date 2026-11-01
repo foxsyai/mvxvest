@@ -479,10 +479,9 @@ export const Guide = () => (
         whatever the vesting says. The vesting, token and create pages show what
         each issuer can do. A claim or a refund of a token paused or frozen for
         your wallet is refused at your wallet and what it paid can come back to
-        the contract, perhaps with the claim key: the money is safe there, but
-        only the owner multisig can send it on, by a vote. The page reads this
-        before you sign and warns you; a key that came back says so on its
-        vesting.
+        the contract: the money is safe there, but only the owner multisig can
+        send it on, by a vote. Your claim key stays in your wallet. The page
+        reads this before you sign and warns you.
         <Shot
           src='22-issuer'
           caption="The issuer's powers as the page says them, here for FOXSY. The page reads each token's own settings."
