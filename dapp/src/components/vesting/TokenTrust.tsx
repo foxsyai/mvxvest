@@ -39,10 +39,25 @@ export const issuerPowers = (token: Omit<TokenInfo, 'decimals'>): string[] => {
   if (token.canPause) powers.push('pause all its transfers');
   if (token.canFreeze) powers.push('freeze any balance of it');
   if (token.canWipe) powers.push('wipe a frozen balance');
-  if (token.canAddSpecialRoles) powers.push('add a transfer role');
-  if (token.canUpgrade && powers.length > 0)
-    powers.push('change these settings');
-  else if (token.canUpgrade) powers.push('change its settings');
+  if (token.canAddSpecialRoles) {
+    // What these two roles do, whatever else the token's flags say: canMint
+    // off is only the old global mint (fifth audit, VSD-02).
+    powers.push('let any address, itself included, mint any amount of it');
+    powers.push(
+      'stop every transfer of it, this contract’s payouts included, except to or from an address given a transfer role'
+    );
+  }
+  if (token.canUpgrade) {
+    const off = [
+      !token.canPause && 'pausing',
+      !token.canFreeze && 'freezing',
+      !token.canWipe && 'wiping',
+      !token.canAddSpecialRoles && 'new roles'
+    ].filter(Boolean) as string[];
+    powers.push(
+      `change ${powers.length > 0 ? 'these' : 'its'} settings${off.length > 0 ? `, turning on ${join(off)}` : ''}`
+    );
+  }
   return powers;
 };
 
@@ -128,9 +143,12 @@ export const IssuerPowers = ({
           <Info label='What the issuer can do'>
             These are settings of the token itself, not of mvxvest: the contract
             cannot prevent them. While a token is paused, claims and cancels of
-            it wait. A frozen balance cannot move; a wiped one is gone. A
-            transfer role limits who may move the token. Many large tokens keep
-            some of these powers: what matters is who holds them.
+            it wait. A frozen balance cannot move; a wiped one is gone. An
+            address with a mint role mints what it likes, so the supply behind a
+            vesting can grow. Once one address holds a transfer role, every
+            transfer not to or from such an address stops, for everyone, until
+            the last one is removed. Many large tokens keep some of these
+            powers: what matters is who holds them.
           </Info>
         </p>
       )}
