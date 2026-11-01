@@ -30,6 +30,10 @@ const chain = {
   vesting: {} as Record<string, unknown>
 };
 
+// The devnet config, whichever network's config was copied last: deploy.sh runs
+// this suite against the network's own.
+jest.mock('config', () => jest.requireActual('config/config.devnet'));
+
 jest.mock('lib', () => ({
   useGetAccount: () => ({
     address: 'erd1qj8t37p66pkfswnyq434rme4c9c7a6qsexl6n6ggn0dt3zndf6cqr9lekl'

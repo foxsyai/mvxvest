@@ -1,9 +1,9 @@
 // Second audit: the red banner around an upgrade. The site accepts every
 // code hash in `contractCodeHashes`; before an upgrade a config lists the old
 // and the new build, so the banner stays silent on both sides, and shouts
-// for any other code. After the upgrade it lists the new one only: since 22
-// Oct 2026 version 3 (65c689b9…), on devnet (rehearsed on 21 Oct) and on
-// mainnet. CI refuses a main that builds to a hash the mainnet config does
+// for any other code. After the upgrade it lists the new one only: version 4
+// (0e9ebff7…) on devnet since its rehearsal of 1 Nov 2026; mainnet lists both it
+// and version 3 (65c689b9…) ahead of the owners' vote. CI refuses a main that builds to a hash the mainnet config does
 // not list, or whose live hash it lacks.
 
 import { act, render, screen } from '@testing-library/react';
@@ -28,10 +28,10 @@ const shown = async () => {
 
 describe('safe: the code check across the upgrade (devnet config)', () => {
   it('safe: knows the version devnet runs', () => {
-    // Version 3, upgraded on devnet in its rehearsal of 21 Oct 2026
+    // Version 4, upgraded on devnet in its rehearsal of 1 Nov 2026
     // (DEPLOY.md) and read from the API afterwards.
     expect(contractCodeHashes).toContain(
-      '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
+      '0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246'
     );
   });
 
