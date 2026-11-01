@@ -205,6 +205,7 @@ jobs:
         run: |
           python3 scripts/ci/audit5_ops_release_path_test.py
           python3 scripts/ci/audit5_web_nginx_test.py
+          python3 scripts/ci/audit5_ops_docs_test.py
 
   secrets:
     needs: gate

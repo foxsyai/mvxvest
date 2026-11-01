@@ -101,6 +101,10 @@ MVXVEST_FROM=<another member> pnpm tsx src/multisig.ts sign <id>
 MVXVEST_FROM=<any member> pnpm tsx src/multisig.ts perform <id>
 ```
 
+On mainnet the contract's address is in `scripts/src/lib.ts`: no state file is needed for this. One that names another contract stops the tool. A local file must not decide what "the vesting contract" means for a signer.
+
+`sign` and `perform` read the chain and refuse what the contract would refuse, because a failed perform uses the action up: a recipient that is the zero address or the contract, a token that is not an identifier, a key the contract does not hold, an amount above the surplus or a surplus of 0. A read that fails refuses too.
+
 What the devnet rehearsal established. The devnet contract is owned by a 2-of-2 multisig with the same code, in another shard, like mainnet; see [scripts/src/devnet-multisig.ts](../scripts/src/devnet-multisig.ts).
 
 | Action | Result | Gas of `perform` |
@@ -222,7 +226,7 @@ Carried out on 22 Oct 2026, every step (MAINNET.md, "Version 3"). Every step on 
 1. **Merge and deploy the site.** Both configs list version 3's hash next to version 2's; CI's reproducible build must print the release hash. Then `./deploy.sh mainnet`. The site works with both versions: before the upgrade it reads no `isKeyStamping` and says what it said for version 2.
 2. **Deploy the source** with mvxsafe.io's "Deploy a source" from a shard 1 wallet (erd1u05m…gw5esx, as for version 2): the release's `mvxvest.wasm`, not upgradeable, no arguments. Read back `/accounts/<source>?fields=codeHash,shard,isUpgradeable`: the release hash, shard 1, not upgradeable. A deploy is charged its whole gas limit: simulate it.
 3. **Propose the upgrade** in mvxsafe.io (`proposeSCUpgradeFromSource@<contract>@@<source>@0500`). From a terminal the same is `MVXVEST_EXPECT_HASH=<release> pnpm tsx src/multisig.ts propose-upgrade <source>`.
-4. **Each signer checks, then signs:** the target is `erd1…gmllsu`, the metadata stays 0500, the source's hash is green against the pasted release hash, the source is not upgradeable and is in shard 1.
+4. **Each signer checks, then signs:** the target is `erd1…gmllsu`, the metadata stays 0500, the source's hash is green against the pasted release hash, the source is not upgradeable and is in shard 1. Each signer derives the release hash alone, on their own build or from CI's printed hash on the tagged commit, never from the other signer's message.
 5. **Perform** with the measured budget: 7.5M for the multisig, about 11.8M for the upgrade of 29,327 bytes and 7M for the callback, about 26M in all (version 2 used 8.50M for its upgrade). A failed perform uses the action up.
 6. **Verify on chain:** the code hash is the release's; the owner is still the multisig, the contract upgradeable, readable and not payable; `getLimits` 49/32, `getTokenFee` 10, `getFee` 10^17, `isCreationPaused` false; `getVesting(1)` and `getVesting(2)` unchanged; `getTokenTotals` and `getSurplus` unchanged for FOXSY-5d5f3e and EGLD, `getDeficit` 0 for both; `isKeyStamping` true; `getClaimKeyStatus(1)` equals `getVesting(1)`. Record the transactions in MAINNET.md and the date in CHANGELOG.md.
 7. **The first stamp on mainnet.** Mainnet's one live claim key (vesting #1) is fully vested, so its next claim pays the rest and burns it: no stamp. Create a small vesting of a few minutes for a wallet in another shard than the contract's (shard 0), claim it once before the end and read `/nfts/VESTKEY-f56bea-<nonce>` and the holder's own copy (`/accounts/<holder>/nfts?identifiers=...`): the name ends `, <p>% claimed`, the attributes `;claimed:<units>`, the URIs are the two mvxvest.io images, the creator is the contract. If that claim fails on the stamp, vote `setKeyStamping` off (`pnpm tsx src/multisig.ts propose stamping off`, about 19M to perform, like a fee vote): claims then work as in version 2 while the cause is found.
@@ -260,3 +264,41 @@ Every page compares the contract's code hash with `contractCodeHashes` in `dapp/
 Same metadata as the deploy (the contract cannot check it in `upgrade`).
 Storage layout must stay compatible: never reuse the old storage name
 `claimKeyUsed`. Record each version's code hash in the CHANGELOG.
+
+## The site
+
+`dapp/deploy.sh mainnet` or `devnet` ships the tip of origin/main and nothing else. It refuses an older commit (`OLD_COMMIT=1` ships one on purpose, for a rollback), changed files, files git ignores and files hidden from git status. It refuses a high advisory in `pnpm audit`, a development build and a site whose `contractCodeHashes` do not list the hash the network runs. It uploads all files at once.
+
+After a change to `scripts/server/nginx-mvxvest.io.conf`, back up the server's file, copy it, run `nginx -t` and reload.
+
+## Incident runbook
+
+Who does what when something goes wrong after the announcement. Sebastian decides each step on mainnet and speaks to holders. Two signers of the multisig are needed for every vote, each checking alone. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal.
+
+**What the owner can and cannot do.** Pause stops only new creations. The owner cannot pause claims or cancels. It cannot move locked funds either. So a bug in claims or cancels is not stopped by a pause: only an upgrade changes it.
+
+**A bug is found or reported** (privately, as [SECURITY.md](../SECURITY.md) says):
+
+1. **Reproduce it** with a failing test. Decide whether new creations make it worse.
+2. **If they do, pause at once:** `pnpm tsx src/multisig.ts propose pause`, then `sign <id>` by a second signer, then `perform <id>`. mvxsafe.io does the same. It takes a few minutes and `propose unpause` undoes it.
+3. **Write the fix** and run the whole suite. Rehearse the upgrade on devnet as [Version 3 on mainnet](#version-3-on-mainnet-the-runbook) was rehearsed if time allows; say so to the signers if it does not.
+4. **Build the release** with the [reproducible build](#1-build) of the commit that is merged and tagged. A plain `sc-meta all build` gives another hash.
+5. **List both hashes on the site first.** Add the new hash to `contractCodeHashes` in both configs next to the old one and run `./deploy.sh mainnet`: the site must list both before the vote. Otherwise every visitor sees the red banner when the upgrade lands.
+6. **Deploy the source** in shard 1, the multisig's shard: not upgradeable, no arguments.
+7. **Propose and vote:** `MVXVEST_EXPECT_HASH=<release hash> pnpm tsx src/multisig.ts propose-upgrade <source>`, then `sign <id>`, then `perform <id>` with the same variable set. Two signers, each deriving the release hash alone, on their own build or from CI's printed hash on the tagged commit, never from the other signer's message.
+8. **Verify on chain** as step 6 of [that runbook](#version-3-on-mainnet-the-runbook) says, record it in MAINNET.md and CHANGELOG.md, remove the old hash and deploy the site again.
+9. **Tell holders** once the fix is live (at once if they must act): what happened, whether any funds were touched, what was changed, whether they need to do anything and how to check the code hash themselves. Name the release hash and the transactions. Say that nobody will ever ask for a key or a signature. A published advisory on this repository is the record; the site and the project's channels point to it.
+
+If the site itself is at fault and not the contract, the fix is a site deploy. A rollback is `OLD_COMMIT=1 ./deploy.sh mainnet` from the good commit of main.
+
+**A stuck key or a bounced payout.** A wallet never bounces; a smart contract that cannot receive can. The contract then holds the key or the tokens and nobody but the owner can send them on.
+
+1. **The holder reaches the team** through a private report on the repository's Security tab (**Report a vulnerability**) or an issue at https://github.com/foxsyai/mvxvest/issues if nothing about it is sensitive. They give the vesting's id and the transaction. No key, seed or signature is ever needed.
+2. **Establish whose it is from the events.** Read the transaction that bounced on the explorer: its events name the vesting, the key or the amount and the address it was going to. A key may have been sold: the holder at the time of the transaction is whom it belongs to, not always the vesting's beneficiary or creator. A surplus may have two owners when two payouts bounced: `getSurplus` gives the total and the events give each share.
+3. **Give a recipient that can receive:** a wallet of theirs. The zero address and the contract itself are refused.
+4. **Vote it:**
+   - a key: `propose recover-bounced <id> <Claim|Cancel> <erd1 to>`;
+   - tokens: `propose recover-surplus <token> <erd1 to> [amount]`, in the token's smallest units. With two owners, one vote each with its amount.
+
+   The second signer reads the events alone before signing. `sign` says whom the key was made for and warns when the recipient differs; for a surplus it prints the surplus next to the recipient. It refuses a key the contract does not hold and an amount above the surplus: a failed perform uses the action up.
+5. **Record it** in MAINNET.md with the transactions.

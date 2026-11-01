@@ -10,6 +10,8 @@ vulnerability** on this repository's Security tab (GitHub's private
 vulnerability reporting). Include what an attacker can do and the steps or a
 test that shows it. We answer within a few days and credit you if you wish.
 
+What happens after a report and how a holder with a stuck key or a bounced payout reaches the team is in the [incident runbook](docs/DEPLOY.md#incident-runbook).
+
 ## What is in scope
 
 - The contract in `contracts/vesting`, live on MultiversX mainnet at
