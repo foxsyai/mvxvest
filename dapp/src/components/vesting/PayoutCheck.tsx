@@ -38,17 +38,20 @@ export const PayoutUnread = ({
   busy
 }: {
   tokens: string[];
-  retry: () => void;
+  /** Left out once the wallet has been asked: too late to read again. */
+  retry?: () => void;
   busy: boolean;
 }) =>
   tokens.length === 0 ? null : (
     <Notice tone='warn'>
       <p>{UNREAD(tokens)}</p>
-      <div className='mt-2'>
-        <Button variant='secondary' onClick={retry} disabled={busy}>
-          Try again
-        </Button>
-      </div>
+      {retry && (
+        <div className='mt-2'>
+          <Button variant='secondary' onClick={retry} disabled={busy}>
+            Try again
+          </Button>
+        </div>
+      )}
     </Notice>
   );
 
@@ -59,6 +62,7 @@ export const PayoutGate = ({
   action,
   retry,
   busy,
+  started = false,
   onClose,
   children
 }: {
@@ -68,6 +72,11 @@ export const PayoutGate = ({
   action: Action;
   retry: () => void;
   busy: boolean;
+  /**
+   * The wallet has been asked: what is on its way stays on the page whatever a
+   * read says now, and nothing is left to read again.
+   */
+  started?: boolean;
   onClose: () => void;
   children: ReactNode;
 }) => {
@@ -80,7 +89,7 @@ export const PayoutGate = ({
         <Notice tone='danger'>
           {whyNot(answer, token!)}, {THEN[action]}
         </Notice>
-        {insisted ? (
+        {insisted || started ? (
           children
         ) : (
           <div className='flex flex-wrap gap-2'>
@@ -100,12 +109,7 @@ export const PayoutGate = ({
         <PayoutUnread
           tokens={[token!]}
           busy={busy}
-          retry={() => {
-            // A signature already on its way stays on the page, whatever the
-            // new answer says.
-            setInsisted(true);
-            retry();
-          }}
+          retry={started ? undefined : retry}
         />
       )}
       {children}

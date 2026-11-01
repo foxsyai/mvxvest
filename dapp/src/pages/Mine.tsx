@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { claimableVestings } from 'chain/mine';
 import { vesting as client } from 'chain/vesting';
@@ -47,10 +47,13 @@ export const Mine = () => {
     v.claimable > 0n &&
     ['frozen', 'paused'].includes(payout.check?.[v.token] ?? '');
   const several = (claiming?.length ?? 0) > 1;
+  const started = signing.started(address);
   // A key of its own warns instead (PayoutGate): the reader chose that one.
   // The same array while the check stands: a new one asks TxPanel to check
-  // again.
-  const sending = useMemo(
+  // again. Once the wallet is asked it is what is being signed, whatever a read
+  // that answers late says.
+  const signed = useRef<Vesting[] | null>(null);
+  const chosen = useMemo(
     () =>
       !claiming || !payout.check
         ? null
@@ -59,7 +62,12 @@ export const Mine = () => {
           : claiming,
     [claiming, payout.check]
   );
-  const leftOut = several && claiming ? claiming.filter(blocked) : [];
+  const sending = started && signed.current ? signed.current : chosen;
+  signed.current = sending;
+  const leftOut =
+    several && claiming
+      ? claiming.filter((v) => blocked(v) && !sending?.includes(v))
+      : [];
   const unread = several
     ? Object.entries(payout.check ?? {})
         .filter(([, answer]) => answer === 'unread')
@@ -202,7 +210,7 @@ export const Mine = () => {
                   <LeftOut keys={leftOut} check={payout.check} />
                   <PayoutUnread
                     tokens={unread}
-                    retry={payout.retry}
+                    retry={started ? undefined : payout.retry}
                     busy={payout.reading}
                   />
                   {panel || (
@@ -218,6 +226,7 @@ export const Mine = () => {
                 token={paying?.[0]?.token}
                 action='claim'
                 retry={payout.retry}
+                started={started}
                 busy={payout.reading}
                 onClose={closeClaim}
               >

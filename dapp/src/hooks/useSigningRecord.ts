@@ -32,5 +32,10 @@ export const useSigningRecord = () => {
         ? { sent: record.sent, signing: record.signing, total: record.total }
         : undefined
   });
-  return { panel, clear: () => setRecord(null) };
+  return {
+    panel,
+    /** The wallet was asked, and it did not end with nothing sent. */
+    started: (sender: string) => record?.sender === sender,
+    clear: () => setRecord(null)
+  };
 };
