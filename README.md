@@ -83,10 +83,12 @@ What gets deployed is the reproducible build, made in the pinned Docker image
 so anyone can rebuild it and compare the code hash with the one on chain:
 
 ```sh
-sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963 \
   --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
 cat output-docker/mvxvest/mvxvest.codehash.txt
 ```
+
+The image is named by its digest (it is version v12.0.0): a tag can be moved, and a moved tag would give every signer the same other bytes.
 
 ## Keys and secrets
 

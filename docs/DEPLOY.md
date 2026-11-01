@@ -26,12 +26,12 @@ repo). Its only job ends with the sweep.
 ## 1. Build
 
 ```sh
-sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963 \
   --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
 cat output-docker/mvxvest/mvxvest.codehash.txt
 ```
 
-Deploy only `output-docker/mvxvest/mvxvest.wasm`. Record the code hash.
+The image is v12.0.0, named by its digest: a tag can be moved, and a moved tag would give every signer the same other bytes. Deploy only `output-docker/mvxvest/mvxvest.wasm`. Record the code hash.
 
 ## 2. Deploy, then pause creation
 
@@ -176,7 +176,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 - built-in calls such as `upgradeContract` or `ChangeOwnerAddress` are shown in red and refused;
 - an upgrade of the safe itself is red.
 
-**The release.** Its code hash comes from the reproducible build of the merged commit: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0`. CI's "Reproducible build matches a known mainnet code hash" job prints it too. A plain `sc-meta all build` gives another hash: never use that one.
+**The release.** Its code hash comes from the reproducible build of the merged commit: `sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963`. CI's "Reproducible build matches a known mainnet code hash" job prints it too. A plain `sc-meta all build` gives another hash: never use that one.
 
 - Version 2 as audited: `a7acbf22b8fdd8f1e624dfd1354aacae4ccb20c0ef5974e1946704359bab718a`, 27,332 bytes.
 - If the contract changes, this changes and the devnet rehearsal is repeated first.
@@ -217,7 +217,7 @@ Before step 3, mvxsafe.io must run the card fixed in mvxsafe PR #3 (merge and de
 
 Carried out on 22 Oct 2026, every step (MAINNET.md, "Version 3"). Every step on mainnet needs Sebastian's go. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. The rehearsal on devnet came first (below).
 
-**The release:** the reproducible build of the merged commit, 29,327 bytes, code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d` (CHANGELOG.md). Each signer can rebuild it with the command in "Version 2 on mainnet" or take it from CI's "Reproducible build" job of the merged commit; never from a message alone. A plain `sc-meta all build` gives another hash.
+**The release:** the reproducible build of the merged commit, 29,327 bytes, code hash `65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d` (CHANGELOG.md). Each signer can rebuild it with the command in [Build](#1-build) or take it from CI's "Reproducible build" job of the merged commit; never from a message alone. A plain `sc-meta all build` gives another hash.
 
 1. **Merge and deploy the site.** Both configs list version 3's hash next to version 2's; CI's reproducible build must print the release hash. Then `./deploy.sh mainnet`. The site works with both versions: before the upgrade it reads no `isKeyStamping` and says what it said for version 2.
 2. **Deploy the source** with mvxsafe.io's "Deploy a source" from a shard 1 wallet (erd1u05m…gw5esx, as for version 2): the release's `mvxvest.wasm`, not upgradeable, no arguments. Read back `/accounts/<source>?fields=codeHash,shard,isUpgradeable`: the release hash, shard 1, not upgradeable. A deploy is charged its whole gas limit: simulate it.
