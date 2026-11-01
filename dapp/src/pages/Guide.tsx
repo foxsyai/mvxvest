@@ -478,10 +478,11 @@ export const Guide = () => (
         issuer can pause, freeze or wipe it can still be blocked by that issuer,
         whatever the vesting says. The vesting, token and create pages show what
         each issuer can do. A claim or a refund of a token paused or frozen for
-        your wallet is refused at your wallet and what it paid and the claim key
-        can come back to the contract: the money is safe there, but only the
-        owner multisig can send it on, by a vote. The page reads this before you
-        sign and warns you; a key that came back says so on its vesting.
+        your wallet is refused at your wallet and what it paid can come back to
+        the contract, perhaps with the claim key: the money is safe there, but
+        only the owner multisig can send it on, by a vote. The page reads this
+        before you sign and warns you; a key that came back says so on its
+        vesting.
         <Shot
           src='22-issuer'
           caption="The issuer's powers as the page says them, here for FOXSY. The page reads each token's own settings."

@@ -194,11 +194,19 @@ describe('the signing panel after a bounce', () => {
     chain.outcome = {
       status: 'fail',
       bounced: 'claimed',
-      reason: 'account is frozen for this esdt token for token DUST-959a75'
+      reason: 'account is frozen for this esdt token for token DUST-959a75',
+      refusal: {
+        tokens: [
+          { token: 'TFOX-d61b09', ids: [739] },
+          { token: 'DUST-959a75', ids: [740] }
+        ],
+        keys: [{ collection: 'VESTKEY-8f217c', nonce: 739 }],
+        paid: []
+      }
     };
     const container = await signPanel();
     const text = container.textContent ?? '';
-    expect(text).toMatch(/Nothing reached this wallet/);
+    expect(text).toMatch(/No tokens reached this wallet/);
     expect(text).toMatch(/held by the contract/);
     expect(text).toMatch(/safe/);
     expect(text).toMatch(/only the owners' multisig can send/i);
@@ -207,11 +215,19 @@ describe('the signing panel after a bounce', () => {
       screen.getByRole('link', { name: /issue/ }).getAttribute('href')
     ).toMatch(/github\.com\/foxsyai\/mvxvest\/issues$/);
     expect(text).not.toMatch(/Received in this wallet/);
-    expect(payoutsMock).not.toHaveBeenCalled();
   });
 
   it('a cancel: stopped, and the refund is what came back', async () => {
-    chain.outcome = { status: 'fail', bounced: 'cancelled', reason: 'frozen' };
+    chain.outcome = {
+      status: 'fail',
+      bounced: 'cancelled',
+      reason: 'frozen',
+      refusal: {
+        tokens: [{ token: 'TFOX-d61b09', ids: [7] }],
+        keys: [],
+        paid: []
+      }
+    };
     const container = await signPanel({ label: 'Cancel' });
     const text = container.textContent ?? '';
     expect(text).toMatch(/is cancelled/);
@@ -374,7 +390,17 @@ describe('My vestings, afterwards', () => {
 
   it('a key that left this wallet in a refused claim does not vanish without a word', async () => {
     chain.refused = async () => [
-      { txHash: 'h1', timestamp: T, kind: 'claimed', ids: [739, 740] }
+      {
+        txHash: 'h1',
+        timestamp: T,
+        kind: 'claimed',
+        tokens: [
+          { token: 'TFOX-d61b09', ids: [739] },
+          { token: 'DUST-959a75', ids: [740] }
+        ],
+        keys: [{ nonce: 739, held: true }],
+        ids: [739, 740]
+      }
     ];
     const container = await showMine();
     const text = container.textContent ?? '';

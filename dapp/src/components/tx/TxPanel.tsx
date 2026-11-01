@@ -34,10 +34,16 @@ const outcomeText = (outcome?: TxOutcome) => {
     return 'not found on the network for 2 minutes: most likely it did not go through (still looking)';
   if (outcome.bounced === 'created')
     return `created, but a key could not be delivered: ${outcome.reason ?? 'refused'}`;
+  if (outcome.refusal?.paid.length)
+    return `partly refused at this wallet: ${outcome.reason ?? 'refused'}`;
   if (outcome.bounced)
     return `booked by the contract, but refused at this wallet: ${outcome.reason ?? 'refused'}`;
   return `failed: ${outcome.reason ?? outcome.status}`;
 };
+
+/** A failed claim can have paid every token that did not come back. */
+const mayHavePaid = (outcome: TxOutcome) =>
+  outcome.status === 'success' || Boolean(outcome.refusal);
 
 /**
  * Shows what will happen, checks every transaction against the network first,
@@ -361,26 +367,20 @@ export const TxPanel = ({
               </li>
             ))}
           </ul>
-          {[
-            ...new Set(
-              Object.values(outcomes).flatMap((outcome) =>
-                outcome.bounced ? [outcome.bounced] : []
-              )
-            )
-          ].map((kind) => (
-            <RefusedNotice key={kind} kind={kind} />
-          ))}
+          {phase.sent.hashes.map((hash) =>
+            outcomes[hash]?.bounced ? (
+              <RefusedNotice key={hash} outcome={outcomes[hash]} />
+            ) : null
+          )}
           {showPayouts &&
             phase.sent.hashes.every(
               (hash) => outcomes[hash] && outcomes[hash].status !== 'pending'
             ) &&
-            phase.sent.hashes.some(
-              (hash) => outcomes[hash].status === 'success'
-            ) && (
+            phase.sent.hashes.some((hash) => mayHavePaid(outcomes[hash])) && (
               <Payouts
                 sender={sender}
-                hashes={phase.sent.hashes.filter(
-                  (hash) => outcomes[hash].status === 'success'
+                hashes={phase.sent.hashes.filter((hash) =>
+                  mayHavePaid(outcomes[hash])
                 )}
               />
             )}

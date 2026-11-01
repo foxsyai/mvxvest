@@ -1,8 +1,8 @@
-// "Claim all" signs one claim per token (fifth audit, RT-1), and one claim's
-// payout is one transfer: a key whose token cannot move (frozen for this
-// wallet, paused, a transfer role) makes the network refuse its transaction, in
-// words that name a token, not a vesting (red team RT7). This finds the key
-// that blocks and offers to claim the others. When every key passes on its own,
+// "Claim all" signs one claim per token (fifth audit, RT-1). In the contract's
+// own shard a key whose token cannot move (frozen for this wallet, paused, a
+// transfer role) makes the network refuse its transaction, in words that name
+// a token, not a vesting (red team RT7). This finds the key that blocks and
+// offers to claim the others. When every key passes on its own,
 // the whole set was too much for one transaction (a claim's gas grows with the
 // schedule it reads): it offers smaller groups, never the same set again
 // (fourth audit, DT-6).

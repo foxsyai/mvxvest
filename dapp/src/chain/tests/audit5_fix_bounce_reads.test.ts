@@ -215,17 +215,8 @@ describe('historyOf', () => {
           : []
         : statuses();
 
-  it('marks a claim the wallet refused, and only that one', async () => {
-    net.api = eventsThenStatuses(() => [
-      { txHash: 'refusedtx', status: 'fail' },
-      { txHash: 'paidtx', status: 'success' }
-    ]);
-    const history = await historyOf(7);
-    expect(
-      Object.fromEntries(history.map((e) => [e.txHash, e.refused]))
-    ).toEqual({ refusedtx: true, paidtx: false });
-  });
-
+  // Which vesting of a failed transaction was refused: per token, from the
+  // transfer that came back (audit5_fix_bounce_versions, on real transactions).
   it('a status it could not read is unknown, never fine', async () => {
     net.api = eventsThenStatuses(() => {
       throw new Error('502');
@@ -251,6 +242,11 @@ describe('refusedPayouts', () => {
         txHash: bounced.txHash,
         timestamp: bounced.timestamp,
         kind: 'claimed',
+        tokens: [
+          { token: 'TFOX-d61b09', ids: [739] },
+          { token: 'DUST-959a75', ids: [740] }
+        ],
+        keys: [{ nonce: 739, held: false }],
         ids: [739, 740]
       }
     ]);

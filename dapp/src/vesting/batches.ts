@@ -87,10 +87,12 @@ export const splitKeys = <T>(keys: T[], size = MAX_KEYS_PER_CALL): T[][] => {
 };
 
 /**
- * The claim keys of `vestings`, per transaction. Never two tokens in one: a
- * claim's payout is one transfer, so a token the wallet cannot receive takes
- * every other token and key in that transaction back to the contract with it,
- * after the contract has booked them (fifth audit, RT-1, proven on devnet).
+ * The claim keys of `vestings`, per transaction. Never two tokens in one: on
+ * version 3 of the contract a claim's payout is one transfer, so a token the
+ * wallet cannot receive takes every other token and key in that transaction back
+ * to the contract with it, after the contract has booked them (fifth audit,
+ * RT-1, proven on devnet). Version 4 pays each token apart; this costs it only a
+ * transaction more. At most 50 keys of one token, as the spec states.
  */
 export const claimBatches = (
   vestings: { token: string; claimNonce: number }[]
