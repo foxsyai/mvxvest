@@ -1,5 +1,5 @@
 {
-  "name": "review5: 99 keys in one claim or cancel (the most the network's 100 built-in calls allow: one burn each plus one transfer) work on the Go VM",
+  "name": "review5: the most keys one claim or cancel of one token can hold under the network's 100 built-in calls: 99 that are burned plus one payout, 98 that go back stamped plus one payout and one transfer of the keys",
   "steps": [
     {
       "step": "setState",
@@ -1371,8 +1371,8 @@
     },
     {
       "step": "scCall",
-      "id": "claim-99-unfinished-plain",
-      "comment": "Version 3: midway, each of the 99 plain keys pays and goes back stamped (ESDTMetaDataUpdate): 99 updates and one transfer, the network's 100 built-in calls.",
+      "id": "claim-98-unfinished-plain",
+      "comment": "Version 4: midway, each of 98 plain keys pays and goes back stamped (ESDTMetaDataUpdate): 98 updates, one transfer of the token and one of the keys, the network's 100 built-in calls. The 99th key would be 101.",
       "tx": {
         "from": "address:holder",
         "to": "sc:mvxvest",
@@ -1865,11 +1865,6 @@
           {
             "tokenIdentifier": "str:VESTKEY-123456",
             "nonce": "297",
-            "value": "1"
-          },
-          {
-            "tokenIdentifier": "str:VESTKEY-123456",
-            "nonce": "298",
             "value": "1"
           }
         ],

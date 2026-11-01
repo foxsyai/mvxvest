@@ -1,6 +1,6 @@
 {
   "name": "audit5 MONEY, safe: a mixed claim of FOX, USDC and EGLD keys, then every cancel by the beneficiary, splits each total exactly on the Go VM",
-  "comment": "Both fees on (10 wei per vesting, 1% of each total). Four cancelable vestings for alice: 1000 FOX linear, 2000 USDC stepped (interval 300 over 1000 s: four steps, the last one shorter), 500 EGLD in two tranches, 100 FOX all at a cliff that is also the end. The creator gives alice the cancel keys too. At +500 she claims all four in one call: three keys come back stamped and the fourth burns, with the EGLD in the middle of one MultiESDTNFTTransfer. At +800 she cancels all four in one call: the ended one refunds nothing and burns; the others refund exactly the unvested part. At +2000 the last claim pays the rest and burns the keys. Every account ends with exactly what it is owed; the contract keeps only the EGLD fees until claimFees empties it.",
+  "comment": "Both fees on (10 wei per vesting, 1% of each total). Four cancelable vestings for alice: 1000 FOX linear, 2000 USDC stepped (interval 300 over 1000 s: four steps, the last one shorter), 500 EGLD in two tranches, 100 FOX all at a cliff that is also the end. The creator gives alice the cancel keys too. At +500 she claims all four in one call: three keys come back stamped and the fourth burns, each token in its own transfer and the keys in theirs (version 4). At +800 she cancels all four in one call: the ended one refunds nothing and burns; the others refund exactly the unvested part. At +2000 the last claim pays the rest and burns the keys. Every account ends with exactly what it is owed; the contract keeps only the EGLD fees until claimFees empties it.",
   "steps": [
     {
       "step": "setState",
@@ -405,7 +405,7 @@
         "refund": "*",
         "out": []
       },
-      "comment": "the payout is one MultiESDTNFTTransfer: 600 FOX (the two FOX keys merged), key 1, 500 USDC, key 2, 100 EGLD as EGLD-000000 in the middle of the list, key 3; the checkState after proves every holding"
+      "comment": "since version 4 four transfers: 600 FOX (the two FOX keys merged), 500 USDC, 100 EGLD and the keys 1, 2 and 3 together; the checkState after proves every holding"
     },
     {
       "step": "checkState",

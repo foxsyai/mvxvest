@@ -42,9 +42,8 @@ fn safe_a_wiped_token_harms_only_itself() {
 
 /// SAFE: a mixed claim of three tokens and EGLD, some keys finishing and
 /// some stamped, pays each holder exactly what vested and returns or burns
-/// each key, with the protocol's own MultiESDTNFTTransfer carrying EGLD in
-/// the middle of the list; then every cancel key, held by the beneficiary,
-/// refunds the right amount or nothing.
+/// each key, each token in its own transfer since version 4; then every
+/// cancel key, held by the beneficiary, refunds the right amount or nothing.
 #[test]
 fn safe_mixed_claim_and_cancel_by_the_beneficiary() {
     run_on_go_vm("audit5_money_mixed_claim_cancel.scen.json");

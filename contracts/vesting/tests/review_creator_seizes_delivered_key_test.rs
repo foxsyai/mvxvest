@@ -36,7 +36,7 @@ fn creator_cannot_seize_a_delivered_claim_key_after_a_bounced_multi_claim() {
     let creator_fox_after_creating = 10u128.pow(36) - 6_000;
 
     // "Claim all" at T0 + 500: #1 pays 500, #2 pays nothing; both keys go
-    // back to the caller in one transfer.
+    // back to the caller in one transfer of keys.
     f.set_time(T0 + 500);
     let claim = f
         .world
