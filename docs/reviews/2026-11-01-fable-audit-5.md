@@ -12,7 +12,7 @@ Eight reviewers worked in parallel on `main` at 26b0d4c, each on one area of the
 
 A separate audit by the session that looks after mvxsafe read this repository at the same time, with its own tests: its VSD and OPZ findings are below.
 
-The rule of every round: a finding is a test that fails on the audited code or exact evidence where a test does not fit. Then Claude Opus 5.5 writes the fix and the same test passes. What could not be proven is listed as such and was not fixed. Two more Fable 5.1 reviewers then attacked the fixes: V4C the contract, FIXR all the rest.
+The rule of every round: a finding is a test that fails on the audited code or exact evidence where a test does not fit. Then Claude Opus 5.5 writes the fix and the same test passes. What could not be proven is listed as such and was not fixed. Two more Fable 5.1 reviewers then attacked the fixes: V4C the contract, FIXR all the rest. The merge gate's Claude review read them too.
 
 **Bottom line:**
 - **Nobody can take funds and no wallet can call what it should not.** AUTH ran 72 unauthorized calls on the owner's endpoints and every payment shape on claim and cancel: all refused. A random walk of 2,000 steps over every money path keeps the books exact after every step. Mainnet's books were read again on 1 Nov: balance and debts match to the last unit, surplus and deficit 0. A clean rebuild gives the exact code hash mainnet runs.
@@ -68,6 +68,7 @@ Version 4's own audit (V4C) found no defect. It rebuilt the release independentl
 | VSD-06 | Low | A clock stepped backwards stalled reads. | A monotonic clock. |
 | VSD-09 | Low | A simulation that could not run read as the network refusing the transaction. | Retried, then Check again. |
 | FIXR-1 | Low | After Try again, a frozen answer no longer held the signature back. | Found in the fixes, fixed. `audit5review_fixr_payout_gate_retry` |
+| Reopen | Low | A Claim or Cancel opened again showed the previous read's answer until the new one came, so a token frozen since then was not caught. Found by the merge gate's review of the fixes. | Closing forgets the answer, and the page says it is checking until the new read. `audit5_fix_payout_reopen` |
 | Create | Low | A create whose key delivery bounced read as failed and offered to sign again, which would lock the money twice. | It says the vestings exist. |
 | DAPP-3 | Info | The guide's list of owner powers left out `setKeyDisplay`. | Added. |
 
