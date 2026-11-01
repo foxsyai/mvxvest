@@ -264,6 +264,24 @@ test("the Go VM refuses a bool of two bytes (input too long) and a kind of 2 (in
   }
 });
 
+test("VSD-08: a surplus of 0, an amount of 0 and a surplus that cannot be read are refused; the recipient comes with a warning", () => {
+  const refusals: [string, RegExp][] = [
+    ["surplus-none", /no surplus of EGLD-000000/],
+    ["surplus-amount-zero", /amount is 0/],
+    ["surplus-read-fails", /could not be read/],
+  ];
+  for (const [name, reason] of refusals) {
+    const { status, all } = run("sign", name);
+    assert.notEqual(status, 0, `${name}: ${all}`);
+    assert.match(all, reason, name);
+    assert.doesNotMatch(all, /data: {3}sign@07/, name);
+  }
+  const { status, out, err } = run("sign", "surplus-egld");
+  assert.equal(status, 0, err);
+  assert.match(out, /the surplus of EGLD-000000 is 1000000 units/);
+  assert.match(out, /events/);
+});
+
 test("OPS-4: on mainnet the refusal names the look-alike as what the action calls, and the state file that disagrees", () => {
   const { all } = run("sign", "pause-the-state-files-contract", { MVXVEST_NETWORK: "mainnet" });
   assert.match(all, new RegExp(`it calls ${LOOKALIKE}, not the vesting contract ${MAINNET_CONTRACT}`));

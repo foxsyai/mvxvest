@@ -289,6 +289,7 @@ function argumentProblems(endpoint: string, args: Buffer[], mvxvest: string): st
   if (endpoint === "recoverBouncedKey" && args[0].length > 8) refused("the vesting id is longer than a u64");
   if (endpoint === "setKeyStamping" && !isBool(args[0])) refused("the value is not a bool (on 1, off 0)");
   if (endpoint === "recoverSurplus" && !TOKEN_IDENTIFIER.test(args[0].toString("latin1"))) refused("the token is not a token identifier");
+  if (endpoint === "recoverSurplus" && args[2] && bigOf(args[2]) === 0n) refused("the amount is 0");
   const recipient = endpoint === "recoverBouncedKey" ? args[2] : endpoint === "recoverSurplus" ? args[1] : undefined;
   if (recipient) {
     // require_valid_recipient in contracts/vesting/src/claim.rs (fifth audit, OPS-1).
@@ -297,6 +298,28 @@ function argumentProblems(endpoint: string, args: Buffer[], mvxvest: string): st
     else if (bech32Of(recipient) === mvxvest) refused("the recipient is the vesting contract itself");
   }
   return problems;
+}
+
+/**
+ * How much a recoverSurplus comes out of, and whether the contract would pay it
+ * (ERR_NO_SURPLUS, ERR_ABOVE_SURPLUS in claim.rs): "all of it" can be dust or a
+ * treasury, and a failed perform uses the action up (fifth audit, VSD-08). A
+ * surplus of 0 answers an empty value; a read that fails answers none.
+ */
+async function surplusFacts(args: Buffer[]): Promise<{ lines: string[]; problems: string[] }> {
+  const token = printable(args[0]);
+  const [surplus] = await query("getSurplus", [args[0].toString("hex")], contractAddress());
+  if (surplus === undefined || surplus === null) return { lines: [], problems: [`the surplus of ${token} could not be read; try again`] };
+  const units = num(surplus);
+  const lines = [
+    `  the surplus of ${token} is ${units} units: this sends ${args[2] ? `${bigOf(args[2])} units` : "all of it"} to ${bech32Of(args[1])}`,
+    "  a surplus belongs to whom the bounced payout was for: sign only if the events of the transaction that bounced name this recipient",
+  ];
+  if (units === 0n) return { lines, problems: [`no surplus of ${token}: the contract would refuse it and the action would be used up`] };
+  if (args[2] && bigOf(args[2]) > units) {
+    return { lines, problems: [`${bigOf(args[2])} units is above the surplus of ${units}: the contract would refuse it and the action would be used up`] };
+  }
+  return { lines, problems: [] };
 }
 
 /**
@@ -503,6 +526,11 @@ async function inspectAction(id: number): Promise<Inspection> {
         const owner = await bouncedKeyOwner(args);
         lines.push(...owner.lines);
         problems.push(...owner.problems);
+      }
+      if (name === "recoverSurplus" && !problems.length) {
+        const facts = await surplusFacts(args);
+        lines.push(...facts.lines);
+        problems.push(...facts.problems);
       }
       return {
         lines,

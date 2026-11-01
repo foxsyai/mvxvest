@@ -153,7 +153,11 @@ const action = (): Buffer => {
       return sendAsyncCall(MVXVEST, "setKeyStamping", [Buffer.from([0, 0])]);
     // Identifiers that are fine, and other raw bytes that go to the terminal.
     case "surplus-egld":
+    case "surplus-none":
+    case "surplus-read-fails":
       return sendAsyncCall(MVXVEST, "recoverSurplus", [Buffer.from("EGLD-000000"), addr(VESTING_1_BENEFICIARY)]);
+    case "surplus-amount-zero":
+      return sendAsyncCall(MVXVEST, "recoverSurplus", [Buffer.from("EGLD-000000"), addr(VESTING_1_BENEFICIARY), Buffer.alloc(0)]);
     case "surplus-lower-case-token":
       return sendAsyncCall(MVXVEST, "recoverSurplus", [Buffer.from("foxsy-5d5f3e"), addr(VESTING_1_BENEFICIARY)]);
     case "endpoint-with-escapes":
@@ -219,6 +223,12 @@ const answer = (funcName: string, args: string[]): string[] => {
     if (process.env.AUDIT5_CASE === "bounced-cancel-key-none") return the(viewWith(STEPPED, 0));
     if (process.env.AUDIT5_CASE === "bounced-key-view-truncated") return the(viewWith(STEPPED).subarray(0, 120));
     return the(Buffer.from(VESTING_1_VIEW_HEX, "hex"));
+  }
+  if (funcName === "getSurplus") {
+    // A zero answers an empty value, as mainnet does; a failed read answers no value at all.
+    if (process.env.AUDIT5_CASE === "surplus-none") return [""];
+    if (process.env.AUDIT5_CASE === "surplus-read-fails") return [];
+    return [Buffer.from([0x0f, 0x42, 0x40]).toString("base64")];
   }
   if (funcName === "getClaimKeyCollection" || funcName === "getCancelKeyCollection") {
     if (process.env.AUDIT5_CASE === "bounced-key-collection-unread") return [];
