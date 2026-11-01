@@ -260,7 +260,7 @@ After the upgrade:
 
 Not carried out yet: every step on mainnet needs Sebastian's go and the vote is the owners'. Every signing step works from a phone: mvxsafe.io in the phone's browser, signed with xPortal. Same steps as [version 3's](#version-3-on-mainnet-the-runbook), with these facts:
 
-**The release:** the reproducible build of commit e41b19f, 29,464 bytes, code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246` (CHANGELOG.md). Each signer derives it alone, with the command in [Build](#1-build) or from CI's "Reproducible build" step, never from another signer's message.
+**The release:** the reproducible build of commit a281583, 29,464 bytes, code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246` (CHANGELOG.md). Each signer derives it alone, with the command in [Build](#1-build) or from CI's "Reproducible build" step, never from another signer's message.
 
 1. **The site comes first.** Mainnet's config lists both hashes, so `./deploy.sh mainnet` passes before the vote and the site shows no banner after it. The site's bounce handling works on both versions.
 2. **Deploy the source** from a shard 1 wallet: the release's `mvxvest.wasm`, not upgradeable, no arguments. About 117M gas, charged in full, about 0.09 EGLD.
