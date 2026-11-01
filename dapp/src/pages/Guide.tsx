@@ -441,8 +441,9 @@ export const Guide = () => (
         <b className='text-ink'>What the owner can and cannot do.</b> The owner,
         a multisig, can set the fees on new vestings, pause the creation of new
         vestings
-        <OwnerStamp /> and return keys or tokens that bounced back from a smart
-        contract. In the code as it stands, it cannot pause claims or cancels
+        <OwnerStamp />, change how new keys look (their pictures and metadata,
+        never what they pay) and return keys or tokens that bounced back from a
+        wallet or a smart contract. In the code as it stands, it cannot pause claims or cancels
         and has no way to move locked tokens. It can upgrade the contract, so a
         serious bug can be fixed. An upgrade is a vote of the multisig and
         replaces the code: every promise on this page holds for the code as it
