@@ -189,7 +189,10 @@ describe('outcomeOf: failed, yet booked', () => {
 
 describe('payoutsOf', () => {
   it('a bounced claim paid nothing, whatever the contract booked', async () => {
-    await expect(payoutsOf([bounced.txHash], WALLET)).resolves.toEqual([]);
+    // Tokens only: a failing BigInt comparison cannot be reported by Jest's
+    // workers.
+    const paid = await payoutsOf([bounced.txHash], WALLET);
+    expect(paid.map((payout) => payout.token)).toEqual([]);
   });
 });
 
