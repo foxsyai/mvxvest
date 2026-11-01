@@ -1,0 +1,12 @@
+# The owner's tool holds no key but runs on a signer's machine: the same supply
+# chain policy as dapp/pnpm-workspace.yaml (fifth audit, WEB-2).
+allowBuilds:
+  esbuild: false
+  keccak: false
+  protobufjs: false
+# A version must be a day old before it can be installed: most malicious
+# releases are caught and pulled within hours.
+minimumReleaseAge: 1440
+overrides:
+  # 1 Nov 2026: follow-redirects under axios (GHSA-mrwp-f3q8-3g9p, high).
+  follow-redirects@>=1.16.0 <1.16.2: 1.16.2
