@@ -69,6 +69,7 @@ Version 4's own audit (V4C) found no defect. It rebuilt the release independentl
 | VSD-09 | Low | A simulation that could not run read as the network refusing the transaction. | Retried, then Check again. |
 | FIXR-1 | Low | After Try again, a frozen answer no longer held the signature back. | Found in the fixes, fixed. `audit5review_fixr_payout_gate_retry` |
 | Reopen | Low | A Claim or Cancel opened again showed the previous read's answer until the new one came, so a token frozen since then was not caught. Found by the merge gate's review of the fixes. | Closing forgets the answer, and the page says it is checking until the new read. `audit5_fix_payout_reopen` |
+| Last claim | Medium | Written when version 4 went live, and never deployed: the warning said the claim key stays in the wallet, but a last claim burns it. Found by the merge gate's review of that change. | The words name both cases. `audit5_fix_bounce_versions` |
 | Create | Low | A create whose key delivery bounced read as failed and offered to sign again, which would lock the money twice. | It says the vestings exist. |
 | DAPP-3 | Info | The guide's list of owner powers left out `setKeyDisplay`. | Added. |
 

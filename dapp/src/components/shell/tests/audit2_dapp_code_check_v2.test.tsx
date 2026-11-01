@@ -2,8 +2,7 @@
 // code hash in `contractCodeHashes`; before an upgrade a config lists the old
 // and the new build, so the banner stays silent on both sides, and shouts
 // for any other code. After the upgrade it lists the new one only: version 4
-// (0e9ebff7…) on devnet since its rehearsal of 1 Nov 2026; mainnet lists both it
-// and version 3 (65c689b9…) ahead of the owners' vote. CI refuses a main that builds to a hash the mainnet config does
+// (0e9ebff7…) on both networks since 1 Nov 2026. CI refuses a main that builds to a hash the mainnet config does
 // not list, or whose live hash it lacks.
 
 import { act, render, screen } from '@testing-library/react';
