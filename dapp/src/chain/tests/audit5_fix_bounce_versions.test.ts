@@ -1,10 +1,11 @@
 // Fifth audit, RT-1, the reads on both contracts: what came back is worked out
 // per token from the transfer that bounced, never assumed for every vesting of a
-// failed transaction. The fixtures are real devnet transactions, both `fail`:
+// failed transaction. The fixtures are real devnet transactions, all `fail`:
 // version 3's everything came back; version 4's only 1 DUST did, and the wallet
 // received its 50.02 TFOX and kept its key.
 
 import { historyOf, outcomeOf, payoutsOf, refusedPayouts } from '../reads';
+import single from './fixtures/audit5-bounced-claim-v4-single.json';
 import v4 from './fixtures/audit5-bounced-claim-v4.json';
 import v3 from './fixtures/audit5-bounced-claim.json';
 
@@ -79,6 +80,18 @@ beforeEach(() => {
 });
 
 describe('outcomeOf', () => {
+  it('version 4, one token, a real transaction: the payout came back and the key did not', async () => {
+    net.txs = { [single.txHash]: single };
+    const outcome = await outcomeOf(single.txHash);
+    expect(outcome.status).toBe('fail');
+    expect(outcome.bounced).toBe('claimed');
+    expect(outcome.refusal).toEqual({
+      tokens: [{ token: 'DUST-959a75', ids: [743] }],
+      keys: [],
+      paid: []
+    });
+  });
+
   it('version 4: only the token that came back is refused, and no key', async () => {
     const outcome = await outcomeOf(v4.txHash);
     expect(outcome.status).toBe('fail');

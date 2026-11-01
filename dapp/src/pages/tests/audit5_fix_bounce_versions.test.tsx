@@ -10,13 +10,14 @@
 //    came back, and the dust key was burned because it had finished.
 //
 // The site must not ask which version it runs: the results show what came back.
-// The single token case on version 4 is what the site itself sends. No such
-// transaction exists to read, so it is cut from the real one and marked so.
+// The single token case on version 4 is what the site itself sends: its fixture
+// is a real devnet transaction too, a frozen wallet claiming one key.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import single from 'chain/tests/fixtures/audit5-bounced-claim-v4-single.json';
 import v4 from 'chain/tests/fixtures/audit5-bounced-claim-v4.json';
 import v3 from 'chain/tests/fixtures/audit5-bounced-claim.json';
 import { TxPanel } from 'components/tx/TxPanel';
@@ -28,22 +29,6 @@ import { VestingPage } from '../Vesting';
 const WALLET = v4.sender;
 const CONTRACT =
   'erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp';
-
-/** Version 4, had the wallet claimed only the dust key, and had it more to pay. */
-const single = (() => {
-  const dustEvent = (event: any) =>
-    !(event.topics ?? []).some(
-      (topic: string) => topic && atob(topic) === 'TFOX-d61b09'
-    );
-  return {
-    ...v4,
-    txHash: 'cut0from0the0real0one',
-    results: v4.results.map((result: any) => ({
-      ...result,
-      logs: { events: result.logs.events.filter(dustEvent) }
-    }))
-  };
-})();
 
 const chain = {
   outcomeHash: v4.txHash,
@@ -58,7 +43,7 @@ const hexOf = (base64: string) => Buffer.from(base64, 'base64').toString('hex');
 
 const allEvents = (tx: any) => [
   ...tx.logs.events,
-  ...tx.results.flatMap((result: any) => result.logs.events)
+  ...tx.results.flatMap((result: any) => result.logs?.events ?? [])
 ];
 
 const tokenInfo = (id: string) => ({
@@ -331,8 +316,8 @@ describe('the Vesting page', () => {
 
   it('version 4, one token: the key is in the wallet, and nothing says it is lost', async () => {
     chain.txs = { [single.txHash]: single };
-    chain.holders['VESTKEY-8f217c-02e6'] = WALLET;
-    const text = await showVesting(742, 'DUST-959a75');
+    chain.holders['VESTKEY-8f217c-02e7'] = WALLET;
+    const text = await showVesting(743, 'DUST-959a75');
     expect(text).toMatch(/never reached/);
     expect(text).not.toMatch(
       /The contract itself holds|key .*held|key .*lost/i
