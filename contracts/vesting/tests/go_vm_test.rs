@@ -65,3 +65,13 @@ fn batch_max() {
 fn v2_upgrade_from_v1() {
     run_on_go_vm("v2_upgrade_from_v1.scen.json");
 }
+
+/// The upgrade to version 4, on the validators' VM: from the code mainnet runs
+/// (scenarios/v3/mvxvest-v3.wasm, read from the chain, code hash 65c689b9...,
+/// 29,327 bytes) to this build. Vestings and keys made under version 3 claim
+/// and cancel under this build, a key stamped by version 3 is stamped again
+/// with its metadata, and the transfers go apart from the first call on.
+#[test]
+fn v4_upgrade_from_v3() {
+    run_on_go_vm("v4_upgrade_from_v3.scen.json");
+}

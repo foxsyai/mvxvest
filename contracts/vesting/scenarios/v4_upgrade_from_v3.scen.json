@@ -1,0 +1,754 @@
+{
+  "name": "version 4 upgrade: vestings and keys made under version 3 (the code mainnet runs) claim, cancel and finish",
+  "steps": [
+    {
+      "step": "setState",
+      "comment": "the code mainnet runs: scenarios/v3/mvxvest-v3.wasm, read from the chain, code hash 65c689b9...",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": {
+            "str:FOX-a1b2c3": "3,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:v3/mvxvest-v3.wasm",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v3-set-display",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "setKeyDisplay",
+        "arguments": [
+          "0",
+          "str:ipfs://cid"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v3-create-claimed-under-v3",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v3-create-untouched",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "2"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v3-create-cancelable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "3"
+        ]
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225850"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v3-claim",
+      "comment": "Version 3 pays and returns the key in one MultiESDTNFTTransfer.",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "1",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "1",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "250",
+              "str:VESTKEY-123456",
+              "1",
+              "1",
+              "address:alice"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767226100"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "upgrade-to-v4",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "upgradeContract",
+        "arguments": [
+          "mxsc:../output/mvxvest.mxsc.json",
+          "0x0500"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "the upgrade moves nothing: the keys of version 3 are with alice as version 3 left them",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "250",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;claimed:250;metadata:ipfs://cid"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:0;metadata:ipfs://cid"
+                },
+                {
+                  "nonce": "3",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1;metadata:ipfs://cid"
+                }
+              ]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v4-view-of-a-v3-vesting",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "1"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "250"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v4-claim-of-v3-vestings",
+      "comment": "The vestings and keys of version 3 claim under version 4: 250 + 500 + 500 FOX in one transfer and the keys in another. The first key was stamped by version 3 and its metadata survives this stamp.",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "3",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "1",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "1",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "2",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "2",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTMetaDataUpdate",
+            "topics": [
+              "str:VESTKEY-123456",
+              "3",
+              "",
+              "*"
+            ],
+            "data": []
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "3",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "1250",
+              "address:alice"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
+              "str:VESTKEY-123456",
+              "1",
+              "1",
+              "str:VESTKEY-123456",
+              "2",
+              "1",
+              "str:VESTKEY-123456",
+              "3",
+              "1",
+              "address:alice"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "1500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;claimed:500;metadata:ipfs://cid"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:0;claimed:500;metadata:ipfs://cid"
+                },
+                {
+                  "nonce": "3",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:3;token:FOX-a1b2c3;cancelable:1;claimed:500;metadata:ipfs://cid"
+                }
+              ]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v4-cancel-of-a-v3-vesting",
+      "comment": "The cancel key minted by version 3 still cancels: the unvested 500 FOX go back in their transfer.",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTNFTBurn",
+            "topics": [
+              "str:VESTCANCEL-123456",
+              "1",
+              "1"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:cancel",
+            "topics": [
+              "str:vestingCancelled",
+              "3",
+              "address:creator",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "500",
+              "address:creator"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767226600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "v4-last-claim",
+      "comment": "The two plain keys pay their last 1000 FOX and burn. The cancelled one has nothing more and burns: nothing goes back.",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "3",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": [
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTNFTBurn",
+            "topics": [
+              "str:VESTKEY-123456",
+              "1",
+              "1"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "1",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTNFTBurn",
+            "topics": [
+              "str:VESTKEY-123456",
+              "2",
+              "1"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "2",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTNFTBurn",
+            "topics": [
+              "str:VESTKEY-123456",
+              "3",
+              "1"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:claim",
+            "topics": [
+              "str:vestingClaimed",
+              "3",
+              "address:alice",
+              "str:FOX-a1b2c3"
+            ],
+            "data": "*"
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTTransfer",
+            "topics": [
+              "str:FOX-a1b2c3",
+              "",
+              "1000",
+              "address:alice"
+            ],
+            "data": "*"
+          },
+          "+"
+        ],
+        "gas": "*",
+        "refund": "*",
+        "out": []
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "every unit where it belongs: alice 2500, the creator 500 back, nothing left in the contract",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "2500"
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500"
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "3"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "1"
+            }
+          },
+          "storage": "*",
+          "code": "mxsc:../output/mvxvest.mxsc.json"
+        },
+        "+": ""
+      }
+    }
+  ]
+}
