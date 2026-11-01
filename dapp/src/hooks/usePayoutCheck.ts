@@ -20,6 +20,7 @@ export const usePayoutCheck = (
 ) => {
   const key = tokens ? tokens.join(',') : null;
   const [answer, setAnswer] = useState<{
+    wallet: string;
     action: unknown;
     key: string;
     check: PayoutCheck;
@@ -29,8 +30,16 @@ export const usePayoutCheck = (
   const run = useRef(0);
 
   useEffect(() => {
-    if (!key) return;
+    // Nothing to read now: what was read is forgotten and a read on its way no
+    // longer counts. Vesting and Created open the same action with the same
+    // token again, and an old answer would stand in for the new read: a token
+    // frozen in between would reach Sign (fifth audit, merge gate's review).
     const id = ++run.current;
+    if (!key) {
+      setAnswer(null);
+      setReading(false);
+      return;
+    }
     setReading(true);
     (async () => {
       const entries = await Promise.all(
@@ -43,7 +52,7 @@ export const usePayoutCheck = (
         })
       );
       if (id !== run.current) return;
-      setAnswer({ action, key, check: Object.fromEntries(entries) });
+      setAnswer({ wallet, action, key, check: Object.fromEntries(entries) });
       setReading(false);
     })();
   }, [wallet, key, action, asked]);
@@ -55,7 +64,10 @@ export const usePayoutCheck = (
         ? null
         : key === ''
           ? NOTHING_TO_CHECK
-          : answer && answer.key === key && answer.action === action
+          : answer &&
+              answer.wallet === wallet &&
+              answer.key === key &&
+              answer.action === action
             ? answer.check
             : null,
     reading,

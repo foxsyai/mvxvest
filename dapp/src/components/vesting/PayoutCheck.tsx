@@ -82,7 +82,8 @@ export const PayoutGate = ({
 }) => {
   const [insisted, setInsisted] = useState(false);
   const answer = token && check ? check[token] : null;
-  if (token && !check) return <CheckingPayout />;
+  // A new read holds the gate, but never takes a signature off the page.
+  if (token && !check && !started) return <CheckingPayout />;
   if (answer === 'frozen' || answer === 'paused')
     return (
       <div className='space-y-3'>
