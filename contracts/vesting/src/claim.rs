@@ -13,11 +13,13 @@ use crate::{
 #[multiversx_sc::module]
 pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::KeysModule {
     /// Send one or more claim keys. Pays everything vested and not yet claimed
-    /// on each, in one transfer back with the keys. A key whose vesting can
-    /// pay nothing more is burned instead of returned. A key that paid and
-    /// goes back says what has been claimed in its name and attributes
-    /// (version 3, unless the owner turned it off). Fails when no key paid
-    /// anything or was burned.
+    /// on each. A key whose vesting can pay nothing more is burned instead of
+    /// returned. A key that paid and goes back says what has been claimed in
+    /// its name and attributes (version 3, unless the owner turned it off).
+    /// Each token leaves in its own transfer and the returned keys in theirs
+    /// (version 4): in another shard a token the caller cannot receive bounces
+    /// alone, never another token and never a key (fifth audit, RT-1). Fails
+    /// when no key paid anything or was burned.
     #[payable]
     #[endpoint(claim)]
     fn claim(&self) {
@@ -25,7 +27,8 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
         require!(!payments.is_empty(), ERR_NOT_CLAIM_KEY);
         let caller = self.blockchain().get_caller();
         let now = self.now();
-        let mut outgoing = ManagedVec::new();
+        let mut payouts = ManagedVec::new();
+        let mut returned_keys = ManagedVec::new();
         let mut progressed = false;
         let stamp = self.key_stamping_off().is_empty();
         for payment in payments.iter() {
@@ -41,7 +44,7 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             if amount > 0u32 {
                 self.claimed(id).set(&claimed_total);
                 self.update_totals(&vesting.token, |totals| totals.claimed += &amount);
-                add_payment(&mut outgoing, &vesting.token, 0, &amount);
+                add_payment(&mut payouts, &vesting.token, 0, &amount);
             }
             if finished {
                 self.burn_key(KeyKind::Claim, payment.token_nonce);
@@ -49,7 +52,7 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
                 if stamp && amount > 0u32 {
                     self.stamp_claim_key(payment.token_nonce, id, &vesting, &claimed_total);
                 }
-                outgoing.push(payment.clone());
+                returned_keys.push(payment.clone());
             }
             // A key that paid nothing and is not finished changed nothing: it
             // just goes back, with no event.
@@ -68,15 +71,16 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
             }
         }
         require!(progressed, ERR_NOTHING_TO_CLAIM);
+        self.send_each(&caller, payouts);
         self.tx()
             .to(&caller)
-            .payment(outgoing)
+            .payment(returned_keys)
             .transfer_if_not_empty();
     }
 
     /// Send one or more cancel keys. Each vesting stops now: what has vested
-    /// stays claimable with its claim key, the rest is paid to the caller. The
-    /// cancel keys are burned.
+    /// stays claimable with its claim key, the rest is paid to the caller,
+    /// each token in its own transfer (version 4). The cancel keys are burned.
     #[payable]
     #[endpoint(cancel)]
     fn cancel(&self) {
@@ -105,20 +109,28 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
                 &CancelledEvent { refund, vested },
             );
         }
-        self.tx()
-            .to(&caller)
-            .payment(refunds)
-            .transfer_if_not_empty();
+        self.send_each(&caller, refunds);
+    }
+
+    /// Pays `to` one transfer per payment, with no function and no gas for
+    /// execution. Payments that share a transfer bounce together in another
+    /// shard; apart, a refused one comes back alone and shows up as surplus.
+    /// In the caller's own shard a refusal still reverts the whole call.
+    fn send_each(&self, to: &ManagedAddress, payments: ManagedVec<Payment<Self::Api>>) {
+        for payment in payments.iter() {
+            self.tx().to(to).payment(payment.clone()).transfer();
+        }
     }
 
     /// Owner only. Sends on the `kind` key of vesting `id`, which the contract
-    /// holds only after sending it bounced: to a beneficiary, creator or
-    /// holder that is a smart contract that cannot receive it (a wallet never
-    /// bounces). The transaction that sent it shows whom it belongs to. Nobody
-    /// else can move a
-    /// key the contract holds: earlier designs let the creator recover some
-    /// keys, and every review found a way to abuse that
-    /// (docs/reviews/2026-10-12-contract.md).
+    /// holds only after sending it bounced: in another shard, to a smart
+    /// contract that cannot receive it. A key of this contract cannot be
+    /// frozen by anyone else, so since version 4 a wallet does not bounce one;
+    /// under version 3 it could, when a key shared a transfer with a token the
+    /// wallet was frozen for (fifth audit, RT-1). The transaction that sent it
+    /// shows whom it belongs to. Nobody else can move a key the contract
+    /// holds: earlier designs let the creator recover some keys, and every
+    /// review found a way to abuse that (docs/reviews/2026-10-12-contract.md).
     #[only_owner]
     #[endpoint(recoverBouncedKey)]
     fn recover_bounced_key(&self, id: u64, kind: KeyKind, to: ManagedAddress) {
@@ -141,7 +153,8 @@ pub trait ClaimModule: storage::StorageModule + events::EventsModule + keys::Key
     /// Owner only. Sends what the contract holds of `token` beyond what it
     /// owes (locked, claimable and fees): `amount` of it, or all of it when no
     /// amount is given. Such a surplus only appears when a payout bounced
-    /// back; the events show whom it belongs to, and the amount lets two
+    /// back (a smart contract that cannot receive it, or a wallet frozen for
+    /// the token); the events show whom it belongs to, and the amount lets two
     /// bounced payouts go back to their two owners (audit C1). Locked funds
     /// can never be moved this way.
     #[only_owner]

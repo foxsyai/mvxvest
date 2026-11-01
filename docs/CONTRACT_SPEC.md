@@ -1,8 +1,16 @@
 # Contract specification
 
-The rules the vesting contract implements. This is **version 3**, live on
-mainnet since 22 October 2026 (code hash 65c689b9…, [MAINNET.md](MAINNET.md));
-version 2 ran from 14 to 22 October. Version 3 differs from version 2 in what a claim key
+The rules the vesting contract implements. **Version 3** is live on mainnet
+since 22 October 2026 (code hash 65c689b9…, [MAINNET.md](MAINNET.md)). This page
+describes **version 4**, the code in this repository, which runs on mainnet only
+once the owner's multisig upgrades to it; until then what the page marks as
+version 3's is what happens. Version 4 differs from version 3 in how `claim` and
+`cancel` pay: each token and the returned keys leave in separate transfers, so a
+token that refuses in another shard bounces alone (the fifth audit's RT-1). It
+also keeps a key's `metadata` through the stamp for any amount (KEYS-1). No
+stored layout, endpoint or view changes.
+
+Version 2 ran from 14 to 22 October. Version 3 differs from version 2 in what a claim key
 shows: a cancelable vesting's claim key says so in its name; each claim that
 pays rewrites the returned key's name and attributes with what has been
 claimed (the fourth audit's SCK-1 and SCK-2). It adds the owner's switch for
@@ -131,29 +139,49 @@ to the creator in one transfer.
 
 ### `claim()`
 
-Payable with one or more claim keys: at most 99 per transaction (each
-finished key is burned and, since version 3, each key that paid and goes back
-is stamped, a built-in call each; the network allows 100) and in practice
-fewer, as each key costs about 7M gas, more with the stamp (8.6M for one
-stamped key on devnet); the dApp sends at most 50. When the network refuses a
+Payable with one or more claim keys. The network allows 100 built-in calls per
+transaction: `claim` makes one per finished key (burned), one per key that paid
+and goes back (stamped), one per ESDT token paid and one for the keys that go
+back. So one token fits 99 keys that finish or 98 that go back stamped; keys of
+as many tokens fit 50 that finish or 49 that go back. A larger set fails whole
+with nothing booked. Each key still claims alone (at most 3 calls). In
+practice fewer fit, as each key costs about 7M gas, more with the stamp (8.6M for
+one stamped key on devnet); the dApp sends at most 50 keys of one token per
+transaction, 52 calls at most. (Version 3 makes one transfer of everything: 99
+keys, whatever their tokens.) When the network refuses a
 set whose keys each pass alone, the dApp offers to claim half of them. For each key: pays `vested(now) -
 claimed` (with `vested` frozen at the cancel time, if cancelled), then returns
 the key or burns it when nothing more can ever be claimed (`claimed` equals
 the total or what had vested at the cancel). Each key that paid or burned
 emits `vestingClaimed`; a key that paid nothing goes back unchanged, with no
-event. Payouts of the same token are
-merged into one transfer with the returned keys. Refused when a payment is not
+event. Payouts of the same token are merged. Each token leaves in its own
+transfer and the returned keys in theirs, all to the caller, with no function
+and no gas for execution, after everything is booked. In another shard a token
+the caller cannot receive (a wallet frozen for it, say) comes back alone: the
+other tokens and the keys arrive and that amount shows up as surplus (section
+5). In the contract's own shard the same refusal reverts the whole call, with
+nothing booked and every key back with the caller.
+
+**Version 3, live until an upgrade:** one transfer carries every token and every
+returned key, so one refused token sends all of it back to the contract, already
+booked. Only the owner can then return the keys and the money (seen on devnet,
+1 November 2026, with a griefer's dust token).
+
+Refused when a payment is not
 a claim key minted by this contract or when no key paid anything or was
 burned (`nothing to claim yet`): so claiming twice in one block pays once.
 
 ### `cancel()`
 
-Payable with one or more cancel keys, at most 99 per transaction (each is
-burned); the dApp sends at most 50. For each: sets `cancelled_at = now`,
+Payable with one or more cancel keys: a burn per key and a transfer per ESDT
+token, so 99 keys of one token or 50 of as many tokens fit in the network's 100
+built-in calls; the dApp sends at most 50. For each: sets `cancelled_at = now`,
 pays `total - vested(now)` to the caller (whoever holds the key) and burns the
 key. What had vested stays claimable with the claim key. Allowed at any time,
 also after the end (refund 0). A non-cancelable vesting has no cancel key and
-cannot be stopped.
+cannot be stopped. Refunds of the same token are merged and each token leaves in
+its own transfer, as in `claim`, so a token refused in another shard comes back
+alone. (Version 3, live until an upgrade: one transfer of all refunds.)
 
 ### Owner endpoints
 
@@ -174,10 +202,13 @@ cannot be stopped.
 ### `recoverBouncedKey(id, kind, to)` (owner only)
 
 Sends on the claim or cancel key (`kind`) of vesting `id` when the contract
-itself holds it. That only happens when sending the key bounced: to a
-beneficiary, creator or holder that is a smart contract that cannot receive
-tokens from contracts (a wallet never bounces). The transaction that sent it
-shows whom it belongs to (its transfer log or the contract's
+itself holds it. That happens when sending the key bounced: in another shard, to
+a beneficiary, creator or holder that is a smart contract that cannot receive
+tokens from contracts. A wallet can bounce too, when it is frozen for a token,
+but nobody can freeze a key, so since version 4 a wallet never bounces a key: the
+token comes back alone. Under version 3, live until an upgrade, a key shares its
+transfer with the payouts, so a wallet frozen for one of those tokens bounces the
+key as well. The transaction that sent it shows whom it belongs to (its transfer log or the contract's
 `vestingCreated`/`vestingClaimed` events); the owner returns it there.
 Nobody else can move a key the contract holds. One `keyRecovered` event per
 key. Fails when the caller is not the owner, the vesting is unknown, the
@@ -227,7 +258,9 @@ every payout is booked, while `getSurplus` stops at 0) and `isKeyStamping`.
   owner could not receive. (`tokenFeePaid` means sent: across shards, a
   bounce comes back later as surplus.) The owner must be payable by smart
   contracts. Otherwise every fee bounces; in the owner's own shard every
-  fee-paying creation fails.
+  fee-paying creation fails. A wallet frozen for a token bounces that token in
+  another shard: since version 4 the holder keeps the key and each later claim
+  pays that token into surplus until the issuer lifts the freeze.
 - **Tokens with special roles:** ESDT has no transfer fees, so the amount
   received is the amount sent. A token whose issuer can freeze, wipe or pause
   it (or that has a transfer role) can still be blocked by its issuer; the
@@ -246,9 +279,12 @@ every payout is booked, while `getSurplus` stops at 0) and `isKeyStamping`.
   key bounces back and the owner returns it to whom the creator and
   beneficiary agree. The dApp warns about smart contract beneficiaries before
   creating.
-- **Smart contract holders:** a smart contract that holds a key must accept
-  tokens from other contracts (`payableBySC`); otherwise the payout bounces (see
-  "No dead ends"). The dApp warns when a beneficiary is a smart contract.
+- **Smart contract holders:** a smart contract that itself calls `claim` or
+  `cancel` in the contract's shard gets its payout as a back transfer, whether or
+  not it is payable. None of its code runs (the Go VM's paymaster and
+  forwarder scenarios pin this). What is sent to a contract with no call from it
+  or to one in another shard needs `payableBySC`; otherwise it bounces (see "No
+  dead ends"). The dApp warns when a beneficiary is a smart contract.
 
 ## 6. Events
 

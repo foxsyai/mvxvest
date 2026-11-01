@@ -287,11 +287,13 @@ where
     }
 
     /// Send one or more claim keys. Pays everything vested and not yet claimed 
-    /// on each, in one transfer back with the keys. A key whose vesting can 
-    /// pay nothing more is burned instead of returned. A key that paid and 
-    /// goes back says what has been claimed in its name and attributes 
-    /// (version 3, unless the owner turned it off). Fails when no key paid 
-    /// anything or was burned. 
+    /// on each. A key whose vesting can pay nothing more is burned instead of 
+    /// returned. A key that paid and goes back says what has been claimed in 
+    /// its name and attributes (version 3, unless the owner turned it off). 
+    /// Each token leaves in its own transfer and the returned keys in theirs 
+    /// (version 4): in another shard a token the caller cannot receive bounces 
+    /// alone, never another token and never a key (fifth audit, RT-1). Fails 
+    /// when no key paid anything or was burned. 
     pub fn claim(
         self,
     ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
@@ -301,8 +303,8 @@ where
     }
 
     /// Send one or more cancel keys. Each vesting stops now: what has vested 
-    /// stays claimable with its claim key, the rest is paid to the caller. The 
-    /// cancel keys are burned. 
+    /// stays claimable with its claim key, the rest is paid to the caller, 
+    /// each token in its own transfer (version 4). The cancel keys are burned. 
     pub fn cancel(
         self,
     ) -> TxTypedCall<Env, From, To, (), Gas, ()> {
@@ -312,13 +314,14 @@ where
     }
 
     /// Owner only. Sends on the `kind` key of vesting `id`, which the contract 
-    /// holds only after sending it bounced: to a beneficiary, creator or 
-    /// holder that is a smart contract that cannot receive it (a wallet never 
-    /// bounces). The transaction that sent it shows whom it belongs to. Nobody 
-    /// else can move a 
-    /// key the contract holds: earlier designs let the creator recover some 
-    /// keys, and every review found a way to abuse that 
-    /// (docs/reviews/2026-10-12-contract.md). 
+    /// holds only after sending it bounced: in another shard, to a smart 
+    /// contract that cannot receive it. A key of this contract cannot be 
+    /// frozen by anyone else, so since version 4 a wallet does not bounce one; 
+    /// under version 3 it could, when a key shared a transfer with a token the 
+    /// wallet was frozen for (fifth audit, RT-1). The transaction that sent it 
+    /// shows whom it belongs to. Nobody else can move a key the contract 
+    /// holds: earlier designs let the creator recover some keys, and every 
+    /// review found a way to abuse that (docs/reviews/2026-10-12-contract.md). 
     pub fn recover_bounced_key<
         Arg0: ProxyArg<u64>,
         Arg1: ProxyArg<KeyKind>,
@@ -341,7 +344,8 @@ where
     /// Owner only. Sends what the contract holds of `token` beyond what it 
     /// owes (locked, claimable and fees): `amount` of it, or all of it when no 
     /// amount is given. Such a surplus only appears when a payout bounced 
-    /// back; the events show whom it belongs to, and the amount lets two 
+    /// back (a smart contract that cannot receive it, or a wallet frozen for 
+    /// the token); the events show whom it belongs to, and the amount lets two 
     /// bounced payouts go back to their two owners (audit C1). Locked funds 
     /// can never be moved this way. 
     pub fn recover_surplus<
