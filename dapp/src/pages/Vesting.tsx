@@ -501,6 +501,7 @@ const VestingView = () => {
             token={pays}
             action={action}
             retry={payout.retry}
+            started={signing.started(address)}
             busy={payout.reading}
             onClose={close}
           >
