@@ -29,7 +29,8 @@ jest.mock('config', () => ({
   contractCodeHashes: [
     '65c689b9d0cefdc5e39e2d1f4e7110e0c3da787a8a56dbf163a3d59ce6e6101d'
   ],
-  ownerMultisig: 'erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3'
+  ownerMultisig:
+    'erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3'
 }));
 jest.mock('chain/network', () => ({
   api: async () => answer
@@ -47,7 +48,9 @@ describe('audit5 DAPP: the owner check with an answer that has no owner', () => 
     render(<CodeCheck />);
     await flush();
     // Today: no banner at all (the right code, and an owner read as "").
-    expect(screen.queryByRole('status') ?? screen.queryByRole('alert')).not.toBeNull();
+    expect(
+      screen.queryByRole('status') ?? screen.queryByRole('alert')
+    ).not.toBeNull();
   });
 
   it('for the record: an answer with both fields right shows nothing, a wrong owner warns', async () => {

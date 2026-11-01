@@ -51,8 +51,7 @@ const DAY = 86_400;
 const beforeCliff: Vesting = {
   id: 7,
   creator: 'erd1u05m7s9u4dthgzzgxd0795kaxpadhj93yv24nydjczw832a66qlsgw5esx',
-  beneficiary:
-    'erd1cn8w9h2gfks6fglhxcmfka5w98hym47s0w8r9y4nqq9syh3ddfvsr0ljwe',
+  beneficiary: 'erd1cn8w9h2gfks6fglhxcmfka5w98hym47s0w8r9y4nqq9syh3ddfvsr0ljwe',
   token: 'FOXSY-5d5f3e',
   total: 1_000n * T,
   schedule: {
@@ -93,9 +92,9 @@ describe('audit5 DAPP: a linear vesting before its cliff, on a card', () => {
       /^0/
     );
     // The card's next release is the cliff, 150 days away...
-    expect(screen.getByText('Next release').nextSibling?.textContent).not.toMatch(
-      /every second/
-    );
+    expect(
+      screen.getByText('Next release').nextSibling?.textContent
+    ).not.toMatch(/every second/);
     // ...so nothing grows every second until then.
     expect(screen.queryByText(/grows every second/)).toBeNull();
   });

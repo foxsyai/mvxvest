@@ -2,6 +2,7 @@ import { ReactNode, useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { historyOf, keyHolder } from 'chain/reads';
 import { vesting as client } from 'chain/vesting';
+import { OwnersOnly } from 'components/tx/Refused';
 import { TxPanel } from 'components/tx/TxPanel';
 import {
   AddressText,
@@ -19,10 +20,18 @@ import {
 } from 'components/ui';
 import { ScheduleChart } from 'components/vesting/Chart';
 import { CreatorLabel } from 'components/vesting/CreatorLabel';
+import { PayoutGate } from 'components/vesting/PayoutCheck';
 import { ReleaseTable } from 'components/vesting/ReleaseTable';
-import { IssuerPowers } from 'components/vesting/TokenTrust';
+import { IssuerPowers, ShortfallNotice } from 'components/vesting/TokenTrust';
 import { contractAddress } from 'config';
-import { useAsync, useKeyStamping, useSigningRecord, useToken } from 'hooks';
+import {
+  useAsync,
+  useDeficit,
+  useKeyStamping,
+  usePayoutCheck,
+  useSigningRecord,
+  useToken
+} from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import { describeCurve, STATUS_LABEL, statusOf } from 'vesting/describe';
 import { isVestingNumber } from 'vesting/identifiers';
@@ -44,10 +53,10 @@ const Bounced = () => (
     could not be delivered: the vesting contract holds it until the owner
     returns it
     <Info label='About a returned key'>
-      The address it was sent to is a smart contract that could not receive it,
-      so it came back. Nothing is lost: the tokens stay in the contract. Only
-      the owner multisig can send the key on, by a vote (recoverBouncedKey). Ask
-      the creator or the owner to have it returned.
+      The wallet or smart contract it was sent to could not receive it, so it
+      came back. Nothing is lost: the tokens stay in the contract. Only the
+      owner multisig can send the key on, by a vote (recoverBouncedKey). Ask the
+      creator or the owner to have it returned.
     </Info>
   </span>
 );
@@ -107,6 +116,19 @@ const VestingView = () => {
   const stamping = useKeyStamping();
   const v = data.data?.v;
   const token = useToken(v?.token);
+  const { shortfall, failed: shortfallUnread } = useDeficit(v?.token);
+  // What this action would pay this wallet, if anything.
+  const pays =
+    v &&
+    ((action === 'claim' && v.claimable > 0n) ||
+      (action === 'cancel' && v.total > v.vested))
+      ? v.token
+      : undefined;
+  const payout = usePayoutCheck(
+    address,
+    action ? (pays ? [pays] : []) : null,
+    action
+  );
 
   const buildClaim = useCallback(
     () =>
@@ -163,6 +185,13 @@ const VestingView = () => {
     holdsClaim &&
     (v.claimable > 0n || (v.cancelledAt !== 0 && v.claimed === v.finalAmount));
   const ticker = token.ticker;
+  const events = history.data ?? [];
+  const refusedClaims = events
+    .filter((event) => event.kind === 'claimed' && event.refused)
+    .reduce((sum, event) => sum + event.amount, 0n);
+  const refundRefused = events.some(
+    (event) => event.kind === 'cancelled' && event.refused
+  );
 
   return (
     <div className='space-y-6'>
@@ -213,6 +242,43 @@ const VestingView = () => {
           {STATUS_LABEL[status]}
         </Badge>
       </div>
+
+      {/* The chain's books go on saying "claimed" after a payout was refused
+          at the wallet, and the claim key is gone from it: only this page can
+          say what really happened (fifth audit, RT-1). */}
+      {claimHolder === contractAddress && (
+        <Notice tone='warn'>
+          <b>The contract itself holds this claim key.</b> It came back because
+          the wallet or smart contract it went to could not receive it or a
+          payout with it. Nobody can claim from this vesting until it moves.{' '}
+          <OwnersOnly />
+        </Notice>
+      )}
+      {refusedClaims > 0n && (
+        <Notice tone='warn'>
+          <Amount
+            units={refusedClaims}
+            decimals={token.decimals}
+            ticker={ticker}
+          />{' '}
+          of what this page counts as claimed never reached a wallet: the wallet
+          refused it and it went back to the contract. Unless the owners have
+          sent it on since, the contract still holds it. <OwnersOnly />
+        </Notice>
+      )}
+      <ShortfallNotice
+        shortfall={shortfall}
+        failed={shortfallUnread}
+        decimals={token.decimals}
+        ticker={ticker}
+      >
+        {claimHolder !== null && (
+          <p className='mt-1'>
+            Before you buy its claim key: it may pay nothing now, whatever this
+            vesting&apos;s schedule says.
+          </p>
+        )}
+      </ShortfallNotice>
 
       {/* The claim key never changes after its mint: on a marketplace it looks
           the same whatever was claimed, and the holder of the cancel key can
@@ -279,30 +345,36 @@ const VestingView = () => {
         {/* The arithmetic, so the figures below add up at a glance:
             claimed is part of vested, not added to it (Sebastian, mainnet
             test). */}
-        <p className='text-xs text-muted'>
-          <Amount units={v.vested} decimals={token.decimals} digits={4} />{' '}
-          vested ={' '}
-          <Amount units={v.claimed} decimals={token.decimals} digits={4} />{' '}
-          claimed +{' '}
-          <Amount units={v.claimable} decimals={token.decimals} digits={4} />{' '}
-          claimable ·{' '}
-          {v.cancelledAt ? (
-            <>
-              <Amount units={v.refunded} decimals={token.decimals} digits={4} />{' '}
-              returned on cancel
-            </>
-          ) : (
-            <>
-              <Amount
-                units={v.total - v.vested}
-                decimals={token.decimals}
-                digits={4}
-              />{' '}
-              not vested yet
-            </>
-          )}{' '}
-          ({ticker})
-        </p>
+        {!shortfall && (
+          <p className='text-xs text-muted'>
+            <Amount units={v.vested} decimals={token.decimals} digits={4} />{' '}
+            vested ={' '}
+            <Amount units={v.claimed} decimals={token.decimals} digits={4} />{' '}
+            claimed +{' '}
+            <Amount units={v.claimable} decimals={token.decimals} digits={4} />{' '}
+            claimable ·{' '}
+            {v.cancelledAt ? (
+              <>
+                <Amount
+                  units={v.refunded}
+                  decimals={token.decimals}
+                  digits={4}
+                />{' '}
+                returned on cancel
+              </>
+            ) : (
+              <>
+                <Amount
+                  units={v.total - v.vested}
+                  decimals={token.decimals}
+                  digits={4}
+                />{' '}
+                not vested yet
+              </>
+            )}{' '}
+            ({ticker})
+          </p>
+        )}
         <dl className='grid grid-cols-2 gap-4 sm:grid-cols-4'>
           <Fact label='Vested so far'>
             <Amount
@@ -321,14 +393,20 @@ const VestingView = () => {
             />
           </Fact>
           <Fact label='Claimable now'>
-            <span className='font-semibold'>
-              <Amount
-                digits={4}
-                units={v.claimable}
-                decimals={token.decimals}
-                ticker={ticker}
-              />
-            </span>
+            {shortfall ? (
+              <span className='font-semibold text-danger'>
+                may pay nothing, see above
+              </span>
+            ) : (
+              <span className='font-semibold'>
+                <Amount
+                  digits={4}
+                  units={v.claimable}
+                  decimals={token.decimals}
+                  ticker={ticker}
+                />
+              </span>
+            )}
           </Fact>
           <Fact label='Next release'>
             {next &&
@@ -368,7 +446,16 @@ const VestingView = () => {
               decimals={token.decimals}
               ticker={ticker}
             />{' '}
-            went back to whoever cancelled;{' '}
+            {refundRefused ? (
+              <>
+                was due back to whoever cancelled, but the refund was refused at
+                that wallet and went back to the contract. Unless the owners
+                have sent it on since, the contract still holds it.{' '}
+                <OwnersOnly />{' '}
+              </>
+            ) : (
+              'went back to whoever cancelled; '
+            )}
             {v.finalAmount === 0n ? (
               'nothing had vested by then.'
             ) : (
@@ -407,71 +494,91 @@ const VestingView = () => {
             )}
           </div>
         )}
-        {action === 'claim' && (
-          <TxPanel
-            showPayouts
-            sender={address}
-            label={`Claim from vesting #${v.id}`}
-            summary={
-              <p>
-                Claims what has vested and is not claimed yet, about{' '}
-                <Amount
-                  units={v.claimable}
-                  decimals={token.decimals}
-                  ticker={ticker}
-                />{' '}
-                now, to this wallet. The claim key comes back to you or is
-                burned if this is the last of it.
-              </p>
-            }
-            build={buildClaim}
-            {...signing.panel(address, 1)}
+        {action && (
+          <PayoutGate
+            key={action}
+            check={payout.check}
+            token={pays}
+            action={action}
+            retry={payout.retry}
+            busy={payout.reading}
             onClose={close}
-            onFinished={() => data.reload()}
-          />
-        )}
-        {action === 'cancel' && (
-          <TxPanel
-            showPayouts
-            sender={address}
-            label={`Cancel vesting #${v.id}`}
-            summary={
-              <Notice tone='warn'>
-                Stops vesting #{v.id} at the moment the transaction runs. This
-                cannot be undone. What has vested by then stays the
-                beneficiary&apos;s: about{' '}
-                <Amount
-                  units={v.claimable}
-                  decimals={token.decimals}
-                  ticker={ticker}
-                />{' '}
-                now is still claimable with the claim key
-                {v.claimed > 0n && (
-                  <>
-                    {' '}
-                    (and{' '}
+          >
+            {action === 'claim' && (
+              <TxPanel
+                showPayouts
+                sender={address}
+                label={`Claim from vesting #${v.id}`}
+                summary={
+                  <p>
+                    Claims what has vested and is not claimed yet
+                    {shortfall ? (
+                      ', if the contract still holds enough of it,'
+                    ) : (
+                      <>
+                        , about{' '}
+                        <Amount
+                          units={v.claimable}
+                          decimals={token.decimals}
+                          ticker={ticker}
+                        />{' '}
+                        now,
+                      </>
+                    )}{' '}
+                    to this wallet. The claim key comes back to you or is burned
+                    if this is the last of it.
+                  </p>
+                }
+                build={buildClaim}
+                {...signing.panel(address, 1)}
+                onClose={close}
+                onFinished={() => data.reload()}
+              />
+            )}
+            {action === 'cancel' && (
+              <TxPanel
+                showPayouts
+                sender={address}
+                label={`Cancel vesting #${v.id}`}
+                summary={
+                  <Notice tone='warn'>
+                    Stops vesting #{v.id} at the moment the transaction runs.
+                    This cannot be undone. What has vested by then stays the
+                    beneficiary&apos;s: about{' '}
                     <Amount
-                      units={v.claimed}
+                      units={v.claimable}
                       decimals={token.decimals}
                       ticker={ticker}
                     />{' '}
-                    was claimed before)
-                  </>
-                )}
-                . The rest (about{' '}
-                <Amount
-                  units={v.total - v.vested}
-                  decimals={token.decimals}
-                  ticker={ticker}
-                />
-                ) comes back to this wallet. The cancel key is burned.
-              </Notice>
-            }
-            build={buildCancel}
-            {...signing.panel(address, 1)}
-            onClose={close}
-            onFinished={() => data.reload()}
-          />
+                    now is still claimable with the claim key
+                    {v.claimed > 0n && (
+                      <>
+                        {' '}
+                        (and{' '}
+                        <Amount
+                          units={v.claimed}
+                          decimals={token.decimals}
+                          ticker={ticker}
+                        />{' '}
+                        was claimed before)
+                      </>
+                    )}
+                    . The rest (about{' '}
+                    <Amount
+                      units={v.total - v.vested}
+                      decimals={token.decimals}
+                      ticker={ticker}
+                    />
+                    ) comes back to this wallet. The cancel key is burned.
+                  </Notice>
+                }
+                build={buildCancel}
+                {...signing.panel(address, 1)}
+                onClose={close}
+                onFinished={() => data.reload()}
+              />
+            )}
+          </PayoutGate>
         )}
       </Card>
 
@@ -630,8 +737,12 @@ const VestingView = () => {
                   {event.kind === 'created'
                     ? 'Created'
                     : event.kind === 'claimed'
-                      ? 'Claimed'
-                      : 'Cancelled, refunded'}
+                      ? event.refused
+                        ? 'Claimed on the books, refused at the wallet'
+                        : 'Claimed'
+                      : event.refused
+                        ? 'Cancelled, refund refused at the wallet'
+                        : 'Cancelled, refunded'}
                 </span>
                 <Amount
                   units={event.amount}
@@ -643,6 +754,11 @@ const VestingView = () => {
                 <ExplorerLink path={`/transactions/${event.txHash}`}>
                   transaction
                 </ExplorerLink>
+                {event.refused === null && (
+                  <span className='text-xs text-muted'>
+                    not checked whether it arrived
+                  </span>
+                )}
               </li>
             ))}
           </ul>

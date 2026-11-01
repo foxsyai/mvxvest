@@ -1,3 +1,4 @@
+import { Address } from '@multiversx/sdk-core';
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { vesting as client } from 'chain/vesting';
@@ -168,6 +169,9 @@ const Verify = () =>
         <Fact label='Contract' path={`/accounts/${contractAddress}`}>
           {contractAddress}
         </Fact>
+        <Fact label="Contract, as a transaction's data names it" small>
+          {Address.newFromBech32(contractAddress).toHex()}
+        </Fact>
         <Fact label='Code hash (reproducible build)' small>
           {contractCodeHashes.join(', ')}
         </Fact>
@@ -206,8 +210,15 @@ const Verify = () =>
         or picture. Every page compares the contract&apos;s code and owner with
         these and warns at the top if they differ. The real site is only at
         mvxvest.io: a copy elsewhere can show the same pages, this box included.
-        What a copy cannot fake is the receiver your wallet shows before you
-        approve: it must be the contract address above.
+        What a copy cannot fake is where a transaction goes, which you check in
+        your wallet before you approve. An EGLD vesting names the contract above
+        as its receiver. A claim, a cancel and a vesting of a token that also
+        pays the EGLD fee name your own address as the receiver: the key or the
+        token goes to the contract and the transaction&apos;s data names it in
+        the hexadecimal form above. A wallet that decodes the transfer shows the
+        contract as the destination; a wallet or device that shows the raw
+        fields shows your own address and that data. Another address in that
+        place means it is not the real site.
       </p>
     </Card>
   ) : null;
@@ -352,8 +363,11 @@ export const Guide = () => (
         network to try every transaction first: a transaction it would refuse is
         never sent to your wallet. In xPortal several transactions are approved
         with one prompt; a Ledger confirms each one on the device. Before you
-        approve, check that your wallet shows the contract address (under Check
-        that it is the real mvxvest, below) as the receiver.
+        approve, check where it goes: an EGLD vesting names the contract as its
+        receiver; a vesting of a token that also pays the EGLD fee, a claim and
+        a cancel name your own address as the receiver, with the contract in the
+        data (both forms and what to compare are under Check that it is the real
+        mvxvest, below).
       </p>
       <Shot
         src='12-review'
@@ -377,8 +391,9 @@ export const Guide = () => (
       <p>
         My vestings lists every vesting whose claim key is in your wallet. A
         linear vesting grows every second. Claim takes what has vested; Claim
-        all takes it from every key at once. The key comes back to you or is
-        burned once there is nothing left to pay.
+        all takes it from every key, with one transaction per token and leaves
+        out a token that cannot reach your wallet. The key comes back to you or
+        is burned once there is nothing left to pay.
       </p>
       <Shot
         src='17-mine'
@@ -441,14 +456,15 @@ export const Guide = () => (
         <b className='text-ink'>What the owner can and cannot do.</b> The owner,
         a multisig, can set the fees on new vestings, pause the creation of new
         vestings
-        <OwnerStamp /> and return keys or tokens that bounced back from a smart
-        contract. In the code as it stands, it cannot pause claims or cancels
-        and has no way to move locked tokens. It can upgrade the contract, so a
-        serious bug can be fixed. An upgrade is a vote of the multisig and
-        replaces the code: every promise on this page holds for the code as it
-        is; beyond it, you trust the multisig and its signers (named below).
-        Each version is a reproducible build whose code hash anyone can check
-        (below).
+        <OwnerStamp />, change how new keys look (their pictures and metadata,
+        never what they pay) and return keys or tokens that bounced back from a
+        wallet or a smart contract. In the code as it stands, it cannot pause
+        claims or cancels and has no way to move locked tokens. It can upgrade
+        the contract, so a serious bug can be fixed. An upgrade is a vote of the
+        multisig and replaces the code: every promise on this page holds for the
+        code as it is; beyond it, you trust the multisig and its signers (named
+        below). Each version is a reproducible build whose code hash anyone can
+        check (below).
       </li>
       <li>
         <b className='text-ink'>Smart contracts as beneficiaries.</b> A smart
@@ -461,10 +477,14 @@ export const Guide = () => (
         <b className='text-ink'>The token&apos;s own issuer.</b> A token whose
         issuer can pause, freeze or wipe it can still be blocked by that issuer,
         whatever the vesting says. The vesting, token and create pages show what
-        each issuer can do.
+        each issuer can do. A claim or a refund of a token paused or frozen for
+        your wallet is refused at your wallet and what it paid and the claim key
+        can come back to the contract: the money is safe there, but only the
+        owner multisig can send it on, by a vote. The page reads this before you
+        sign and warns you; a key that came back says so on its vesting.
         <Shot
           src='22-issuer'
-          caption="FOXSY's issuer can pause its transfers, add a transfer role and change these settings."
+          caption="The issuer's powers as the page says them, here for FOXSY. The page reads each token's own settings."
         />
       </li>
       <li>

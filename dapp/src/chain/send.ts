@@ -4,7 +4,8 @@
 // 1. prepare(): the nonce from the network (a stale one made transactions
 //    vanish on mvxsafe), the guardian of a guarded account, and a gas limit
 //    from the network's own simulation. A transaction the contract would refuse
-//    fails here, with the contract's reason, before the wallet is opened.
+//    fails here, with the contract's reason, before the wallet is opened; a
+//    simulation that could not run is thrown, never called a refusal.
 // 2. send(): one wallet prompt for all of them, sent in nonce order, tracked.
 //
 // Gas: the simulation's figure times 1.2, at most 600M. A limit far above what
@@ -15,6 +16,7 @@ import {
   Transaction,
   TransactionComputer
 } from '@multiversx/sdk-core';
+import { getAccount } from '@multiversx/sdk-dapp/out/methods/account/getAccount';
 import { setAccountNonce } from '@multiversx/sdk-dapp/out/store/actions/account/accountActions';
 import { getAccountProvider, TransactionManager } from 'lib';
 import { lostSend } from './missing';
@@ -29,6 +31,13 @@ export interface Prepared {
   problems: (string | null)[];
 }
 
+/**
+ * The guardian of a guarded account, or '' for none. A read that failed never
+ * means "not guarded": the network would then refuse to simulate a guarded
+ * account's valid transaction, and that would read as a refusal of it (fifth
+ * audit, VSD-04). The wallet session knows its own guardian; otherwise the
+ * failure is thrown, for the page to offer to check again.
+ */
 const guardianOf = async (address: string): Promise<string> => {
   try {
     const account = await api<{
@@ -36,8 +45,17 @@ const guardianOf = async (address: string): Promise<string> => {
       activeGuardianAddress?: string;
     }>(`/accounts/${address}?withGuardianInfo=true`);
     return account?.isGuarded ? (account.activeGuardianAddress ?? '') : '';
-  } catch {
-    return '';
+  } catch (failure) {
+    const session = getAccount();
+    if (
+      session.address === address &&
+      session.isGuarded &&
+      session.activeGuardianAddress
+    )
+      return session.activeGuardianAddress;
+    throw new Error(
+      `could not read whether this wallet is guarded (${String((failure as any)?.message ?? failure).slice(0, 120)}): check again`
+    );
   }
 };
 
@@ -50,6 +68,40 @@ const simulationReason = (failure: unknown) => {
   return (match?.[1] || message).replace(/^["\s]+|["\s]+$/g, '').slice(0, 300);
 };
 
+const messageOf = (failure: unknown) =>
+  String((failure as any)?.message ?? failure ?? '');
+
+/**
+ * The simulation did not run, so it says nothing about the transaction: a rate
+ * limit, a server error, no answer, or the account's nonce moving under it
+ * (fifth audit, VSD-09). Only what is known to be that: anything else, and
+ * whatever a contract says in any words, stays a refusal. network.ts's
+ * isTransient asks the opposite question and would call a refusal by the
+ * protocol ("not allowed to bypass guardian") temporary.
+ */
+const didNotRun = (failure: unknown) => {
+  const message = messageOf(failure);
+  return (
+    !/execution failed|user error/i.test(message) &&
+    /\b(429|50[0-4])\b|too many requests|timeout|timed out|network error|failed to fetch|socket hang up|econn|aborted|\bnonce\b/i.test(
+      message
+    )
+  );
+};
+
+const NONCE_WORDS = /\bnonce\b/i;
+const SIMULATION_TRIES = 3;
+
+/** The simulation kept not running. Thrown: TxPanel then offers Check again. */
+class SimulationDidNotRun extends Error {}
+
+const couldNotCheck = (failure: unknown) => {
+  const inner = /\[([^[\]]*)\]\s*$/.exec(messageOf(failure))?.[1];
+  return new SimulationDidNotRun(
+    `the network could not check this right now (${(inner || messageOf(failure)).slice(0, 120)}). Nothing was sent: check again`
+  );
+};
+
 /**
  * Nonces, guardian and gas for `transactions`, each checked by the network's
  * simulation. `firstNonce` overrides the account's nonce when transactions of
@@ -60,10 +112,11 @@ export const prepare = async (
   transactions: Transaction[],
   firstNonce?: bigint
 ): Promise<Prepared> => {
-  const account = await networkProvider.getAccount(
-    Address.newFromBech32(sender)
-  );
-  const accountNonce = BigInt(account.nonce);
+  const readNonce = async () =>
+    BigInt(
+      (await networkProvider.getAccount(Address.newFromBech32(sender))).nonce
+    );
+  let accountNonce = await readNonce();
   const lost = await lostSend(sender, accountNonce);
   if (lost?.missing) {
     throw new Error(
@@ -75,10 +128,6 @@ export const prepare = async (
       `transaction ${lost.hash.slice(0, 10)}… is not seen on the network yet: anything signed now would wait behind it. Wait a minute, then check again`
     );
   }
-  const startNonce =
-    firstNonce !== undefined && firstNonce > accountNonce
-      ? firstNonce
-      : accountNonce;
   const guardian = await guardianOf(sender);
   // The guardian's extra gas must fit too: the network refuses any limit
   // above 600M.
@@ -86,7 +135,27 @@ export const prepare = async (
   const computer = new TransactionComputer();
   const problems: (string | null)[] = [];
 
-  for (const [index, transaction] of transactions.entries()) {
+  /** The network's answer, asked again while the simulation did not run. */
+  const simulate = async (transaction: Transaction) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return BigInt(
+          (await networkProvider.estimateTransactionCost(transaction)).gasLimit
+        );
+      } catch (failure) {
+        if (!didNotRun(failure)) throw failure;
+        if (attempt >= SIMULATION_TRIES) throw couldNotCheck(failure);
+        // The API counts requests per second: 0.4 then 0.8 s is enough.
+        await wait(400 * 2 ** (attempt - 1));
+        if (NONCE_WORDS.test(messageOf(failure))) {
+          accountNonce = await readNonce();
+          transaction.nonce = accountNonce;
+        }
+      }
+    }
+  };
+
+  for (const transaction of transactions) {
     // Simulated one by one with the account's nonce: each transaction of a
     // batch stands on its own.
     transaction.nonce = accountNonce;
@@ -97,9 +166,7 @@ export const prepare = async (
     if (guardian)
       computer.applyGuardian(transaction, Address.newFromBech32(guardian));
     try {
-      const cost = BigInt(
-        (await networkProvider.estimateTransactionCost(transaction)).gasLimit
-      );
+      const cost = await simulate(transaction);
       if (cost > cap) {
         transaction.gasLimit = cap;
         problems.push(
@@ -111,11 +178,19 @@ export const prepare = async (
         problems.push(null);
       }
     } catch (failure) {
+      if (failure instanceof SimulationDidNotRun) throw failure;
       problems.push(simulationReason(failure));
     }
-    transaction.nonce = startNonce + BigInt(index);
     if (guardian) transaction.gasLimit += GUARDED_EXTRA_GAS;
   }
+  // Last, from the nonce as last read: it can move during the simulations.
+  const startNonce =
+    firstNonce !== undefined && firstNonce > accountNonce
+      ? firstNonce
+      : accountNonce;
+  transactions.forEach((transaction, index) => {
+    transaction.nonce = startNonce + BigInt(index);
+  });
   return { transactions, problems };
 };
 

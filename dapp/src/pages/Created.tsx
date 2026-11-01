@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cancelKeysOfOthers, createdVestings } from 'chain/mine';
 import { keysHeld, tokenInfo } from 'chain/reads';
 import { vesting as client } from 'chain/vesting';
+import { RefusedPayouts } from 'components/tx/Refused';
 import { TxPanel } from 'components/tx/TxPanel';
 import {
   Button,
@@ -12,8 +13,9 @@ import {
   ReadFailed,
   Spinner
 } from 'components/ui';
+import { PayoutGate } from 'components/vesting/PayoutCheck';
 import { VestingCard } from 'components/vesting/VestingCard';
-import { useAsync, useSigningRecord } from 'hooks';
+import { useAsync, usePayoutCheck, useSigningRecord } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
 import type { Vesting } from 'vesting/client';
 import { downloadFile, toCsv } from 'vesting/csv';
@@ -25,6 +27,17 @@ export const Created = () => {
   const { address } = useGetAccount();
   const [cancelling, setCancelling] = useState<Vesting | null>(null);
   const signing = useSigningRecord();
+  // A cancel pays this wallet what has not vested; with nothing left to pay it
+  // reads nothing.
+  const refund =
+    cancelling && cancelling.total > cancelling.vested
+      ? cancelling.token
+      : undefined;
+  const payout = usePayoutCheck(
+    address,
+    cancelling ? (refund ? [refund] : []) : null,
+    cancelling
+  );
 
   const data = useAsync(async () => {
     if (!address) return null;
@@ -142,27 +155,41 @@ export const Created = () => {
         title='Created by me'
         info='Every vesting this wallet created and how far each beneficiary has got. Cancel appears wherever this wallet holds the cancel key, also for vestings another wallet created and whose cancel key was sent here.'
       />
+      <RefusedPayouts wallet={address} kind='cancelled' />
       {cancelling && (
-        <TxPanel
-          showPayouts
-          sender={address}
-          label={`Cancel vesting #${cancelling.id}`}
-          summary={
-            <Notice tone='warn'>
-              Stops vesting #{cancelling.id} when the transaction runs. This
-              cannot be undone. What has vested by then stays the
-              beneficiary&apos;s (claimable with the claim key until claimed);
-              the rest comes back to this wallet. The cancel key is burned.
-            </Notice>
-          }
-          build={build}
-          {...signing.panel(address, 1)}
+        <PayoutGate
+          key={cancelling.id}
+          check={payout.check}
+          token={refund}
+          action='cancel'
+          retry={payout.retry}
+          busy={payout.reading}
           onClose={() => {
             signing.clear();
             setCancelling(null);
           }}
-          onFinished={() => data.reload()}
-        />
+        >
+          <TxPanel
+            showPayouts
+            sender={address}
+            label={`Cancel vesting #${cancelling.id}`}
+            summary={
+              <Notice tone='warn'>
+                Stops vesting #{cancelling.id} when the transaction runs. This
+                cannot be undone. What has vested by then stays the
+                beneficiary&apos;s (claimable with the claim key until claimed);
+                the rest comes back to this wallet. The cancel key is burned.
+              </Notice>
+            }
+            build={build}
+            {...signing.panel(address, 1)}
+            onClose={() => {
+              signing.clear();
+              setCancelling(null);
+            }}
+            onFinished={() => data.reload()}
+          />
+        </PayoutGate>
       )}
       {list.length === 0 ? (
         <Notice>

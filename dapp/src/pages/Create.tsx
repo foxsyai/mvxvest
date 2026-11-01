@@ -173,6 +173,15 @@ type ShapeChoice = 'linear' | 'days' | 'months' | 'tranches';
  * transaction a success before it has the result's logs: an empty answer is
  * read again (a creation always logs at least one id), for up to 30 seconds.
  */
+/**
+ * The vestings of this transaction exist. A key refused at the address it was
+ * for makes the API call the whole create `fail`, though the vesting is there
+ * and its money is locked: signing such a line again would lock it twice
+ * (fifth audit, with RT-1).
+ */
+const vestingsExist = (outcome: TxOutcome) =>
+  outcome.status === 'success' || outcome.bounced === 'created';
+
 const createdIdsSoon = async (hash: string): Promise<number[]> => {
   for (let attempt = 0; attempt < 10; attempt++) {
     const ids = await createdIdsOf(hash).catch(() => []);
@@ -654,18 +663,16 @@ export const Create = () => {
           const status = outcomes[k].status;
           if (status === 'pending') delete results[hash];
           else
-            results[hash] =
-              status === 'success'
-                ? 'success'
-                : status === 'missing'
-                  ? 'missing'
-                  : 'failed';
+            results[hash] = vestingsExist(outcomes[k])
+              ? 'success'
+              : status === 'missing'
+                ? 'missing'
+                : 'failed';
         });
         return { ...current, results };
       });
       const fresh = hashes.filter(
-        (hash, k) =>
-          outcomes[k].status === 'success' && !idsRead.current.has(hash)
+        (hash, k) => vestingsExist(outcomes[k]) && !idsRead.current.has(hash)
       );
       fresh.forEach((hash) => idsRead.current.add(hash));
       const ids = (await Promise.all(fresh.map(createdIdsSoon))).flat();

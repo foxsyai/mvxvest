@@ -6,6 +6,7 @@ import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
 import { Amount, Button, ExplorerLink, Notice, Spinner } from 'components/ui';
 import { Payouts } from './Payouts';
+import { RefusedNotice } from './Refused';
 
 type Phase =
   | { step: 'checking' }
@@ -31,6 +32,10 @@ const outcomeText = (outcome?: TxOutcome) => {
   if (outcome.status === 'success') return 'done';
   if (outcome.status === 'missing')
     return 'not found on the network for 2 minutes: most likely it did not go through (still looking)';
+  if (outcome.bounced === 'created')
+    return `created, but a key could not be delivered: ${outcome.reason ?? 'refused'}`;
+  if (outcome.bounced)
+    return `booked by the contract, but refused at this wallet: ${outcome.reason ?? 'refused'}`;
   return `failed: ${outcome.reason ?? outcome.status}`;
 };
 
@@ -340,10 +345,12 @@ export const TxPanel = ({
                   className={
                     outcomes[hash]?.status === 'success'
                       ? 'text-ok'
-                      : outcomes[hash]?.status &&
-                          outcomes[hash].status !== 'pending'
-                        ? 'text-danger'
-                        : ''
+                      : outcomes[hash]?.bounced
+                        ? 'text-warn'
+                        : outcomes[hash]?.status &&
+                            outcomes[hash].status !== 'pending'
+                          ? 'text-danger'
+                          : ''
                   }
                 >
                   {outcomeText(outcomes[hash])}
@@ -354,6 +361,15 @@ export const TxPanel = ({
               </li>
             ))}
           </ul>
+          {[
+            ...new Set(
+              Object.values(outcomes).flatMap((outcome) =>
+                outcome.bounced ? [outcome.bounced] : []
+              )
+            )
+          ].map((kind) => (
+            <RefusedNotice key={kind} kind={kind} />
+          ))}
           {showPayouts &&
             phase.sent.hashes.every(
               (hash) => outcomes[hash] && outcomes[hash].status !== 'pending'

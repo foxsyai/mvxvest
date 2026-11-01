@@ -6,8 +6,8 @@
 // about: claim for the claim key of this vesting, cancel for its cancel
 // key, Claim all for the keys of the vestings it counts.
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Address } from '@multiversx/sdk-core';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { Vesting } from 'vesting/client';
 import { Mine } from '../Mine';
@@ -149,7 +149,7 @@ describe('audit5 DAPP: vesting page, claim and cancel bytes', () => {
     vestings[41] = make(41, 39, 12);
   });
 
-  it('Claim sends this vesting\'s claim key (its nonce, not its id) and says the claimable amount', async () => {
+  it("Claim sends this vesting's claim key (its nonce, not its id) and says the claimable amount", async () => {
     render(
       <MemoryRouter initialEntries={['/v/41']}>
         <Routes>
@@ -168,12 +168,19 @@ describe('audit5 DAPP: vesting page, claim and cancel bytes', () => {
     expect(prepared[0]).toHaveLength(1);
     expect(tx.sender.toBech32()).toBe(HOLDER);
     expect(dataOf(tx)).toBe(
-      ['ESDTNFTTransfer', utf8(CLAIM_KEYS), '27', '01', pub(CONTRACT), utf8('claim')].join('@')
+      [
+        'ESDTNFTTransfer',
+        utf8(CLAIM_KEYS),
+        '27',
+        '01',
+        pub(CONTRACT),
+        utf8('claim')
+      ].join('@')
     );
     expect(tx.value.toString()).toBe('0');
   });
 
-  it('Cancel sends this vesting\'s cancel key only, and the words give the split the contract makes', async () => {
+  it("Cancel sends this vesting's cancel key only, and the words give the split the contract makes", async () => {
     render(
       <MemoryRouter initialEntries={['/v/41']}>
         <Routes>
@@ -191,7 +198,14 @@ describe('audit5 DAPP: vesting page, claim and cancel bytes', () => {
     expect(words).toMatch(/about 727\s?TFOX/);
     const [tx] = prepared[0];
     expect(dataOf(tx)).toBe(
-      ['ESDTNFTTransfer', utf8(CANCEL_KEYS), '0c', '01', pub(CONTRACT), utf8('cancel')].join('@')
+      [
+        'ESDTNFTTransfer',
+        utf8(CANCEL_KEYS),
+        '0c',
+        '01',
+        pub(CONTRACT),
+        utf8('cancel')
+      ].join('@')
     );
     expect(dataOf(tx)).not.toContain(utf8(CLAIM_KEYS));
   });
@@ -206,7 +220,10 @@ describe('audit5 DAPP: My vestings, Claim all bytes', () => {
         cliff: NOW - 100 * DAY,
         cliffAmount: 0n,
         end: NOW + 265 * DAY,
-        curve: { kind: 'tranches', tranches: [{ time: NOW + 265 * DAY, amount: 1_000n * T }] }
+        curve: {
+          kind: 'tranches',
+          tranches: [{ time: NOW + 265 * DAY, amount: 1_000n * T }]
+        }
       },
       claimable: 1n
     });

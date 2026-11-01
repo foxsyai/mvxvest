@@ -315,6 +315,27 @@ export class VestingClient {
     }
   }
 
+  /**
+   * How much less of `token` the contract holds than it owes: 0 unless its
+   * balance was taken from under it, which only the token's issuer can do
+   * (fifth audit, RT-3). null for a contract before version 3, which has no
+   * such view; any other failure is thrown.
+   */
+  async deficit(token: string): Promise<bigint | null> {
+    try {
+      const [value] = await this.query('getDeficit', [token]);
+      return big(value);
+    } catch (failure) {
+      if (
+        /function not found|invalid function/i.test(
+          String((failure as any)?.message ?? failure)
+        )
+      )
+        return null;
+      throw failure;
+    }
+  }
+
   async creationPaused(): Promise<boolean> {
     const [value] = await this.query('isCreationPaused');
     return Boolean(value);
