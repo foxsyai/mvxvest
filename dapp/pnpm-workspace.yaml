@@ -21,10 +21,13 @@ overrides:
   # 8 Oct 2026: qs (denial of service in the cross-window wallet provider),
   # pbkdf2 (denial of service in bip39, which the app never calls) and postcss
   # (build-time file read through a sourceMappingURL). None reachable here.
-  qs@<6.16.0: 6.16.0
+  qs@<6.16.1: 6.16.1
   pbkdf2@<3.1.7: 3.1.7
   postcss@<8.5.23: 8.5.28
   # 21 Oct 2026 (fourth audit, WEB-5): follow-redirects under axios, two
   # advisories (GHSA-q3jh-wrc6-jgq8, GHSA-8r9p-f939-6h3c). Node only: the
   # browser bundle has no trace of it.
-  follow-redirects@>=1.16.0 <1.16.1: 1.16.1
+  # 1 Nov 2026 (fifth audit, WEB-1): raised for two newer advisories,
+  # GHSA-mrwp-f3q8-3g9p (follow-redirects, Node only) and GHSA-6pq8-jhm2-2vcw
+  # (qs, which needs arrayFormat comma: the bundle never passes it).
+  follow-redirects@>=1.16.0 <1.16.2: 1.16.2

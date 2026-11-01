@@ -19,6 +19,14 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
    - the reviewer's prompt is written for each project (the vesting contract and its money paths; the multisig and signing).
    Sebastian sets `CLAUDE_CODE_OAUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN_BACKUP` on both repos and installs the checks App. mvxvest first, then mvxsafe through a pull request, coordinated with its agent.
 
+## From the fifth audit
+
+- **The upgrade to version 4** (RT-1, PROTO-1, KEYS-1): audited and rehearsed on devnet on 1 Nov 2026, waiting for Sebastian's go and the owners' vote. The runbook is in [DEPLOY.md](DEPLOY.md#version-4-on-mainnet-the-runbook).
+- **Look at xPortal and a Ledger once:** the guide's words on what a wallet shows for a token transfer rest on the transaction's fields, not on a device's screen.
+- **Guide picture 22** shows the issuer's powers in the old words: retake it after the deploy.
+- **Tag each release:** the incident runbook names CI's printed hash on the tagged commit.
+- **GitHub settings for the owner:** Dependabot security updates and a two factor requirement are off.
+
 ## From the fourth audit
 
 - ~~**Contract version 3**~~ (SCK-1, SCK-2, SCM-1): live on mainnet since 22 Oct 2026, audited by three reviewers and rehearsed on devnet; see [MAINNET.md](MAINNET.md#version-3-22-october-2026).

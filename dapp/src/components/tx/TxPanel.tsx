@@ -6,6 +6,7 @@ import { prepare, send, Sent } from 'chain/send';
 import { explainWalletFailure } from 'chain/walletFailure';
 import { Amount, Button, ExplorerLink, Notice, Spinner } from 'components/ui';
 import { Payouts } from './Payouts';
+import { RefusedNotice } from './Refused';
 
 type Phase =
   | { step: 'checking' }
@@ -31,8 +32,18 @@ const outcomeText = (outcome?: TxOutcome) => {
   if (outcome.status === 'success') return 'done';
   if (outcome.status === 'missing')
     return 'not found on the network for 2 minutes: most likely it did not go through (still looking)';
+  if (outcome.bounced === 'created')
+    return `created, but a key could not be delivered: ${outcome.reason ?? 'refused'}`;
+  if (outcome.refusal?.paid.length)
+    return `partly refused at this wallet: ${outcome.reason ?? 'refused'}`;
+  if (outcome.bounced)
+    return `booked by the contract, but refused at this wallet: ${outcome.reason ?? 'refused'}`;
   return `failed: ${outcome.reason ?? outcome.status}`;
 };
+
+/** A failed claim can have paid every token that did not come back. */
+const mayHavePaid = (outcome: TxOutcome) =>
+  outcome.status === 'success' || Boolean(outcome.refusal);
 
 /**
  * Shows what will happen, checks every transaction against the network first,
@@ -340,10 +351,12 @@ export const TxPanel = ({
                   className={
                     outcomes[hash]?.status === 'success'
                       ? 'text-ok'
-                      : outcomes[hash]?.status &&
-                          outcomes[hash].status !== 'pending'
-                        ? 'text-danger'
-                        : ''
+                      : outcomes[hash]?.bounced
+                        ? 'text-warn'
+                        : outcomes[hash]?.status &&
+                            outcomes[hash].status !== 'pending'
+                          ? 'text-danger'
+                          : ''
                   }
                 >
                   {outcomeText(outcomes[hash])}
@@ -354,17 +367,20 @@ export const TxPanel = ({
               </li>
             ))}
           </ul>
+          {phase.sent.hashes.map((hash) =>
+            outcomes[hash]?.bounced ? (
+              <RefusedNotice key={hash} outcome={outcomes[hash]} />
+            ) : null
+          )}
           {showPayouts &&
             phase.sent.hashes.every(
               (hash) => outcomes[hash] && outcomes[hash].status !== 'pending'
             ) &&
-            phase.sent.hashes.some(
-              (hash) => outcomes[hash].status === 'success'
-            ) && (
+            phase.sent.hashes.some((hash) => mayHavePaid(outcomes[hash])) && (
               <Payouts
                 sender={sender}
-                hashes={phase.sent.hashes.filter(
-                  (hash) => outcomes[hash].status === 'success'
+                hashes={phase.sent.hashes.filter((hash) =>
+                  mayHavePaid(outcomes[hash])
                 )}
               />
             )}

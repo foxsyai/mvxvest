@@ -1,18 +1,25 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { claimableVestings } from 'chain/mine';
 import { vesting as client } from 'chain/vesting';
+import { RefusedPayouts } from 'components/tx/Refused';
 import { TxPanel } from 'components/tx/TxPanel';
 import { Button, Notice, PageTitle, ReadFailed, Spinner } from 'components/ui';
 import { BlockingKeys } from 'components/vesting/BlockingKeys';
+import {
+  CheckingPayout,
+  LeftOut,
+  PayoutGate,
+  PayoutUnread
+} from 'components/vesting/PayoutCheck';
 import {
   KeyWindowNote,
   TokenFilter,
   VestingGrid
 } from 'components/vesting/VestingList';
-import { useAsync, useSigningRecord } from 'hooks';
+import { tokensOf, useAsync, usePayoutCheck, useSigningRecord } from 'hooks';
 import { useGetAccount, useGetIsLoggedIn } from 'lib';
-import { MAX_KEYS_PER_CALL, splitKeys } from 'vesting/batches';
+import { claimBatches, MAX_KEYS_PER_CALL } from 'vesting/batches';
 import type { Vesting } from 'vesting/client';
 import { spent, worthClaiming } from 'vesting/describe';
 
@@ -26,6 +33,46 @@ export const Mine = () => {
     signing.clear();
     setClaiming(vestings);
   };
+  // A spent key pays nothing: only the keys that pay are read and left out.
+  const paying = useMemo(
+    () => claiming?.filter((v) => v.claimable > 0n) ?? null,
+    [claiming]
+  );
+  const payout = usePayoutCheck(
+    address,
+    paying ? tokensOf(paying) : null,
+    claiming
+  );
+  const blocked = (v: Vesting) =>
+    v.claimable > 0n &&
+    ['frozen', 'paused'].includes(payout.check?.[v.token] ?? '');
+  const several = (claiming?.length ?? 0) > 1;
+  const started = signing.started(address);
+  // A key of its own warns instead (PayoutGate): the reader chose that one.
+  // The same array while the check stands: a new one asks TxPanel to check
+  // again. Once the wallet is asked it is what is being signed, whatever a read
+  // that answers late says.
+  const signed = useRef<Vesting[] | null>(null);
+  const chosen = useMemo(
+    () =>
+      !claiming || !payout.check
+        ? null
+        : several
+          ? claiming.filter((v) => !blocked(v))
+          : claiming,
+    [claiming, payout.check]
+  );
+  const sending = started && signed.current ? signed.current : chosen;
+  signed.current = sending;
+  const leftOut =
+    several && claiming
+      ? claiming.filter((v) => blocked(v) && !sending?.includes(v))
+      : [];
+  const unread = several
+    ? Object.entries(payout.check ?? {})
+        .filter(([, answer]) => answer === 'unread')
+        .map(([token]) => token)
+    : [];
 
   const data = useAsync(async () => {
     if (!address) return null;
@@ -36,14 +83,15 @@ export const Mine = () => {
     };
   }, [address]);
 
-  const build = useCallback(async () => {
-    const nonces = claiming!.map((v) => v.claimNonce);
-    return Promise.all(
-      splitKeys(nonces).map((part) =>
-        client.claim(address, data.data!.collections.claim, part)
-      )
-    );
-  }, [claiming, address, data.data]);
+  const build = useCallback(
+    async () =>
+      Promise.all(
+        claimBatches(sending!).map((part) =>
+          client.claim(address, data.data!.collections.claim, part)
+        )
+      ),
+    [sending, address, data.data]
+  );
 
   if (!isLoggedIn) {
     return (
@@ -77,6 +125,47 @@ export const Mine = () => {
   const all = data.data.list;
   const list = tokenFilter ? all.filter((v) => v.token === tokenFilter) : all;
   const ready = list.filter(worthClaiming);
+  const transactions = sending ? claimBatches(sending).length : 0;
+  const closeClaim = () => {
+    signing.clear();
+    setClaiming(null);
+  };
+  const panel = sending && sending.length > 0 && (
+    <TxPanel
+      showPayouts
+      sender={address}
+      label={
+        sending.length === 1
+          ? `Claim from vesting #${sending[0].id}`
+          : `Claim ${sending.length} vestings`
+      }
+      summary={
+        <p>
+          Claims what has vested on{' '}
+          {sending.length === 1
+            ? `vesting #${sending[0].id}`
+            : `${sending.length} vestings`}{' '}
+          to this wallet. Each key comes back to you or is burned when its
+          vesting has nothing more to pay.
+          {transactions > 1 &&
+            ` You will sign ${transactions} transactions: one per token, with at most ${MAX_KEYS_PER_CALL} keys in each, so a token that cannot reach this wallet can only send back its own keys.`}
+        </p>
+      }
+      build={build}
+      {...signing.panel(address, transactions)}
+      refusalHelp={(problems) => (
+        <BlockingKeys
+          problems={problems}
+          vestings={sending}
+          address={address}
+          collection={data.data!.collections.claim}
+          onClaim={startClaim}
+        />
+      )}
+      onClose={closeClaim}
+      onFinished={() => data.reload()}
+    />
+  );
 
   return (
     <div className='space-y-6'>
@@ -84,6 +173,7 @@ export const Mine = () => {
         title='My vestings'
         info='Every vesting whose claim key is in this wallet. Whoever holds the key claims: send the key to another wallet and the vesting goes with it.'
       />
+      <RefusedPayouts wallet={address} kind='claimed' />
       <KeyWindowNote
         address={address}
         collection={data.data.collections.claim}
@@ -111,50 +201,38 @@ export const Mine = () => {
               Claim all ({ready.length})
             </Button>
           )}
-          {claiming && (
-            <TxPanel
-              showPayouts
-              sender={address}
-              label={
-                claiming.length === 1
-                  ? `Claim from vesting #${claiming[0].id}`
-                  : `Claim ${claiming.length} vestings`
-              }
-              summary={
-                <p>
-                  Claims what has vested on{' '}
-                  {claiming.length === 1
-                    ? `vesting #${claiming[0].id}`
-                    : `${claiming.length} vestings`}{' '}
-                  to this wallet
-                  {claiming.length > MAX_KEYS_PER_CALL
-                    ? `, in ${Math.ceil(claiming.length / MAX_KEYS_PER_CALL)} transactions of at most ${MAX_KEYS_PER_CALL} keys`
-                    : ''}
-                  . Each key comes back to you or is burned when its vesting has
-                  nothing more to pay.
-                </p>
-              }
-              build={build}
-              {...signing.panel(
-                address,
-                splitKeys(claiming.map((v) => v.claimNonce)).length
-              )}
-              refusalHelp={(problems) => (
-                <BlockingKeys
-                  problems={problems}
-                  vestings={claiming}
-                  address={address}
-                  collection={data.data!.collections.claim}
-                  onClaim={startClaim}
-                />
-              )}
-              onClose={() => {
-                signing.clear();
-                setClaiming(null);
-              }}
-              onFinished={() => data.reload()}
-            />
-          )}
+          {claiming &&
+            (several ? (
+              !payout.check ? (
+                <CheckingPayout />
+              ) : (
+                <div className='space-y-3'>
+                  <LeftOut keys={leftOut} check={payout.check} />
+                  <PayoutUnread
+                    tokens={unread}
+                    retry={started ? undefined : payout.retry}
+                    busy={payout.reading}
+                  />
+                  {panel || (
+                    <Button variant='secondary' onClick={closeClaim}>
+                      Close
+                    </Button>
+                  )}
+                </div>
+              )
+            ) : (
+              <PayoutGate
+                check={payout.check}
+                token={paying?.[0]?.token}
+                action='claim'
+                retry={payout.retry}
+                started={started}
+                busy={payout.reading}
+                onClose={closeClaim}
+              >
+                {panel}
+              </PayoutGate>
+            ))}
           <VestingGrid
             list={list}
             now={now}

@@ -40,22 +40,32 @@ export const CodeCheck = () => {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [reload]);
-  if ((error && !data) || data?.code === '')
+  const codeChanged =
+    Boolean(data?.code) && !contractCodeHashes.includes(data!.code);
+  const ownerChanged =
+    ownerMultisig !== '' &&
+    Boolean(data?.owner) &&
+    data!.owner !== ownerMultisig;
+  // What is known to have changed comes first. Otherwise an answer without the
+  // code or the owner checks nothing: changeOwnerAddress moves the owner
+  // without touching the code (fifth audit, DAPP-2).
+  if (
+    !codeChanged &&
+    !ownerChanged &&
+    ((error && !data) ||
+      data?.code === '' ||
+      (ownerMultisig !== '' && data?.owner === ''))
+  )
     return (
       <div
         role='status'
         className='bg-warn-soft px-4 py-1.5 text-center text-xs text-ink'
       >
-        The vesting contract&apos;s code could not be checked right now; it is
-        checked again in a few minutes.
+        The vesting contract&apos;s code and owner could not be checked right
+        now; they are checked again in a few minutes.
       </div>
     );
-  if (!data) return null;
-  const codeChanged =
-    data.code !== '' && !contractCodeHashes.includes(data.code);
-  const ownerChanged =
-    ownerMultisig !== '' && data.owner !== '' && data.owner !== ownerMultisig;
-  if (!codeChanged && !ownerChanged) return null;
+  if (!data || (!codeChanged && !ownerChanged)) return null;
   return (
     <div
       role='alert'

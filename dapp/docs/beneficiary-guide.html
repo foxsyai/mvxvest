@@ -137,13 +137,17 @@
       <h2>Claim</h2>
       <ul>
         <li>Press <strong>Claim</strong> on one card. <strong>Claim all</strong> collects from every
-          vesting at once.</li>
+          vesting, with one transaction per token.</li>
         <li>The page first checks with the network and shows the most the network fee can be. Then press
           <strong>Sign in your wallet</strong> and approve in your wallet. A Ledger asks you to confirm
           each transaction on the device.</li>
-        <li>Before you approve, check that your wallet shows the vesting contract as the receiver:
-          <span class="addr">erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu</span>. A copy of the site
-          elsewhere can look the same, but it cannot fake that address.</li>
+        <li>Before you approve, check where it goes. A claim names your own address as the receiver: the key goes to
+          the vesting contract and the transaction's data names it. A wallet that decodes the transfer shows the
+          contract as the destination:
+          <span class="addr">erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu</span>. A wallet or device
+          that shows the raw fields shows your own address and that data, with the contract in hexadecimal:
+          <span class="addr">00000000000000000500f882d8136db7846cdb650b16134bb5424da58ddfe614</span>. A copy of the
+          site elsewhere can look the same, but another address in that place means it is not the real site.</li>
         <li>Claiming costs only that small network fee, paid in EGLD. Keep a little EGLD in your wallet:
           around 0.05 is plenty.</li>
       </ul>
@@ -173,6 +177,10 @@
         release.</li>
       <li>If the creator can cancel your vesting, what has vested by then stays yours.</li>
       <li>Sending the claim key to another wallet gives that wallet the right to claim. Only do it on purpose.</li>
+      <li>A token's issuer can freeze it or pause it. If a token is frozen for your wallet, the page warns you and
+        leaves it out of Claim all: a claim of it could send your tokens back to the contract, perhaps with the claim key. They are safe
+        there and the owners' multisig can send them back by a vote. Ask through an issue at
+        github.com/foxsyai/mvxvest/issues.</li>
       <li>Nobody from mvxvest will ever ask for your secret words or your keys.</li>
     </ul>
   </div>

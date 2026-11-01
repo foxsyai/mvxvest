@@ -16,6 +16,13 @@ const API_BY_NETWORK: Record<string, string> = {
   testnet: 'https://testnet-api.multiversx.com'
 };
 
+// The API does not say whether a wallet is frozen for a token; a gateway does.
+const GATEWAY_BY_NETWORK: Record<string, string> = {
+  mainnet: 'https://gateway.multiversx.com',
+  devnet: 'https://devnet-gateway.multiversx.com',
+  testnet: 'https://testnet-gateway.multiversx.com'
+};
+
 const CHAIN_ID_BY_NETWORK: Record<string, string> = {
   mainnet: '1',
   devnet: 'D',
@@ -24,6 +31,8 @@ const CHAIN_ID_BY_NETWORK: Record<string, string> = {
 
 export const networkName = String(environment);
 export const apiUrl = API_BY_NETWORK[networkName] ?? API_BY_NETWORK.mainnet;
+const gatewayUrl =
+  GATEWAY_BY_NETWORK[networkName] ?? GATEWAY_BY_NETWORK.mainnet;
 export const chainId = CHAIN_ID_BY_NETWORK[networkName] ?? '1';
 export const explorerUrl =
   networkName === 'mainnet'
@@ -66,10 +75,14 @@ const inflight = new Map<string, Promise<unknown>>();
 const queue: (() => void)[] = [];
 let running = 0;
 let tokens = BURST;
-let lastRefill = Date.now();
+// A clock that never steps back: on Date.now(), a laptop that wakes and syncs
+// an hour back stopped every read for that hour and kept its cache that long
+// (fifth audit, VSD-06).
+const clock = () => performance.now();
+let lastRefill = clock();
 
 const refill = () => {
-  const now = Date.now();
+  const now = clock();
   tokens = Math.min(
     BURST,
     tokens + ((now - lastRefill) / 1000) * RATE_PER_SECOND
@@ -93,7 +106,7 @@ const pumpIn = (ms: number) => {
 };
 
 const pump = () => {
-  const wait = pausedUntil - Date.now();
+  const wait = pausedUntil - clock();
   if (wait > 0) {
     pumpIn(wait);
     return;
@@ -175,12 +188,17 @@ let pausedUntil = 0;
 const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
- * fetch, but settled within REQUEST_TIMEOUT_MS whatever the connection does. A
- * stalled connection used to hold one of the six request slots for ever, and
- * six of them stopped every read in the app until a reload (WEB-06). The race
- * settles even when the request ignores the abort.
+ * fetch and `read` of its response, settled within REQUEST_TIMEOUT_MS whatever
+ * the connection does. A stalled connection used to hold one of the request
+ * slots for ever, and a few of them stopped every read in the app until a
+ * reload (WEB-06); the body counts too, since headers can arrive and the body
+ * never end (fifth audit, VSD-05). The race settles even when the request
+ * ignores the abort.
  */
-const fetchWithTimeout = (url: string): Promise<Response> => {
+const timedRead = <T>(
+  url: string,
+  read: (response: Response) => Promise<T>
+): Promise<T> => {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -196,9 +214,28 @@ const fetchWithTimeout = (url: string): Promise<Response> => {
     }, REQUEST_TIMEOUT_MS);
   });
   return Promise.race([
-    fetch(url, { signal: controller.signal }),
+    fetch(url, { signal: controller.signal }).then(read),
     timeout
   ]).finally(() => clearTimeout(timer));
+};
+
+/** A response whose body is already read. */
+export type ReadResponse = Pick<Response, 'ok' | 'status' | 'json'>;
+
+const wholeResponse = async (response: Response): Promise<ReadResponse> => {
+  // An answer that is not JSON (a proxy's error page) fails only if asked for.
+  const body = await response.json().then(
+    (value: unknown) => ({ value }),
+    (failure: unknown) => ({ failure })
+  );
+  return {
+    ok: response.ok,
+    status: response.status,
+    json: async () => {
+      if ('failure' in body) throw body.failure;
+      return body.value;
+    }
+  };
 };
 
 // Bumped by clearCache and forget: an answer that was asked for before a
@@ -217,7 +254,7 @@ export const cached = async <T>(
   work: () => Promise<T>
 ): Promise<T> => {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value as T;
+  if (hit && clock() - hit.at < CACHE_MS) return hit.value as T;
 
   const already = inflight.get(key);
   if (already) return already as Promise<T>;
@@ -232,7 +269,7 @@ export const cached = async <T>(
           startedIn >= clearedIn &&
           (forgottenIn.get(key) ?? -1) <= startedIn
         ) {
-          cache.set(key, { at: Date.now(), value });
+          cache.set(key, { at: clock(), value });
         }
         return value;
       } catch (error) {
@@ -241,7 +278,7 @@ export const cached = async <T>(
         if (isRateLimit(error)) {
           pausedUntil = Math.max(
             pausedUntil,
-            Date.now() + 2000 * Math.pow(2, round)
+            clock() + 2000 * Math.pow(2, round)
           );
         }
         await wait(600 * Math.pow(2, round));
@@ -292,11 +329,15 @@ export const forget = (address: string) => {
  * A GET that must be fresh, such as the state of a transaction being followed:
  * queued and paced like every other read (a signing panel polls every few
  * seconds per transaction, and used to do it past the pace), never cached,
- * settled within 15 s, and answered with the response itself so a 404 can be
- * told apart.
+ * settled within 15 s, body included, and answered with the response so a 404
+ * can be told apart.
  */
-export const fresh = (path: string): Promise<Response> =>
-  schedule(() => fetchWithTimeout(`${apiUrl}${path}`));
+export const fresh = (path: string): Promise<ReadResponse> =>
+  schedule(() => timedRead(`${apiUrl}${path}`, wholeResponse));
+
+/** The same on a gateway: what is about to be signed is checked at its latest. */
+export const freshGateway = (path: string): Promise<ReadResponse> =>
+  schedule(() => timedRead(`${gatewayUrl}${path}`, wholeResponse));
 
 /**
  * A GET on the public API, queued, retried and cached for a minute by path.
@@ -306,24 +347,24 @@ export const fresh = (path: string): Promise<Response> =>
  */
 export const api = async <T>(path: string): Promise<T> =>
   cached(`api:${path}`, async () => {
-    let response: Response;
     try {
-      response = await fetchWithTimeout(`${apiUrl}${path}`);
+      return await timedRead(`${apiUrl}${path}`, async (response) => {
+        if (!response.ok) {
+          throw new ApiError(
+            `${path} answered ${response.status}`,
+            response.status,
+            RETRY_STATUS.has(response.status)
+          );
+        }
+        return (await response.json()) as T;
+      });
     } catch (failure: any) {
       if (failure instanceof ApiError) throw failure;
-      // fetch rejects only when the request never got an answer: worth retrying.
+      // No answer, or no whole answer: worth retrying.
       throw new ApiError(
         `${path}: ${failure?.message ?? 'network error'}`,
         undefined,
         true
       );
     }
-    if (!response.ok) {
-      throw new ApiError(
-        `${path} answered ${response.status}`,
-        response.status,
-        RETRY_STATUS.has(response.status)
-      );
-    }
-    return (await response.json()) as T;
   });

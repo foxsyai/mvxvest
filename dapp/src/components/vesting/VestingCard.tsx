@@ -98,6 +98,7 @@ export const VestingCard = ({
             <Amount units={vesting.claimable} decimals={token.decimals} />
             {vesting.schedule.curve.kind === 'linear' &&
               vesting.cancelledAt === 0 &&
+              now >= vesting.schedule.cliff &&
               now < vesting.schedule.end && (
                 <span className='block text-xs font-normal text-muted'>
                   grows every second

@@ -1,12 +1,15 @@
-//! Red-team evidence on the Go VM (the one validators run): one hostile dust
-//! key makes a multi-key claim fail as a whole.
+//! Red-team evidence on the Go VM (the one validators run): in the contract's
+//! own shard, one hostile dust key makes a multi-key claim fail as a whole.
 //!
 //! An attacker who issued a token with `canFreeze` creates a 1-unit vesting of
 //! it for the victim (any address, no consent needed), then freezes the
 //! victim's account for that token (the issuer may freeze any holder). From
-//! then on every `claim` that includes that key fails: the payout is one
-//! MultiESDTNFTTransfer, and the frozen token makes the whole transfer, so the
-//! whole transaction, fail. The dApp's "Claim all" puts every claimable key
+//! then on every `claim` that includes that key fails when the victim is in
+//! the contract's shard: a transfer refused there reverts the whole
+//! transaction, also since version 4, where each token has its own transfer.
+//! This must stay: nothing is booked and the keys stay with the victim. In
+//! another shard the same claim succeeds and only the frozen token's transfer
+//! bounces (audit5_redteam_bounced_claim_all.rs). The dApp's "Claim all" puts every claimable key
 //! of the wallet in one transaction, so the simulation refuses it and the
 //! page cannot say which key is the cause
 //! (dapp/src/pages/tests/audit_redteam_claim_all.test.tsx). A token with a

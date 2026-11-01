@@ -15,13 +15,15 @@ Status:
   owned by a 2-of-3 mvxsafe multisig.
 - **Version 3** since 22 Oct 2026: a claim key's name shows what has been
   claimed and whether it can be cancelled.
-- **Audited four times** by Claude Fable 5.1, in adversarial reviews:
+- **Audited five times** by Claude Fable 5.1, in adversarial reviews:
   [first audit](docs/reviews/2026-10-13-fable-audit.md),
   [second audit](docs/reviews/2026-10-14-fable-audit-v2.md),
   [third audit](docs/reviews/2026-10-14-fable-audit-3.md) (what changed after the second),
-  [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again).
+  [fourth audit](docs/reviews/2026-10-21-fable-audit-4.md) (the whole system again),
+  [fifth audit](docs/reviews/2026-11-01-fable-audit-5.md) (everything, before the announcement).
 - **Not yet announced.** The source has been public since 14 Oct 2026.
-  More audit rounds come before the announcement.
+- **Version 4** is the fifth audit's candidate, rehearsed on devnet. Mainnet
+  runs version 3 until the owners' multisig votes.
 - **Security:** report vulnerabilities privately, as [SECURITY.md](SECURITY.md)
   describes.
 
@@ -83,10 +85,12 @@ What gets deployed is the reproducible build, made in the pinned Docker image
 so anyone can rebuild it and compare the code hash with the one on chain:
 
 ```sh
-sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder:v12.0.0 \
+sc-meta reproducible-build build --docker-image multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963 \
   --project . --contract mvxvest --no-docker-interactive --no-docker-tty --overwrite
 cat output-docker/mvxvest/mvxvest.codehash.txt
 ```
+
+The image is named by its digest (it is version v12.0.0): a tag can be moved and a moved tag would give every signer the same other bytes.
 
 ## Keys and secrets
 

@@ -188,11 +188,12 @@ fn plain_vestings(f: &mut Fixture, count: u64, who: TestAddress) -> Vec<u64> {
     ids
 }
 
-/// SAFE, and the dApp's cap: a claim makes one burn per finished key plus
-/// one transfer of the payout and the returned keys. 99 finished keys make
-/// 100 calls; 100 finished keys make 101, which the network refuses (the
-/// transaction reverts; each key still claims alone or in a smaller set).
-/// One key alone needs at most 2, so no vesting can become unclaimable.
+/// SAFE: a claim makes one burn per finished key, one transfer per token
+/// and, when a key goes back, one transfer of the keys (version 4). 99
+/// finished keys of one token make 100 calls; 100 make 101, which the network
+/// refuses (the transaction reverts; each key still claims alone or in a
+/// smaller set). One key alone needs at most 3, so no vesting can become
+/// unclaimable. The dApp sends at most 50 keys of one token: 52 calls at most.
 #[test]
 fn safe_claim_all_fits_99_keys_and_one_key_always_fits() {
     let mut f = Fixture::new();
@@ -211,29 +212,89 @@ fn safe_claim_all_fits_99_keys_and_one_key_always_fits() {
     f.check_invariant(Some(FOX));
 }
 
-/// SAFE, and still the dApp's cap since version 3: a claim of keys that are
-/// not finished burns nothing, but stamps each key that paid
-/// (`ESDTMetaDataUpdate`) before the one transfer back. 99 such keys make 100
-/// calls; 100 make 101, which the network refuses. A key that pays nothing
-/// is not stamped. (The 250-transfer limit is reached first only past 125
-/// keys of 125 different tokens, above the 99 cap.)
+/// SAFE: a claim of keys that are not finished burns nothing, but stamps each
+/// key that paid (`ESDTMetaDataUpdate`), and since version 4 sends the token
+/// and the keys apart. 98 such keys of one token make 100 calls; 99 make 101,
+/// which the network refuses (the transaction reverts). A key that pays
+/// nothing is not stamped. (The 250-transfer limit counts one per key and one
+/// per token, so these limits reach it never.)
 #[test]
-fn safe_claim_of_unfinished_keys_stamps_each_and_99_still_fit() {
+fn safe_claim_of_unfinished_keys_stamps_each_and_98_fit() {
     let mut f = Fixture::new();
-    let ids = plain_vestings(&mut f, 100, ALICE);
+    let ids = plain_vestings(&mut f, 99, ALICE);
     f.set_time(T0 + DAY / 2);
-    assert_eq!(claim_calls(&mut f, ALICE, &ids[..99]), 99 + 1);
+    assert_eq!(claim_calls(&mut f, ALICE, &ids[..98]), 98 + 2);
     let mut g = Fixture::new();
-    let more = plain_vestings(&mut g, 100, ALICE);
+    let more = plain_vestings(&mut g, 99, ALICE);
     g.set_time(T0 + DAY / 2);
     assert_eq!(claim_calls(&mut g, ALICE, &more), MAX_BUILTIN_CALLS + 1);
-    // The 100th key alone, which still pays: one stamp and the transfer.
-    assert_eq!(claim_calls(&mut f, ALICE, &ids[99..]), 2);
+    // The 99th key alone, which still pays: the stamp and the two transfers.
+    assert_eq!(claim_calls(&mut f, ALICE, &ids[98..]), 3);
     f.check_invariant(Some(FOX));
 }
 
-/// SAFE, and the dApp's cap: a cancel burns each cancel key and sends the
-/// refunds in one transfer: 99 keys make 100 calls.
+/// `count` tokens with their own vesting for ALICE, created by a griefer who
+/// holds them all: nonce and id both run from 1.
+fn one_vesting_per_token(f: &mut Fixture, count: usize, cancelable: bool) -> Vec<u64> {
+    let griefer = TestAddress::new("griefer");
+    let tokens: Vec<TestTokenId> = (0..count)
+        .map(|i| TestTokenId::new(Box::leak(format!("D{i:03}-a1b2c3").into_boxed_str())))
+        .collect();
+    {
+        let mut account = f.world.account(griefer).nonce(1).balance(big(EGLD));
+        for id in &tokens {
+            account = account.esdt_balance(*id, big(10));
+        }
+    }
+    tokens
+        .iter()
+        .map(|id| {
+            f.create(
+                griefer,
+                ALICE,
+                linear(T0, T0, 0, T0 + DAY),
+                cancelable,
+                payments(&[(Some(*id), 10)]),
+            )
+        })
+        .collect()
+}
+
+/// SAFE, the limits for keys of many tokens (version 4). Keys that go back
+/// stamped cost a stamp and a transfer of their token each, plus one transfer
+/// of all keys: 2n + 1, so 49 keys of 49 tokens fit and 50 do not. The dApp
+/// sends one token per transaction; a set past the limit reverts whole, which
+/// is safe, and each key still claims alone.
+#[test]
+fn safe_claim_of_many_tokens_fits_49_keys() {
+    let mut f = Fixture::new();
+    let ids = one_vesting_per_token(&mut f, 50, false);
+    f.set_time(T0 + DAY / 2);
+    let mut g = Fixture::new();
+    let more = one_vesting_per_token(&mut g, 50, false);
+    g.set_time(T0 + DAY / 2);
+    assert_eq!(claim_calls(&mut g, ALICE, &more), MAX_BUILTIN_CALLS + 1);
+    assert_eq!(claim_calls(&mut f, ALICE, &ids[..49]), 2 * 49 + 1);
+    // Finished keys go without the transfer of keys: 2n, so 50 of 50 tokens.
+    let mut h = Fixture::new();
+    let finished = one_vesting_per_token(&mut h, 50, false);
+    h.set_time(T0 + 2 * DAY);
+    assert_eq!(claim_calls(&mut h, ALICE, &finished), MAX_BUILTIN_CALLS);
+}
+
+/// SAFE, and the dApp's cap: the most a claim of 50 keys of one token can make
+/// is 50 stamps and the two transfers.
+#[test]
+fn safe_claim_of_the_dapps_50_keys_makes_52_calls() {
+    let mut f = Fixture::new();
+    let ids = plain_vestings(&mut f, 50, ALICE);
+    f.set_time(T0 + DAY / 2);
+    assert_eq!(claim_calls(&mut f, ALICE, &ids), 52);
+}
+
+/// SAFE: a cancel burns each cancel key and sends each token's refunds in one
+/// transfer (version 4): 99 keys of one token make 100 calls. Of many tokens
+/// it is one burn and one transfer per key: 50 keys of 50 tokens make 100.
 #[test]
 fn safe_cancel_all_fits_99_keys() {
     let mut f = Fixture::new();
@@ -246,4 +307,21 @@ fn safe_cancel_all_fits_99_keys() {
     f.set_time(T0 + DAY / 2);
     assert_eq!(cancel_calls(&mut f, &ids), 99 + 1);
     f.check_invariant(Some(FOX));
+
+    let mut g = Fixture::new();
+    let griefed = one_vesting_per_token(&mut g, 50, true);
+    assert_eq!(griefed.len(), 50);
+    g.set_time(T0 + DAY / 2);
+    let griefer = TestAddress::new("griefer");
+    let logs = g
+        .world
+        .tx()
+        .from(griefer)
+        .to(SC)
+        .typed(MvxvestProxy)
+        .cancel()
+        .payment(keys(KeyKind::Cancel, &griefed))
+        .returns(ReturnsLogs)
+        .run();
+    assert_eq!(builtin_calls(&logs), MAX_BUILTIN_CALLS);
 }

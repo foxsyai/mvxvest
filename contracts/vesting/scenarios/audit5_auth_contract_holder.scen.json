@@ -1,0 +1,458 @@
+{
+  "name": "audit5 AUTH, a smart contract as beneficiary and caller on the Go VM: a payable contract receives its claim key like a wallet; holding the key gives it no right to rewrite, re-URI or burn it (the collection's roles are the vesting contract's alone); it claims through a transfer-and-execute like a wallet and is paid; a non-payable contract that holds a key cannot be paid, so its claim fails whole and nothing moves. The holder contracts are the Go VM's own test forwarder (audit5/forwarder.wasm, from mx-chain-vm-go v1.5.21, test/features/composability/forwarder/output)",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": {
+            "str:FOX-a1b2c3": "10,000"
+          }
+        },
+        "address:mallory": {
+          "nonce": "0",
+          "balance": "1,000"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        },
+        "sc:holder": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:audit5/forwarder.wasm",
+          "codeMetadata": "0x0506",
+          "owner": "address:mallory"
+        },
+        "sc:nonpayable": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:audit5/forwarder.wasm",
+          "codeMetadata": "0x0500",
+          "owner": "address:mallory"
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create: vesting 1, 1000 FOX for the payable holder contract, linear over 1000 seconds",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "sc:holder",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:dao"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create: vesting 2, 1000 FOX for the non-payable contract, written straight into its account below (as a cross-shard delivery would leave it)",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:mallory",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:dao"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "2"
+        ]
+      }
+    },
+    {
+      "step": "setState",
+      "comment": "key 2 is written into the non-payable contract's account, as a cross-shard delivery or a wallet's transfer would leave it (the runner refuses to build a plain transfer to a non-payable contract, as the protocol does in the same shard)",
+      "accounts": {
+        "sc:nonpayable": {
+          "update": true,
+          "code": "file:audit5/forwarder.wasm",
+          "codeMetadata": "0x0500",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:0"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "the payable contract holds key 1 like a wallet would; the non-payable one holds key 2",
+      "accounts": {
+        "sc:holder": {
+          "nonce": "*",
+          "balance": "*",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                }
+              ]
+            }
+          }
+        },
+        "sc:nonpayable": {
+          "nonce": "*",
+          "balance": "*",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "2",
+                  "balance": "1"
+                }
+              ]
+            }
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the holder contract rewrites its key's attributes (ESDTNFTUpdateAttributes): it has no role on the collection",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:holder",
+        "function": "nft_update_attributes",
+        "arguments": [
+          "str:VESTKEY-123456",
+          "1",
+          "0x808080"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:action is not allowed",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the holder contract adds a URI to its key (ESDTNFTAddURI): no role",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:holder",
+        "function": "nft_add_uris",
+        "arguments": [
+          "str:VESTKEY-123456",
+          "1",
+          "str:https://evil.example/claim.svg"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:action is not allowed",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the holder contract burns its key (ESDTNFTBurn): burn-for-all was unset on the live collections, so no role, no burn",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:holder",
+        "function": "nft_burn",
+        "arguments": [
+          "str:VESTKEY-123456",
+          "1",
+          "1"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:action is not allowed",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the holder contract mints a key of its own (ESDTNFTCreate): no role",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:holder",
+        "function": "nft_create",
+        "arguments": [
+          "str:VESTKEY-123456",
+          "1",
+          "str:Vesting #1 claim key",
+          "0",
+          "str:nft-create-hash-----------------",
+          "0x808080",
+          ""
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "10",
+        "message": "str:action is not allowed",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767226100"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the non-payable contract claims with key 2 (transfer and execute, same shard): the payout is a back transfer to the caller, which the VM exempts from the payable check (vm-go contexts/output.go isBackTransferWithoutExecution), so it is paid like a wallet",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:nonpayable",
+        "function": "transfer_nft_and_execute",
+        "arguments": [
+          "sc:mvxvest",
+          "str:VESTKEY-123456",
+          "2",
+          "1",
+          "str:claim"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "vesting 2 booked the non-payable contract's claim",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "2"
+        ]
+      },
+      "expect": {
+        "out": [
+          "0"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the payable holder contract claims with key 1 half way: 500 FOX and the stamped key come back to it",
+      "tx": {
+        "from": "address:mallory",
+        "to": "sc:holder",
+        "function": "transfer_nft_and_execute",
+        "arguments": [
+          "sc:mvxvest",
+          "str:VESTKEY-123456",
+          "1",
+          "1",
+          "str:claim"
+        ],
+        "gasLimit": "600,000,000",
+        "gasPrice": "0"
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "each holder contract has its 500 FOX and its key back; the contract holds the 1000 FOX still owed and no key. Key 1, delivered by the contract, shows its stamp; key 2's attributes are not checked: it was planted by setState, and the runner shows a planted instance's original attributes after the stamp (a key minted and moved by the real built-ins shows the stamp, as key 1 and audit5_auth_key_back_to_earlier_holder prove)",
+      "accounts": {
+        "sc:holder": {
+          "nonce": "*",
+          "balance": "*",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;claimed:500"
+                }
+              ]
+            }
+          }
+        },
+        "sc:nonpayable": {
+          "nonce": "*",
+          "balance": "*",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "*"
+                }
+              ]
+            }
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "storage": "*",
+          "code": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "1000",
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "vesting 1 booked the claim",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "1"
+        ]
+      },
+      "expect": {
+        "out": [
+          "0"
+        ]
+      }
+    }
+  ]
+}

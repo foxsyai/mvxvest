@@ -2,8 +2,9 @@
 // token it really is, and what its issuer can still do to it. Neither is
 // mvxvest's to change; both are the token's own settings.
 
+import { ReactNode } from 'react';
 import type { TokenInfo } from 'chain/reads';
-import { AddressText, Info, Notice } from 'components/ui';
+import { AddressText, Amount, Info, Notice } from 'components/ui';
 
 /**
  * The identifier, and "unverified" when the token has no registered assets:
@@ -38,12 +39,69 @@ export const issuerPowers = (token: Omit<TokenInfo, 'decimals'>): string[] => {
   if (token.canPause) powers.push('pause all its transfers');
   if (token.canFreeze) powers.push('freeze any balance of it');
   if (token.canWipe) powers.push('wipe a frozen balance');
-  if (token.canAddSpecialRoles) powers.push('add a transfer role');
-  if (token.canUpgrade && powers.length > 0)
-    powers.push('change these settings');
-  else if (token.canUpgrade) powers.push('change its settings');
+  if (token.canAddSpecialRoles) {
+    // What these two roles do, whatever else the token's flags say: canMint
+    // off is only the old global mint (fifth audit, VSD-02).
+    powers.push('let any address, itself included, mint any amount of it');
+    powers.push(
+      'stop every transfer of it, this contract’s payouts included, except to or from an address given a transfer role'
+    );
+  }
+  if (token.canUpgrade) {
+    const off = [
+      !token.canPause && 'pausing',
+      !token.canFreeze && 'freezing',
+      !token.canWipe && 'wiping',
+      !token.canAddSpecialRoles && 'new roles'
+    ].filter(Boolean) as string[];
+    powers.push(
+      `change ${powers.length > 0 ? 'these' : 'its'} settings${off.length > 0 ? `, turning on ${join(off)}` : ''}`
+    );
+  }
   return powers;
 };
+
+/**
+ * The contract's own answer that it holds less of a token than it owes, in
+ * place of figures that would read as a lock or as money ready to claim
+ * (fifth audit, RT-3). A failed read says so.
+ */
+export const ShortfallNotice = ({
+  shortfall,
+  failed,
+  decimals,
+  ticker,
+  children
+}: {
+  shortfall?: bigint;
+  failed: boolean;
+  decimals?: number;
+  ticker: string;
+  /** What this page's reader should do about it. */
+  children?: ReactNode;
+}) =>
+  shortfall ? (
+    <Notice tone='danger'>
+      <p className='font-semibold'>
+        The contract no longer holds all it owes of {ticker}: it holds{' '}
+        <Amount units={shortfall} decimals={decimals} ticker={ticker} /> less
+        than it owes.
+        <Info label='How this can happen'>
+          A token&apos;s issuer can freeze the contract&apos;s balance and wipe
+          it. That is a setting of the token itself: the contract cannot prevent
+          it. Claims and cancels of this token can fail until the balance is
+          made good.
+        </Info>
+      </p>
+      {children}
+    </Notice>
+  ) : failed ? (
+    <Notice tone='warn'>
+      It could not be checked whether the contract still holds all it owes of{' '}
+      {ticker}: the network did not answer. The figures here are the
+      contract&apos;s books, not its balance.
+    </Notice>
+  ) : null;
 
 /**
  * The issuer's powers over the token, which the contract cannot prevent: a
@@ -85,9 +143,12 @@ export const IssuerPowers = ({
           <Info label='What the issuer can do'>
             These are settings of the token itself, not of mvxvest: the contract
             cannot prevent them. While a token is paused, claims and cancels of
-            it wait. A frozen balance cannot move; a wiped one is gone. A
-            transfer role limits who may move the token. Many large tokens keep
-            some of these powers: what matters is who holds them.
+            it wait. A frozen balance cannot move; a wiped one is gone. An
+            address with a mint role mints what it likes, so the supply behind a
+            vesting can grow. Once one address holds a transfer role, every
+            transfer not to or from such an address stops, for everyone, until
+            the last one is removed. Many large tokens keep some of these
+            powers: what matters is who holds them.
           </Info>
         </p>
       )}

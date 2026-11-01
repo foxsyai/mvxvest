@@ -28,7 +28,7 @@ describe('guide.mjs asks for no approval it does not need, and never on mainnet'
   test('a SITE other than the devnet site is refused before any wallet phase runs', () => {
     // SITE comes from the environment (line 22) and is only ever used by
     // go(). A wallet keeps the same address on every network, so the
-    // "connected as erd1eg8s…" check passes on mainnet too. With
+    // "connected as" check passes on mainnet too. With
     // SITE=https://mvxvest.io FROM=17, the script opens My vestings, presses
     // "Claim all (N)", waits for the network check and tells the person to
     // approve in xPortal: a real claim. FROM=19 does the same for a real

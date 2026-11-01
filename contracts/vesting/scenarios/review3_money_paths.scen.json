@@ -665,26 +665,61 @@
           },
           {
             "address": "sc:mvxvest",
-            "endpoint": "str:MultiESDTNFTTransfer",
+            "endpoint": "str:ESDTTransfer",
             "topics": [
               "str:FOX-a1b2c3",
               "",
               "400",
+              "address:alice"
+            ],
+            "data": [
+              "str:DirectCall",
+              "str:ESDTTransfer",
+              "str:FOX-a1b2c3",
+              "400"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:transferValueOnly",
+            "topics": [
+              "250",
+              "address:alice"
+            ],
+            "data": [
+              "str:DirectCall",
+              ""
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTTransfer",
+            "topics": [
+              "str:USDC-a1b2c3",
+              "",
+              "100",
+              "address:alice"
+            ],
+            "data": [
+              "str:DirectCall",
+              "str:ESDTTransfer",
+              "str:USDC-a1b2c3",
+              "100"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:MultiESDTNFTTransfer",
+            "topics": [
               "str:VESTKEY-123456",
               "1",
               "1",
               "str:VESTKEY-123456",
               "3",
               "1",
-              "str:EGLD-000000",
-              "",
-              "250",
               "str:VESTKEY-123456",
               "4",
               "1",
-              "str:USDC-a1b2c3",
-              "",
-              "100",
               "str:VESTKEY-123456",
               "5",
               "1",
@@ -693,7 +728,27 @@
               "1",
               "address:alice"
             ],
-            "data": "*"
+            "data": [
+              "str:DirectCall",
+              "str:MultiESDTNFTTransfer",
+              "address:alice",
+              "5",
+              "str:VESTKEY-123456",
+              "1",
+              "1",
+              "str:VESTKEY-123456",
+              "3",
+              "1",
+              "str:VESTKEY-123456",
+              "4",
+              "1",
+              "str:VESTKEY-123456",
+              "5",
+              "1",
+              "str:VESTKEY-123456",
+              "6",
+              "1"
+            ]
           },
           "+"
         ],
@@ -935,17 +990,31 @@
           },
           {
             "address": "sc:mvxvest",
-            "endpoint": "str:MultiESDTNFTTransfer",
+            "endpoint": "str:ESDTTransfer",
             "topics": [
               "str:FOX-a1b2c3",
               "",
               "750",
-              "str:EGLD-000000",
-              "",
+              "address:creator"
+            ],
+            "data": [
+              "str:DirectCall",
+              "str:ESDTTransfer",
+              "str:FOX-a1b2c3",
+              "750"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:transferValueOnly",
+            "topics": [
               "375",
               "address:creator"
             ],
-            "data": "*"
+            "data": [
+              "str:DirectCall",
+              ""
+            ]
           },
           "+"
         ],
@@ -1023,17 +1092,35 @@
           },
           {
             "address": "sc:mvxvest",
-            "endpoint": "str:MultiESDTNFTTransfer",
+            "endpoint": "str:ESDTTransfer",
             "topics": [
               "str:FOX-a1b2c3",
               "",
               "1850",
+              "address:creator"
+            ],
+            "data": [
+              "str:DirectCall",
+              "str:ESDTTransfer",
+              "str:FOX-a1b2c3",
+              "1850"
+            ]
+          },
+          {
+            "address": "sc:mvxvest",
+            "endpoint": "str:ESDTTransfer",
+            "topics": [
               "str:USDC-a1b2c3",
               "",
               "300",
               "address:creator"
             ],
-            "data": "*"
+            "data": [
+              "str:DirectCall",
+              "str:ESDTTransfer",
+              "str:USDC-a1b2c3",
+              "300"
+            ]
           },
           "+"
         ],

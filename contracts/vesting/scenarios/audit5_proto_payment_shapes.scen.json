@@ -1,0 +1,352 @@
+{
+  "name": "audit5 PROTO: payment shapes the protocol or the contract must refuse at claim and cancel, on the Go VM. EGLD-000000 mixed among the keys, a stray argument, a cancel key sent to claim and a claim key sent to cancel. Every key stays with its holder and nothing is booked. (The same key twice in one MultiESDTNFTTransfer is refused by the protocol before any transaction exists: the runner stops with 'new NFT data on sender for token VESTKEY-123456', so it cannot be a step here.)",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "2,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "1,000,000"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-1-cancelable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:one"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-2-plain",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:two"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "2"
+        ]
+      }
+    },
+    {
+      "step": "setState",
+      "comment": "half way through both schedules: 500 FOX claimable on each key",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767226100"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "egld-000000-mixed-among-the-keys",
+      "comment": "EGLD-000000 inside the multi transfer is not a key: the whole claim fails and the key goes back",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:EGLD-000000",
+            "value": "7"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "message": "str:only claim keys can be sent",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "stray-argument",
+      "comment": "claim takes no argument",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [
+          "sc:mvxvest"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "message": "str:wrong number of arguments",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-key-to-cancel",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "message": "str:only cancel keys can be sent",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "cancel-key-to-claim-with-a-claim-key",
+      "comment": "a good key and a cancel key together: nothing is paid, both go back",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTCANCEL-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "message": "str:only claim keys can be sent",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "egld-value-with-a-claim-key",
+      "comment": "plain EGLD value with an ESDT transfer: the Go VM folds it into the multi transfer as EGLD-000000 (live on mainnet since epoch 1575), and the contract refuses it as not a key",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "egldValue": "5",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "4",
+        "message": "str:only claim keys can be sent",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "nothing-claimed-on-1",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "1"
+        ]
+      },
+      "expect": {
+        "out": [
+          "500"
+        ],
+        "status": "0"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "alice holds both claim keys, the creator the cancel key, the contract the 2000 FOX and no key",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "1,000,000",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": "*"
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:VESTCANCEL-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "2000",
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "1"
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    }
+  ]
+}

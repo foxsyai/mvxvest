@@ -1,0 +1,166 @@
+{
+  "name": "audit5 KEYS: the stamp on the real builtin handles a version 1 key (no marker, empty uri) and a key with royalties, a hash and two uris, in one claim of two keys: names and attributes rewritten, everything else kept",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": {
+            "str:FOX-a1b2c3": "1,000,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "royalties": "2500",
+                  "hash": "keccak256:str:x",
+                  "uri": [
+                    "str:https://mvxvest.io/nft/claim-key-2.png",
+                    "str:https://mvxvest.io/nft/claim-key-2.svg"
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:0;metadata:ipfs://cid"
+                }
+              ]
+            }
+          }
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456",
+            "str:lastVestingId": "2",
+            "str:claimKeyVesting|u64:1": "1",
+            "str:claimKeyVesting|u64:2": "2",
+            "str:tokenTotals|nested:str:FOX-a1b2c3": "biguint:2000|biguint:0|biguint:0",
+            "str:vesting|u64:1": "address:creator|address:alice|nested:str:FOX-a1b2c3|biguint:1000|u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0|u8:0|u64:1767225600|u64:1|u64:0|nested:str:team",
+            "str:vesting|u64:2": "address:creator|address:alice|nested:str:FOX-a1b2c3|biguint:1000|u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0|u8:0|u64:1767225600|u64:2|u64:0|nested:str:team"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            },
+            "str:FOX-a1b2c3": "2000"
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "setState",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225850"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-both",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "checkState",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [
+                    ""
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:0;claimed:250"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "royalties": "2500",
+                  "hash": "keccak256:str:x",
+                  "uri": [
+                    "str:https://mvxvest.io/nft/claim-key-2.png",
+                    "str:https://mvxvest.io/nft/claim-key-2.svg"
+                  ],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:FOX-a1b2c3;cancelable:0;claimed:250;metadata:ipfs://cid"
+                }
+              ]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    }
+  ]
+}

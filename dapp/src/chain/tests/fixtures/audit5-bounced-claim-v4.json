@@ -1,0 +1,288 @@
+{
+  "txHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+  "status": "fail",
+  "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+  "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+  "function": "claim",
+  "timestamp": 1793549118,
+  "logs": {
+    "events": [
+      {
+        "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+        "identifier": "MultiESDTNFTTransfer",
+        "topics": [
+          "VkVTVEtFWS04ZjIxN2M=",
+          "AuU=",
+          "AQ==",
+          "VkVTVEtFWS04ZjIxN2M=",
+          "AuY=",
+          "AQ==",
+          "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "hash": "90eca8f99359e664cd3650cfabb5cc195682a71c15f2cfc42af3a7a215052419",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "value": "0",
+      "data": "Y2xhaW0=",
+      "logs": {
+        "events": []
+      }
+    },
+    {
+      "hash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "value": "0",
+      "data": "TXVsdGlFU0RUTkZUVHJhbnNmZXJAMDJANTY0NTUzNTQ0YjQ1NTkyZDM4NjYzMjMxMzc2M0AwMmU1QDA4MDIxMjAyMDAwMTIyZGMwMTA4ZTUwNTEyMTY1NjY1NzM3NDY5NmU2NzIwMjMzNzM0MzEyMDYzNmM2MTY5NmQyMDZiNjU3OTFhMjAwMDAwMDAwMDAwMDAwMDAwMDUwMGVkYTNjMzAzYzIyYzRjZjFhMjQwYTY2YmUzMzMxYmNmM2JjZTU4OGI0ZWIwMzIyZDY4NzQ3NDcwNzMzYTJmMmY2NDY1NzY2ZTY1NzQyZTZkNzY3ODc2NjU3Mzc0MmU2OTZmMmY2ZTY2NzQyZjYzNmM2MTY5NmQyZDZiNjU3OTJkMzIyZTcwNmU2NzMyMmQ2ODc0NzQ3MDczM2EyZjJmNjQ2NTc2NmU2NTc0MmU2ZDc2Nzg3NjY1NzM3NDJlNjk2ZjJmNmU2Njc0MmY2MzZjNjE2OTZkMmQ2YjY1NzkyZDMyMmU3Mzc2NjczYTNmNzQ2MTY3NzMzYTZkNzY3ODc2NjU3Mzc0MmM3NjY1NzM3NDY5NmU2NzNiNzY2NTczNzQ2OTZlNjczYTM3MzQzMTNiNzQ2ZjZiNjU2ZTNhNTQ0NjRmNTgyZDY0MzYzMTYyMzAzOTNiNjM2MTZlNjM2NTZjNjE2MjZjNjUzYTMwQDU2NDU1MzU0NGI0NTU5MmQzODY2MzIzMTM3NjNAMDJlNkAwODAyMTIwMjAwMDEyMmRjMDEwOGU2MDUxMjE2NTY2NTczNzQ2OTZlNjcyMDIzMzczNDMyMjA2MzZjNjE2OTZkMjA2YjY1NzkxYTIwMDAwMDAwMDAwMDAwMDAwMDA1MDBlZGEzYzMwM2MyMmM0Y2YxYTI0MGE2NmJlMzMzMWJjZjNiY2U1ODhiNGViMDMyMmQ2ODc0NzQ3MDczM2EyZjJmNjQ2NTc2NmU2NTc0MmU2ZDc2Nzg3NjY1NzM3NDJlNjk2ZjJmNmU2Njc0MmY2MzZjNjE2OTZkMmQ2YjY1NzkyZDMyMmU3MDZlNjczMjJkNjg3NDc0NzA3MzNhMmYyZjY0NjU3NjZlNjU3NDJlNmQ3Njc4NzY2NTczNzQyZTY5NmYyZjZlNjY3NDJmNjM2YzYxNjk2ZDJkNmI2NTc5MmQzMjJlNzM3NjY3M2EzZjc0NjE2NzczM2E2ZDc2Nzg3NjY1NzM3NDJjNzY2NTczNzQ2OTZlNjczYjc2NjU3Mzc0Njk2ZTY3M2EzNzM0MzIzYjc0NmY2YjY1NmUzYTQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzUzYjYzNjE2ZTYzNjU2YzYxNjI2YzY1M2EzMEA2MzZjNjE2OTZk",
+      "logs": {
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "MultiESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuU=",
+              "AQ==",
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuY=",
+              "AQ==",
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ]
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTMetaDataUpdate",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuU=",
+              "",
+              "CAISAgABIoYCCOUFEiNWZXN0aW5nICM3NDEgY2xhaW0ga2V5LCA1MCUgY2xhaW1lZBogAAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrAyLWh0dHBzOi8vZGV2bmV0Lm12eHZlc3QuaW8vbmZ0L2NsYWltLWtleS0yLnBuZzItaHR0cHM6Ly9kZXZuZXQubXZ4dmVzdC5pby9uZnQvY2xhaW0ta2V5LTIuc3ZnOlx0YWdzOm12eHZlc3QsdmVzdGluZzt2ZXN0aW5nOjc0MTt0b2tlbjpURk9YLWQ2MWIwOTtjYW5jZWxhYmxlOjA7Y2xhaW1lZDo1MDAyNDg4NDI1OTI1OTI1OTI1OSoUCKbFtgwQpsW2DCimxbYMMKbFtgw="
+            ]
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "claim",
+            "topics": [
+              "dmVzdGluZ0NsYWltZWQ=",
+              "AuU=",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0=",
+              "VEZPWC1kNjFiMDk="
+            ],
+            "data": "AAAACQK2PBcwyy2ZewAAAAkCtjwXMMstmXsA"
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTNFTBurn",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuY=",
+              "AQ=="
+            ]
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "claim",
+            "topics": [
+              "dmVzdGluZ0NsYWltZWQ=",
+              "AuY=",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0=",
+              "RFVTVC05NTlhNzU="
+            ],
+            "data": "AAAAAQEAAAABAQE="
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "VEZPWC1kNjFiMDk=",
+              "",
+              "ArY8FzDLLZl7",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "data": "RGlyZWN0Q2FsbA=="
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "RFVTVC05NTlhNzU=",
+              "",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "data": "RGlyZWN0Q2FsbA=="
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuU=",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "data": "RGlyZWN0Q2FsbA=="
+          }
+        ]
+      }
+    },
+    {
+      "hash": "8c0172f35abd4c7cdde163649c4e84d92d3d159d99f746663dba5475f781ab59",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "value": "0",
+      "data": "RVNEVFRyYW5zZmVyQDU0NDY0ZjU4MmQ2NDM2MzE2MjMwMzlAMDJiNjNjMTczMGNiMmQ5OTdi",
+      "logs": {
+        "events": [
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "VEZPWC1kNjFiMDk=",
+              "",
+              "ArY8FzDLLZl7",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ]
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "writeLog",
+            "topics": [
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ],
+            "data": "QDZmNmI="
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "G92mMeg8U3Q/oOmU5ZIc2+BFKPYh3Q0nOe6P7NpqGuA="
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "hash": "8d41522d89c46e9036875933b9307c591d4762871b8fb2d594dcfc1b7d1027ce",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "value": "40302090000000",
+      "data": "QDZmNmI=",
+      "logs": {
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "G92mMeg8U3Q/oOmU5ZIc2+BFKPYh3Q0nOe6P7NpqGuA="
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "hash": "a2a2aedf28770a0f19e22e1a1f3d99b43d2deb9946606c638e5a59df97ffd13a",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "value": "0",
+      "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMDE=",
+      "logs": {
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "signalError",
+            "topics": [
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA=",
+              "YWNjb3VudCBpcyBmcm96ZW4gZm9yIHRoaXMgZXNkdCB0b2tlbg=="
+            ],
+            "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMDFANzU3MzY1NzIyMDY1NzI3MjZmNzI="
+          }
+        ]
+      }
+    },
+    {
+      "hash": "9477b5d19012e85b104bdd57b2960781b9b971f46d6b3d8af078dcd72c007a95",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "1bdda631e83c53743fa0e994e5921cdbe04528f621dd0d2739ee8fecda6a1ae0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "value": "0",
+      "data": "RVNEVE5GVFRyYW5zZmVyQDU2NDU1MzU0NGI0NTU5MmQzODY2MzIzMTM3NjNAMDJlNUAwMUAwODAyMTIwMjAwMDEyMjg2MDIwOGU1MDUxMjIzNTY2NTczNzQ2OTZlNjcyMDIzMzczNDMxMjA2MzZjNjE2OTZkMjA2YjY1NzkyYzIwMzUzMDI1MjA2MzZjNjE2OTZkNjU2NDFhMjAwMDAwMDAwMDAwMDAwMDAwMDUwMGVkYTNjMzAzYzIyYzRjZjFhMjQwYTY2YmUzMzMxYmNmM2JjZTU4OGI0ZWIwMzIyZDY4NzQ3NDcwNzMzYTJmMmY2NDY1NzY2ZTY1NzQyZTZkNzY3ODc2NjU3Mzc0MmU2OTZmMmY2ZTY2NzQyZjYzNmM2MTY5NmQyZDZiNjU3OTJkMzIyZTcwNmU2NzMyMmQ2ODc0NzQ3MDczM2EyZjJmNjQ2NTc2NmU2NTc0MmU2ZDc2Nzg3NjY1NzM3NDJlNjk2ZjJmNmU2Njc0MmY2MzZjNjE2OTZkMmQ2YjY1NzkyZDMyMmU3Mzc2NjczYTVjNzQ2MTY3NzMzYTZkNzY3ODc2NjU3Mzc0MmM3NjY1NzM3NDY5NmU2NzNiNzY2NTczNzQ2OTZlNjczYTM3MzQzMTNiNzQ2ZjZiNjU2ZTNhNTQ0NjRmNTgyZDY0MzYzMTYyMzAzOTNiNjM2MTZlNjM2NTZjNjE2MjZjNjUzYTMwM2I2MzZjNjE2OTZkNjU2NDNhMzUzMDMwMzIzNDM4MzgzNDMyMzUzOTMyMzUzOTMyMzUzOTMyMzUzOTJhMTQwOGE2YzViNjBjMTBhNmM1YjYwYzI4YTZjNWI2MGMzMGE2YzViNjBj",
+      "logs": {
+        "events": [
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "AuU=",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ]
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "writeLog",
+            "topics": [
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ],
+            "data": "QDZmNmI="
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "G92mMeg8U3Q/oOmU5ZIc2+BFKPYh3Q0nOe6P7NpqGuA="
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "hash": "ddece93fb903b06c2770b6da23f2acba12c1102d2013e6c9aabaf32383906995",
+      "originalTxHash": "55b87d9788f07cd21a0655e72475193e946cb2c58f9292b17413e17eeb52f050",
+      "prevTxHash": "a2a2aedf28770a0f19e22e1a1f3d99b43d2deb9946606c638e5a59df97ffd13a",
+      "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "returnMessage": "account is frozen for this esdt token",
+      "value": "0",
+      "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMDFANzU3MzY1NzIyMDY1NzI3MjZmNzI=",
+      "logs": {
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "RFVTVC05NTlhNzU=",
+              "",
+              "AQ==",
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ]
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "oqKu3yh3Cg8Z4i4aHz2ZtD0t65lGYGxjjlpZ35f/0To="
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

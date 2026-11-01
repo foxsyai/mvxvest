@@ -1,5 +1,20 @@
 # Changelog
 
+## Version 4 (candidate: audited and rehearsed on devnet on 1 Nov 2026, not on mainnet until the owners vote)
+
+Reproducible build `multiversx/sdk-rust-contract-builder@sha256:879be3d1a7f7f51ac5ff807b15f1d75498d86ed25f54c61650fd616e80bae963`,
+code hash `0e9ebff7c674c9fa4fb7c950a6edfb239a63ba688e88663b2f606ab45db04246`, 29,464 bytes. Endpoints, views, events and stored layouts are the same as version 3's.
+
+### Changed
+- `claim` and `cancel` send each token and the returned keys in separate
+  transfers. A token a wallet cannot receive now bounces alone, never with
+  another token or with a key (fifth audit, RT-1 and PROTO-1). Built-in calls
+  per call: 98 stamped or 99 finished keys of one token, 49 or 50 keys of as
+  many tokens.
+
+### Fixed
+- The stamp keeps a key's minted metadata whatever the amount (KEYS-1).
+
 ## Version 3 (mainnet since 22 Oct 2026, audited and rehearsed on devnet on 21 Oct 2026)
 
 Reproducible build `multiversx/sdk-rust-contract-builder:v12.0.0`, code hash

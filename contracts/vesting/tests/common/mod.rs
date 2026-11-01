@@ -4,7 +4,7 @@
 
 #![allow(dead_code)]
 
-use multiversx_sc_scenario::imports::*;
+use multiversx_sc_scenario::{imports::*, scenario_model::Log};
 pub use mvxvest::proxy::{
     Curve, KeyKind, MvxvestProxy, Schedule, TokenTotals, Tranche, VestingView,
 };
@@ -134,6 +134,37 @@ pub fn key_attributes(id: u64, token_id: &str, cancelable: bool) -> String {
         attributes(id, token_id),
         u8::from(cancelable)
     )
+}
+
+/// One thing a transfer carried: token, nonce and amount.
+pub type Sent = (String, u64, u128);
+
+/// What the contract sent in `logs`, transfer by transfer, each with its
+/// receiver. Since version 4 a claim or cancel sends each token and the keys
+/// apart, and what is in one transfer is what bounces together.
+pub fn sent_by_contract(logs: &[Log]) -> Vec<(Vec<Sent>, Vec<u8>)> {
+    let number = |bytes: &[u8]| bytes.iter().fold(0u128, |n, b| (n << 8) | *b as u128);
+    logs.iter()
+        .filter(|log| log.address == SC.to_address())
+        .filter_map(|log| match log.endpoint.as_str() {
+            "ESDTTransfer" | "ESDTNFTTransfer" | "MultiESDTNFTTransfer" => {
+                let (to, triples) = log.topics.split_last().unwrap();
+                let items = triples
+                    .chunks(3)
+                    .map(|t| {
+                        let name = String::from_utf8(t[0].clone()).unwrap();
+                        (name, number(&t[1]) as u64, number(&t[2]))
+                    })
+                    .collect();
+                Some((items, to.clone()))
+            }
+            "transferValueOnly" => {
+                let item = ("EGLD-000000".to_string(), 0, number(&log.topics[0]));
+                Some((vec![item], log.topics[1].clone()))
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 pub struct Fixture {

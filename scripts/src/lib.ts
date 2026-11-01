@@ -137,8 +137,22 @@ export function saveState(state: State): void {
   writeFileSync(statePath(), JSON.stringify(state, null, 2) + "\n");
 }
 
+/**
+ * mvxvest on mainnet (docs/MAINNET.md), in the source like the site's
+ * config.mainnet.ts. The state file git ignores does not define it: every
+ * check that says "the vesting contract" measures against this (fifth audit,
+ * OPS-4). A state file that names another contract stops the tool.
+ */
+export const MAINNET_CONTRACT = "erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu";
+
 export function contractAddress(): Address {
   const state = loadState();
+  if (network() === "mainnet") {
+    if (state.contract && state.contract !== MAINNET_CONTRACT) {
+      throw new Error(`${statePath()} names ${state.contract}, but mvxvest on mainnet is ${MAINNET_CONTRACT}: remove the file or correct it.`);
+    }
+    return Address.newFromBech32(MAINNET_CONTRACT);
+  }
   if (!state.contract) throw new Error(`No contract in ${statePath()}: run deploy first.`);
   return Address.newFromBech32(state.contract);
 }

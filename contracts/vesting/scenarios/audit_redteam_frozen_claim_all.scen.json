@@ -1,6 +1,6 @@
 {
-  "name": "red team: one hostile dust key fails a multi-key claim as a whole",
-  "comment": "Mallory issued EVIL (canFreeze). She creates a 1-unit vesting of it for Alice (no consent needed) and freezes Alice for EVIL. Alice's claim of her real FOX key together with the EVIL key fails as a whole: the payout is one MultiESDTNFTTransfer. Claiming the FOX key alone works.",
+  "name": "red team: in the contract's own shard one hostile dust key still fails a multi-key claim as a whole",
+  "comment": "Mallory issued EVIL (canFreeze). She creates a 1-unit vesting of it for Alice (no consent needed) and freezes Alice for EVIL. In the contract's shard, Alice's claim of her real FOX key together with the EVIL key fails as a whole: each token has its own transfer since version 4, and a transfer refused in the same shard reverts the call. Claiming the FOX key alone works. In another shard only the EVIL transfer bounces: audit5_redteam_bounced_claim_all.rs.",
   "steps": [
     {
       "step": "setState",

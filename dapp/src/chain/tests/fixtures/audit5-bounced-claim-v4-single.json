@@ -1,0 +1,364 @@
+{
+  "txHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+  "status": "fail",
+  "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+  "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+  "function": "claim",
+  "timestamp": 1793549981,
+  "logs": {
+    "id": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+    "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+    "events": [
+      {
+        "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+        "identifier": "ESDTNFTTransfer",
+        "topics": [
+          "VkVTVEtFWS04ZjIxN2M=",
+          "Auc=",
+          "AQ==",
+          "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+        ],
+        "order": 0,
+        "additionalData": [
+          "",
+          "RVNEVE5GVFRyYW5zZmVy",
+          "VkVTVEtFWS04ZjIxN2M=",
+          "Auc=",
+          "AQ==",
+          "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA=",
+          "Y2xhaW0="
+        ],
+        "shardID": 1
+      }
+    ]
+  },
+  "results": [
+    {
+      "hash": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+      "timestamp": 1793549983,
+      "timestampMs": 1793549983400,
+      "nonce": 0,
+      "gasLimit": 10401489,
+      "gasPrice": 1000000000,
+      "value": "0",
+      "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "data": "RVNEVE5GVFRyYW5zZmVyQDU2NDU1MzU0NGI0NTU5MmQzODY2MzIzMTM3NjNAMDJlN0AwMUAwODAyMTIwMjAwMDEyMmRjMDEwOGU3MDUxMjE2NTY2NTczNzQ2OTZlNjcyMDIzMzczNDMzMjA2MzZjNjE2OTZkMjA2YjY1NzkxYTIwMDAwMDAwMDAwMDAwMDAwMDA1MDBlZGEzYzMwM2MyMmM0Y2YxYTI0MGE2NmJlMzMzMWJjZjNiY2U1ODhiNGViMDMyMmQ2ODc0NzQ3MDczM2EyZjJmNjQ2NTc2NmU2NTc0MmU2ZDc2Nzg3NjY1NzM3NDJlNjk2ZjJmNmU2Njc0MmY2MzZjNjE2OTZkMmQ2YjY1NzkyZDMyMmU3MDZlNjczMjJkNjg3NDc0NzA3MzNhMmYyZjY0NjU3NjZlNjU3NDJlNmQ3Njc4NzY2NTczNzQyZTY5NmYyZjZlNjY3NDJmNjM2YzYxNjk2ZDJkNmI2NTc5MmQzMjJlNzM3NjY3M2EzZjc0NjE2NzczM2E2ZDc2Nzg3NjY1NzM3NDJjNzY2NTczNzQ2OTZlNjczYjc2NjU3Mzc0Njk2ZTY3M2EzNzM0MzMzYjc0NmY2YjY1NmUzYTQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzUzYjYzNjE2ZTYzNjU2YzYxNjI2YzY1M2EzMEA2MzZjNjE2OTZk",
+      "prevTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "ec172c75e4475c934c1e5eba0e75adbb1d601a0811d3de2ee2d98dd50c442311",
+      "logs": {
+        "id": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+        "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "ESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ],
+            "order": 0,
+            "additionalData": [
+              "",
+              "RVNEVE5GVFRyYW5zZmVy",
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "CAISAgABItwBCOcFEhZWZXN0aW5nICM3NDMgY2xhaW0ga2V5GiAAAAAAAAAAAAUA7aPDA8IsTPGiQKZr4zMbzzvOWItOsDItaHR0cHM6Ly9kZXZuZXQubXZ4dmVzdC5pby9uZnQvY2xhaW0ta2V5LTIucG5nMi1odHRwczovL2Rldm5ldC5tdnh2ZXN0LmlvL25mdC9jbGFpbS1rZXktMi5zdmc6P3RhZ3M6bXZ4dmVzdCx2ZXN0aW5nO3Zlc3Rpbmc6NzQzO3Rva2VuOkRVU1QtOTU5YTc1O2NhbmNlbGFibGU6MA==",
+              "Y2xhaW0="
+            ],
+            "shardID": 0
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTMetaDataUpdate",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "",
+              "CAISAgABIvQBCOcFEiNWZXN0aW5nICM3NDMgY2xhaW0ga2V5LCA1MCUgY2xhaW1lZBogAAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrAyLWh0dHBzOi8vZGV2bmV0Lm12eHZlc3QuaW8vbmZ0L2NsYWltLWtleS0yLnBuZzItaHR0cHM6Ly9kZXZuZXQubXZ4dmVzdC5pby9uZnQvY2xhaW0ta2V5LTIuc3ZnOkp0YWdzOm12eHZlc3QsdmVzdGluZzt2ZXN0aW5nOjc0Mzt0b2tlbjpEVVNULTk1OWE3NTtjYW5jZWxhYmxlOjA7Y2xhaW1lZDo1MCoUCMXQtgwQxdC2DCjF0LYMMMXQtgw="
+            ],
+            "order": 1,
+            "shardID": 0
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "claim",
+            "topics": [
+              "dmVzdGluZ0NsYWltZWQ=",
+              "Auc=",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0=",
+              "RFVTVC05NTlhNzU="
+            ],
+            "data": "AAAAATIAAAABMgA=",
+            "order": 2,
+            "additionalData": [
+              "AAAAATIAAAABMgA="
+            ],
+            "shardID": 0
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "RFVTVC05NTlhNzU=",
+              "",
+              "Mg==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "data": "RGlyZWN0Q2FsbA==",
+            "order": 3,
+            "additionalData": [
+              "RGlyZWN0Q2FsbA==",
+              "RVNEVFRyYW5zZmVy",
+              "RFVTVC05NTlhNzU=",
+              "Mg=="
+            ],
+            "shardID": 0
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "data": "RGlyZWN0Q2FsbA==",
+            "order": 4,
+            "additionalData": [
+              "RGlyZWN0Q2FsbA==",
+              "RVNEVE5GVFRyYW5zZmVy",
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "shardID": 0
+          }
+        ]
+      },
+      "function": "claim",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODMwMDAsMTc5MzU0OTk4MzQwMCwwLCJSTXB6WkVza1FqdWdiLUR2ZnhmLTNRPT0iXQ=="
+    },
+    {
+      "hash": "70170aa6453178e466f9ffbcf483655ecbad52ce8899cd5bacfce00b665cd8f3",
+      "timestamp": 1793549983,
+      "timestampMs": 1793549983400,
+      "nonce": 0,
+      "gasLimit": 10401489,
+      "gasPrice": 1000000000,
+      "value": "0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "data": "Y2xhaW0=",
+      "prevTxHash": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "5f18fb709f9d2f5c158807f7310729c483aa609459dc64462502a91f5e94960b",
+      "function": "claim",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODMwMDAsMTc5MzU0OTk4MzQwMCwwLCJwUGd0ZHNNLVFfZXMxUDkwSGswUFN3PT0iXQ=="
+    },
+    {
+      "hash": "d8a7a2fd6bcd01a38333fc54e928e808ef4559d6eeb953799d51f05403eb4e7e",
+      "timestamp": 1793549985,
+      "timestampMs": 1793549985200,
+      "nonce": 0,
+      "gasLimit": 0,
+      "gasPrice": 1000000000,
+      "value": "0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMzI=",
+      "prevTxHash": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "4be2c7780fce912c51df5db19a4a95b6e7deaed0a22ecb7c37493ee00722d716",
+      "logs": {
+        "id": "d8a7a2fd6bcd01a38333fc54e928e808ef4559d6eeb953799d51f05403eb4e7e",
+        "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "signalError",
+            "topics": [
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA=",
+              "YWNjb3VudCBpcyBmcm96ZW4gZm9yIHRoaXMgZXNkdCB0b2tlbg=="
+            ],
+            "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMzJANzU3MzY1NzIyMDY1NzI3MjZmNzI=",
+            "order": 0,
+            "additionalData": [
+              "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMzJANzU3MzY1NzIyMDY1NzI3MjZmNzI="
+            ],
+            "shardID": 1
+          }
+        ]
+      },
+      "function": "ESDTTransfer",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODUwMDAsMTc5MzU0OTk4NTIwMCwwLCJRampubWdYclI3dVhCOTQ1VUd1amZnPT0iXQ=="
+    },
+    {
+      "hash": "bd9ef2df07a1d9c03025db92b35a08fba7c827c8bcc6ea872ae1c81b60eb424d",
+      "timestamp": 1793549985,
+      "timestampMs": 1793549985200,
+      "nonce": 1,
+      "gasLimit": 0,
+      "gasPrice": 1000000000,
+      "value": "0",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "data": "RVNEVE5GVFRyYW5zZmVyQDU2NDU1MzU0NGI0NTU5MmQzODY2MzIzMTM3NjNAMDJlN0AwMUAwODAyMTIwMjAwMDEyMmY0MDEwOGU3MDUxMjIzNTY2NTczNzQ2OTZlNjcyMDIzMzczNDMzMjA2MzZjNjE2OTZkMjA2YjY1NzkyYzIwMzUzMDI1MjA2MzZjNjE2OTZkNjU2NDFhMjAwMDAwMDAwMDAwMDAwMDAwMDUwMGVkYTNjMzAzYzIyYzRjZjFhMjQwYTY2YmUzMzMxYmNmM2JjZTU4OGI0ZWIwMzIyZDY4NzQ3NDcwNzMzYTJmMmY2NDY1NzY2ZTY1NzQyZTZkNzY3ODc2NjU3Mzc0MmU2OTZmMmY2ZTY2NzQyZjYzNmM2MTY5NmQyZDZiNjU3OTJkMzIyZTcwNmU2NzMyMmQ2ODc0NzQ3MDczM2EyZjJmNjQ2NTc2NmU2NTc0MmU2ZDc2Nzg3NjY1NzM3NDJlNjk2ZjJmNmU2Njc0MmY2MzZjNjE2OTZkMmQ2YjY1NzkyZDMyMmU3Mzc2NjczYTRhNzQ2MTY3NzMzYTZkNzY3ODc2NjU3Mzc0MmM3NjY1NzM3NDY5NmU2NzNiNzY2NTczNzQ2OTZlNjczYTM3MzQzMzNiNzQ2ZjZiNjU2ZTNhNDQ1NTUzNTQyZDM5MzUzOTYxMzczNTNiNjM2MTZlNjM2NTZjNjE2MjZjNjUzYTMwM2I2MzZjNjE2OTZkNjU2NDNhMzUzMDJhMTQwOGM1ZDBiNjBjMTBjNWQwYjYwYzI4YzVkMGI2MGMzMGM1ZDBiNjBj",
+      "prevTxHash": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "4be2c7780fce912c51df5db19a4a95b6e7deaed0a22ecb7c37493ee00722d716",
+      "logs": {
+        "id": "bd9ef2df07a1d9c03025db92b35a08fba7c827c8bcc6ea872ae1c81b60eb424d",
+        "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+        "events": [
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "ESDTNFTTransfer",
+            "topics": [
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "rnwgWoAVfJ54XqD2wQxLphm0pyWfoejrxTL1a/HlyO0="
+            ],
+            "order": 0,
+            "additionalData": [
+              "",
+              "RVNEVE5GVFRyYW5zZmVy",
+              "VkVTVEtFWS04ZjIxN2M=",
+              "Auc=",
+              "AQ==",
+              "CAISAgABIvQBCOcFEiNWZXN0aW5nICM3NDMgY2xhaW0ga2V5LCA1MCUgY2xhaW1lZBogAAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrAyLWh0dHBzOi8vZGV2bmV0Lm12eHZlc3QuaW8vbmZ0L2NsYWltLWtleS0yLnBuZzItaHR0cHM6Ly9kZXZuZXQubXZ4dmVzdC5pby9uZnQvY2xhaW0ta2V5LTIuc3ZnOkp0YWdzOm12eHZlc3QsdmVzdGluZzt2ZXN0aW5nOjc0Mzt0b2tlbjpEVVNULTk1OWE3NTtjYW5jZWxhYmxlOjA7Y2xhaW1lZDo1MCoUCMXQtgwQxdC2DCjF0LYMMMXQtgw="
+            ],
+            "shardID": 1
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "writeLog",
+            "topics": [
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ],
+            "data": "QDZmNmI=",
+            "order": 1,
+            "additionalData": [
+              "QDZmNmI="
+            ],
+            "shardID": 1
+          },
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "RLrHGVmccJvUyenXD7YYNEdlDWWwFcgnJ3BAC8l3GlU="
+            ],
+            "order": 2,
+            "shardID": 1
+          }
+        ]
+      },
+      "function": "ESDTNFTTransfer",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODUwMDAsMTc5MzU0OTk4NTIwMCwxLCIya3BORUh6b1FYNnRiM1NHMFloTTZnPT0iXQ=="
+    },
+    {
+      "hash": "c53bba2fca563aca8e5f63c047c91d69ca6aa153ba65f3670992837d1f446267",
+      "timestamp": 1793549985,
+      "timestampMs": 1793549985200,
+      "nonce": 1,
+      "gasLimit": 0,
+      "gasPrice": 1000000000,
+      "value": "26410580000000",
+      "sender": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "receiver": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "data": "QDZmNmI=",
+      "prevTxHash": "44bac719599c709bd4c9e9d70fb6183447650d65b015c8272770400bc9771a55",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "4be2c7780fce912c51df5db19a4a95b6e7deaed0a22ecb7c37493ee00722d716",
+      "logs": {
+        "id": "c53bba2fca563aca8e5f63c047c91d69ca6aa153ba65f3670992837d1f446267",
+        "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "RLrHGVmccJvUyenXD7YYNEdlDWWwFcgnJ3BAC8l3GlU="
+            ],
+            "order": 0,
+            "shardID": 1
+          }
+        ]
+      },
+      "function": "transfer",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODUwMDAsMTc5MzU0OTk4NTIwMCwxLCJfckw3WERQRFFCaXhsUURzWHM2WXd3PT0iXQ=="
+    },
+    {
+      "hash": "8a14d9f0ebf3dc7622f700ed493dbad5a0fe7d45011d9dfbeda63c839bb658a6",
+      "timestamp": 1793549987,
+      "timestampMs": 1793549987000,
+      "nonce": 0,
+      "gasLimit": 0,
+      "gasPrice": 0,
+      "value": "0",
+      "sender": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+      "receiver": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+      "data": "RVNEVFRyYW5zZmVyQDQ0NTU1MzU0MmQzOTM1Mzk2MTM3MzVAMzJANzU3MzY1NzIyMDY1NzI3MjZmNzI=",
+      "prevTxHash": "d8a7a2fd6bcd01a38333fc54e928e808ef4559d6eeb953799d51f05403eb4e7e",
+      "originalTxHash": "6134e264ea1c947bbd5d3a2203ed900e96759250014f472ead517887427bd588",
+      "callType": "0",
+      "miniBlockHash": "d65b9e07693ce040677950f4bcdbf6da1fd8436db4101a02368735487aef479b",
+      "logs": {
+        "id": "8a14d9f0ebf3dc7622f700ed493dbad5a0fe7d45011d9dfbeda63c839bb658a6",
+        "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+        "events": [
+          {
+            "address": "erd14e7zqk5qz47fu7z75rmvzrzt5cvmffe9n7s73679xt6khu09erksehgl4u",
+            "identifier": "ESDTTransfer",
+            "topics": [
+              "RFVTVC05NTlhNzU=",
+              "",
+              "Mg==",
+              "AAAAAAAAAAAFAO2jwwPCLEzxokCma+MzG887zliLTrA="
+            ],
+            "order": 0,
+            "additionalData": [
+              "",
+              "RVNEVFRyYW5zZmVy",
+              "RFVTVC05NTlhNzU=",
+              "Mg==",
+              "dXNlciBlcnJvcg=="
+            ],
+            "shardID": 0
+          },
+          {
+            "address": "erd1qqqqqqqqqqqqqpgqak3uxq7z93x0rgjq5e47xvcmeuauukytf6cq26xfrp",
+            "identifier": "completedTxEvent",
+            "topics": [
+              "2Kei/WvNAaODM/xU6SjoCO9FWdbuuVN5nVHwVAPrTn4="
+            ],
+            "order": 1,
+            "shardID": 0
+          }
+        ]
+      },
+      "returnMessage": "account is frozen for this esdt token",
+      "function": "user error",
+      "status": "success",
+      "searchAfter": "WzE3OTM1NDk5ODcwMDAsMTc5MzU0OTk4NzAwMCwwLCJaZGNqN3BIdVNXaWptNTFHRUhfWEpRPT0iXQ=="
+    }
+  ]
+}

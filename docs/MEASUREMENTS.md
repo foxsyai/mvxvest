@@ -118,3 +118,17 @@ The fixed limits were charged in full, about 1.5-1.7x the need: roughly 0.02 EGL
 
   They make 99 and 98 built-in calls, under the network's 100; 50 and 33 would make 101. The contract's limits are therefore 49 and 32.
 - **The source deploy** of 27 KB was charged its whole 108.7M limit: 0.082 xEGLD.
+
+## Version 4 (1 Nov 2026)
+
+Go VM, the same harness before and after the fix:
+
+| Case | Version 3's build | Version 4 |
+|---|---|---|
+| Claim, 1 stamped key | 7,089,713 | 7,179,428 |
+| Claim, 1 finished key | 5,490,626 | 5,514,386 |
+| Claim, 2 keys of 2 tokens | 10,225,392 | 10,312,617 |
+| Claim, 50 stamped keys of 1 token | 150,096,325 | 146,396,325 |
+| Cancel, 1 key | 5,476,112 | 5,495,652 |
+
+Devnet: the claim of a real and a frozen token's key used 10,677,637 gas on version 4 (10,576,847 on version 3), the upgrade's perform 26,307,040.

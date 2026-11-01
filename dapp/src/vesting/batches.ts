@@ -85,3 +85,20 @@ export const splitKeys = <T>(keys: T[], size = MAX_KEYS_PER_CALL): T[][] => {
     batches.push(keys.slice(i, i + size));
   return batches;
 };
+
+/**
+ * The claim keys of `vestings`, per transaction. Never two tokens in one: on
+ * version 3 of the contract a claim's payout is one transfer, so a token the
+ * wallet cannot receive takes every other token and key in that transaction back
+ * to the contract with it, after the contract has booked them (fifth audit,
+ * RT-1, proven on devnet). Version 4 pays each token apart; this costs it only a
+ * transaction more. At most 50 keys of one token, as the spec states.
+ */
+export const claimBatches = (
+  vestings: { token: string; claimNonce: number }[]
+): number[][] => {
+  const byToken = new Map<string, number[]>();
+  for (const { token, claimNonce } of vestings)
+    byToken.set(token, [...(byToken.get(token) ?? []), claimNonce]);
+  return [...byToken.values()].flatMap((nonces) => splitKeys(nonces));
+};

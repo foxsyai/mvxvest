@@ -5,7 +5,7 @@
 import { Address } from '@multiversx/sdk-core';
 import { contractAddress } from 'config';
 import { EGLD } from 'vesting/client';
-import { api, fresh } from './network';
+import { api, fresh, freshGateway } from './network';
 
 export interface TokenInfo {
   identifier: string;
@@ -176,6 +176,44 @@ export const keyHolder = async (
   }
 };
 
+/** Why a token cannot be paid to a wallet now. */
+export type PayoutBlock = 'frozen' | 'paused';
+
+/** Bit 0 of the first of an account's two ESDT property bytes (MetadataFrozen). */
+const frozenIn = (properties: unknown): boolean => {
+  if (typeof properties !== 'string' || !/^([0-9a-f]{4})?$/i.test(properties))
+    throw new Error(`unexpected token properties: ${String(properties)}`);
+  return properties !== '' && (parseInt(properties.slice(0, 2), 16) & 1) === 1;
+};
+
+/**
+ * Whether the network would refuse to pay `token` to `wallet` now. A claim from
+ * another shard than the contract's is booked first and refused at the wallet,
+ * so its simulation passes and the payout and keys go back to the contract
+ * (fifth audit, RT-1). Read fresh, right before signing. Any failed read is
+ * thrown: it never means "fine".
+ */
+export const payoutBlock = async (
+  wallet: string,
+  token: string
+): Promise<PayoutBlock | null> => {
+  if (token === EGLD) return null;
+  const [balance, info] = await Promise.all([
+    freshGateway(`/address/${wallet}/esdt/${token}`),
+    fresh(`/tokens/${token}`)
+  ]);
+  if (!balance.ok || !info.ok)
+    throw new Error(`could not read ${token} for this wallet`);
+  const [{ code, data }, { isPaused }] = await Promise.all([
+    balance.json(),
+    info.json()
+  ]);
+  if (code !== 'successful' || typeof isPaused !== 'boolean')
+    throw new Error(`could not read ${token} for this wallet`);
+  if (frozenIn(data?.tokenData?.properties)) return 'frozen';
+  return isPaused ? 'paused' : null;
+};
+
 export interface HistoryEvent {
   kind: 'created' | 'claimed' | 'cancelled';
   txHash: string;
@@ -184,6 +222,11 @@ export interface HistoryEvent {
   address: string;
   /** Claimed or refunded (for created: the total). */
   amount: bigint;
+  /**
+   * The contract booked it and the wallet refused what it paid, so it went
+   * back to the contract. null: this could not be read.
+   */
+  refused: boolean | null;
 }
 
 const NAMES: Record<string, HistoryEvent['kind']> = {
@@ -227,6 +270,7 @@ export const historyOf = async (id: number): Promise<HistoryEvent[]> => {
     })
   );
   const history: HistoryEvent[] = [];
+  const tokenOf = new Map<HistoryEvent, string>();
   const seen = new Set<string>();
   for (const event of lists.flat()) {
     const topics: string[] = event.topics ?? [];
@@ -236,15 +280,66 @@ export const historyOf = async (id: number): Promise<HistoryEvent[]> => {
     if (seen.has(`${kind}:${event.txHash}`)) continue;
     seen.add(`${kind}:${event.txHash}`);
     const data = Array.isArray(event.data) ? event.data[0] : event.data;
-    history.push({
+    const entry: HistoryEvent = {
       kind,
       txHash,
       timestamp: Number(event.timestamp ?? 0),
       address: toBech32(topics[2]),
-      amount: data ? firstAmount(String(data)) : 0n
-    });
+      amount: data ? firstAmount(String(data)) : 0n,
+      refused: false
+    };
+    tokenOf.set(entry, Buffer.from(topics[3] ?? '', 'hex').toString());
+    history.push(entry);
+  }
+  // The logs say what was booked. Whether what it paid arrived is in the
+  // transaction: its status, and for a failed one which token came back. A
+  // failed claim can have paid every other vesting in it (fifth audit, RT-1).
+  const paying = history.filter((event) => event.kind !== 'created');
+  const failed = await failedAmong(paying.map((event) => event.txHash));
+  for (const event of paying) {
+    if (!failed) event.refused = null;
+    else if (!failed.has(event.txHash)) event.refused = false;
+    else {
+      const tokens = failed.get(event.txHash);
+      event.refused = tokens ? tokens.has(tokenOf.get(event)!) : null;
+    }
   }
   return history.sort((a, b) => a.timestamp - b.timestamp);
+};
+
+/**
+ * The failed ones among `hashes`, each with the tokens that came back (null
+ * when that cannot be told). null for all when the statuses could not be read.
+ */
+const failedAmong = async (
+  hashes: string[]
+): Promise<Map<string, Set<string> | null> | null> => {
+  const unique = [...new Set(hashes)];
+  const failed = new Map<string, Set<string> | null>();
+  try {
+    for (let from = 0; from < unique.length; from += 50) {
+      const part = unique.slice(from, from + 50);
+      const list = await api<{ txHash: string; status: string }[]>(
+        `/transactions?hashes=${part.join(',')}&fields=txHash,status&size=${part.length}`
+      );
+      for (const { txHash, status } of list)
+        if (status === 'fail') failed.set(txHash, null);
+    }
+  } catch {
+    return null;
+  }
+  for (const hash of failed.keys()) {
+    try {
+      const refusal = refusalIn(
+        await api<any>(`/transactions/${hash}?withResults=true&withLogs=true`)
+      );
+      if (refusal)
+        failed.set(hash, new Set(refusal.tokens.map(({ token }) => token)));
+    } catch {
+      // Stays null: this one is not known.
+    }
+  }
+  return failed;
 };
 
 export interface TxOutcome {
@@ -257,7 +352,126 @@ export interface TxOutcome {
   unknown?: boolean;
   /** The contract's or the protocol's reason, when it failed. */
   reason?: string;
+  /**
+   * It failed, yet the contract booked this: a transfer it then made was
+   * refused at the other end and came back. The API calls such a transaction
+   * `fail`, but it did not "not happen" (fifth audit, RT-1).
+   */
+  bounced?: BookedKind;
+  /** For a claim or cancel: what came back, when the results show it. */
+  refusal?: Refusal;
 }
+
+/** What the contract's own events say a transaction did. */
+export type BookedKind = 'created' | 'claimed' | 'cancelled';
+
+/** A token and the vestings of a transaction that were to pay it. */
+export interface TokenVestings {
+  token: string;
+  ids: number[];
+}
+
+/**
+ * What a failed claim or cancel really did, from the transfers that came back:
+ * never assumed from which contract version ran it. With one transfer for
+ * everything (version 3) every token and the returned keys come back together;
+ * with one per token and one for the keys (version 4), only what was refused.
+ */
+export interface Refusal {
+  /** Refused at the wallet: the contract holds these. */
+  tokens: TokenVestings[];
+  /** Came back with them: the contract held these, the owners may have moved them. */
+  keys: { collection: string; nonce: number }[];
+  /** Booked and not among what came back: these reached the wallet. */
+  paid: TokenVestings[];
+}
+
+const BOOKED: Record<string, BookedKind> = {
+  vestingCreated: 'created',
+  vestingClaimed: 'claimed',
+  vestingCancelled: 'cancelled'
+};
+
+const eventsOf = (tx: any): any[] => [
+  ...(tx.logs?.events ?? []),
+  ...(tx.results ?? []).flatMap((result: any) => result.logs?.events ?? [])
+];
+
+const topicName = (event: any) => {
+  try {
+    return atob(event.topics?.[0] ?? '');
+  } catch {
+    return '';
+  }
+};
+
+/** What the contract booked in a transaction that failed, if anything. */
+const bookedIn = (tx: any): BookedKind | undefined => {
+  for (const event of eventsOf(tx)) {
+    if (event.address !== contractAddress) continue;
+    const kind = BOOKED[topicName(event)];
+    if (kind) return kind;
+  }
+  return undefined;
+};
+
+const idFrom = (raw: string) => {
+  let value = 0;
+  for (const char of raw) value = value * 256 + char.charCodeAt(0);
+  return value;
+};
+
+const TRANSFERS = new Set([
+  'ESDTTransfer',
+  'ESDTNFTTransfer',
+  'MultiESDTNFTTransfer'
+]);
+
+/**
+ * What a failed claim or cancel paid and what came back. A result carrying a
+ * return message and addressed to the contract is a transfer refused at the
+ * other end; its log lists (token, nonce, amount) three at a time and then the
+ * receiver. Undefined when the results show nothing that came back: then
+ * nothing can be said of what was paid.
+ */
+const refusalIn = (tx: any): Refusal | undefined => {
+  const back = new Set<string>();
+  const keys: Refusal['keys'] = [];
+  for (const result of tx.results ?? []) {
+    if (!result.returnMessage || result.receiver !== contractAddress) continue;
+    for (const event of result.logs?.events ?? []) {
+      if (!TRANSFERS.has(event.identifier)) continue;
+      const topics: string[] = event.topics ?? [];
+      for (let at = 0; at + 3 < topics.length; at += 3) {
+        const token = atob(topics[at] ?? '');
+        const nonce = idFrom(atob(topics[at + 1] ?? ''));
+        if (nonce === 0) back.add(token);
+        else keys.push({ collection: token, nonce });
+      }
+    }
+  }
+  if (back.size === 0 && keys.length === 0) return undefined;
+  const booked = new Map<string, Set<number>>();
+  for (const event of eventsOf(tx)) {
+    if (event.address !== contractAddress) continue;
+    const kind = BOOKED[topicName(event)];
+    if (kind !== 'claimed' && kind !== 'cancelled') continue;
+    const [, id, , token] = (event.topics as string[]).map((topic) =>
+      atob(topic ?? '')
+    );
+    if (!booked.has(token)) booked.set(token, new Set());
+    booked.get(token)!.add(idFrom(id));
+  }
+  const vestingsOf = (token: string): TokenVestings => ({
+    token,
+    ids: [...(booked.get(token) ?? [])].sort((a, b) => a - b)
+  });
+  return {
+    tokens: [...back].map(vestingsOf),
+    keys,
+    paid: [...booked.keys()].filter((t) => !back.has(t)).map(vestingsOf)
+  };
+};
 
 /** Where a sent transaction stands, read fresh (not cached). */
 export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
@@ -270,11 +484,7 @@ export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
   if (tx.status === 'pending' || tx.pendingResults)
     return { status: 'pending' };
   if (tx.status === 'success') return { status: 'success' };
-  const events = [
-    ...(tx.logs?.events ?? []),
-    ...(tx.results ?? []).flatMap((result: any) => result.logs?.events ?? [])
-  ];
-  const signal = events.find(
+  const signal = eventsOf(tx).find(
     (event: any) => event.identifier === 'signalError'
   );
   const reason =
@@ -283,7 +493,75 @@ export const outcomeOf = async (hash: string): Promise<TxOutcome> => {
       .map((result: any) => result.returnMessage)
       .find(Boolean) ||
     tx.status;
-  return { status: tx.status === 'invalid' ? 'invalid' : 'fail', reason };
+  if (tx.status === 'invalid') return { status: 'invalid', reason };
+  const bounced = bookedIn(tx);
+  const refusal =
+    bounced === 'claimed' || bounced === 'cancelled'
+      ? refusalIn(tx)
+      : undefined;
+  return {
+    status: 'fail',
+    reason,
+    ...(bounced ? { bounced } : {}),
+    ...(refusal ? { refusal } : {})
+  };
+};
+
+/** A claim or cancel of this wallet that the contract booked and the wallet refused. */
+export interface RefusedPayout {
+  txHash: string;
+  timestamp: number;
+  kind: 'claimed' | 'cancelled';
+  /** The tokens that came back, with their vestings. */
+  tokens: TokenVestings[];
+  /** Keys that came back. held: at the contract now; null: could not be read. */
+  keys: { nonce: number; held: boolean | null }[];
+  /** Every vesting it was for: all that is known if the results show nothing. */
+  ids: number[];
+}
+
+/**
+ * The newest refused payouts of `wallet`. Its tokens never came and a key may
+ * have gone with them or been burned, so nothing in My vestings shows them, and
+ * only this read still can. Only the wallet's own failed transactions are read,
+ * which nobody else can add to. Where a key that came back is now is read too:
+ * the owners may have returned it.
+ */
+export const refusedPayouts = async (
+  wallet: string
+): Promise<RefusedPayout[]> => {
+  const list = await api<any[]>(
+    `/accounts/${wallet}/transactions?function=claim,cancel&status=fail&size=25&withScResults=true&withLogs=true`
+  );
+  const refused: RefusedPayout[] = [];
+  for (const tx of list) {
+    const kind = bookedIn(tx);
+    if (kind !== 'claimed' && kind !== 'cancelled') continue;
+    const ids = new Set<number>();
+    for (const event of eventsOf(tx)) {
+      if (event.address !== contractAddress || !BOOKED[topicName(event)])
+        continue;
+      ids.add(idFrom(atob(event.topics?.[1] ?? '')));
+    }
+    const refusal = refusalIn(tx);
+    refused.push({
+      txHash: tx.txHash,
+      timestamp: Number(tx.timestamp ?? 0),
+      kind,
+      tokens: refusal?.tokens ?? [],
+      keys: await Promise.all(
+        (refusal?.keys ?? []).map(async ({ collection, nonce }) => ({
+          nonce,
+          held: await keyHolder(collection, nonce).then(
+            (holder) => holder === contractAddress,
+            () => null
+          )
+        }))
+      ),
+      ids: [...ids].sort((a, b) => a - b)
+    });
+  }
+  return refused;
 };
 
 /** What finished claims and cancels paid their caller, for one token. */
@@ -349,11 +627,14 @@ export const payoutsOf = async (
     );
     if (!response.ok) throw new Error(`transaction ${hash} not readable`);
     const tx = await response.json();
-    const events = [
-      ...(tx.logs?.events ?? []),
-      ...(tx.results ?? []).flatMap((result: any) => result.logs?.events ?? [])
-    ];
-    for (const event of events) {
+    // Booked and then refused at the wallet: the events alone read like a claim
+    // that paid. Only a token that did not come back was paid, and a failure
+    // whose results do not say which pays nothing here (fifth audit, RT-1).
+    if (tx.status === 'invalid') continue;
+    const refusal = tx.status === 'fail' ? refusalIn(tx) : undefined;
+    if (tx.status === 'fail' && !refusal) continue;
+    const cameBack = new Set(refusal?.tokens.map(({ token }) => token));
+    for (const event of eventsOf(tx)) {
       if (event.address !== contractAddress) continue;
       const [name, id, paid, token] = (event.topics ?? []).map(
         (topic: string) => atob(topic)
@@ -362,6 +643,7 @@ export const payoutsOf = async (
       if (id === undefined || !token || typeof event.data !== 'string')
         continue;
       if (callerKey !== undefined && paid !== callerKey) continue;
+      if (cameBack.has(token)) continue;
       const key = `${hash}:${name}:${id}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -377,9 +659,7 @@ export const payoutsOf = async (
       else {
         payout.refunded += first;
         payout.vestedAtCancel += second;
-        let value = 0;
-        for (const char of id) value = value * 256 + char.charCodeAt(0);
-        payout.cancelledIds.push(value);
+        payout.cancelledIds.push(idFrom(id));
       }
       byToken.set(token, payout);
     }

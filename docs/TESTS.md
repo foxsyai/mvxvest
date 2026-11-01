@@ -59,7 +59,7 @@ endpoint, mapped to the tests that check it. Run them with
 | `recoverSurplus` | `admin_test::surplus_from_a_bounced_payout_can_be_returned_but_locked_funds_cannot`, `review3_go_vm_test::money_paths`, `review4_stray_nft_cannot_be_returned_test` |
 | claim mixing paying, non-paying and finishing keys | `review4_safe_claim_mix_test` |
 | every cancel key of the largest batch reaches the creator | `review4_go_vm_test` |
-| the largest batches make exactly the 100 built-in calls the network allows; 99 keys fit one claim or cancel, also when each is stamped (version 3) | `review5_builtin_calls_test`, `review5_go_vm_test` |
+| the largest batches make exactly the 100 built-in calls the network allows; 99 keys fit one claim or cancel, also when each is stamped on version 3; on version 4 98 stamped or 99 finished keys of one token | `review5_builtin_calls_test`, `review5_go_vm_test` |
 | a cancelable vesting's claim key says so in its name; each claim that pays stamps the returned key and keeps its URIs; a claim that pays nothing leaves it as it was (version 3) | `v3_key_stamp_test::*`, `audit4_sck_market_stale_key`, `go_vm_test::lifecycle`, `review3_go_vm_test::money_paths` |
 | `setKeyStamping`, `isKeyStamping`, `getClaimKeyStatus`, `getDeficit` (version 3) | `v3_switch_and_views_test::*` |
 | `create` with a fee change in flight | `review_fee_change_egld_create_test` |
@@ -70,3 +70,7 @@ endpoint, mapped to the tests that check it. Run them with
 | `upgrade` | `admin_test::upgrade_keeps_every_vesting` |
 | views | `views_test::*`, `create_test::create_mints_both_keys_and_stores_the_vesting` |
 | schedule validation | `schedule_math::validate_*` |
+| each token and the returned keys leave in separate transfers; a refused token bounces alone (version 4) | `audit5_contract_separate_transfers::*`, `audit5_contract_go_vm`, `audit5_redteam_bounced_claim_all::*` |
+| an upgrade from the real version 3 code keeps every byte, with vestings in every state | `audit5review_contract_go_vm`, `go_vm_test::v4_upgrade_from_v3` |
+| every entry point against every caller and payment shape | `audit5_auth_matrix::*`, `audit5_auth_go_vm` |
+| the fifth audit's money walk and every second of a cancel | `audit5_money_random_walk`, `audit5_money_cancel_boundaries::*`, `audit5_money_go_vm` |
