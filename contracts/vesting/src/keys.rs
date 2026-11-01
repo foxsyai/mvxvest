@@ -207,11 +207,20 @@ pub trait KeysModule: storage::StorageModule {
 /// The `metadata` part of a key's attributes, empty when it has none. The
 /// contract writes it last, after `tags`, `vesting`, `token`, `cancelable`
 /// and `claimed`, none of which can contain `;metadata:` (numbers and a
-/// token identifier), so its first occurrence starts it; that prefix is at
-/// most about 180 bytes, so only the first 256 are searched.
+/// token identifier), so its first occurrence starts it, whatever the owner
+/// wrote in the metadata after it.
+///
+/// Only the first 512 bytes are searched, and the mark always starts within
+/// them. Before `claimed`'s digits the contract writes at most 95 bytes: 20 of
+/// tags, 29 of `;vesting:` and a u64, 24 of `;token:` and an identifier, 13 of
+/// `;cancelable:0`, 9 of `;claimed:`. The protocol issues, mints and transfers
+/// at most 100 bytes of a token at a time, 241 digits, and `claimed` is at most
+/// a vesting's total, so with the 10 bytes of the mark that is 346; the rest is
+/// margin (fifth audit, KEYS-1). The search stops at the first mark, so a key
+/// with a usual prefix pays for no more than before.
 pub fn minted_metadata<M: ManagedTypeApi>(attributes: &ManagedBuffer<M>) -> ManagedBuffer<M> {
     const MARK: &[u8] = b";metadata:";
-    let mut head = [0u8; 256];
+    let mut head = [0u8; 512];
     let searched = attributes.len().min(head.len());
     attributes.load_slice(0, &mut head[..searched]);
     match head[..searched]
