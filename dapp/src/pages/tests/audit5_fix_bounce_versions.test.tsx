@@ -360,7 +360,10 @@ describe('the words before signing, on both versions', () => {
   it('a claim: the tokens could come back and the key stays (version 4, mainnet since 1 Nov 2026)', () => {
     const text = warning('frozen', 'claim');
     expect(text).toMatch(/tokens could come back to the contract/);
-    expect(text).toMatch(/claim key stays in your wallet/);
+    // A final claim burns the key: it must never read as staying, whatever claim this is.
+    expect(text).toMatch(/a key with more to pay stays in your wallet/i);
+    expect(text).toMatch(/the key of a last claim is burned/i);
+    expect(text).not.toMatch(/your claim key stays/i);
     expect(text).not.toMatch(/perhaps with the claim key/);
     expect(text).not.toMatch(/the tokens and the claim key/);
   });
@@ -374,7 +377,9 @@ describe('the words before signing, on both versions', () => {
     await flush();
     const text = (container.textContent ?? '').replace(/\s+/g, ' ');
     expect(text).not.toMatch(/what it paid and the claim key can come back/);
-    expect(text).toMatch(/claim key stays in your wallet/);
+    expect(text).toMatch(/a key with more to pay stays in your wallet/i);
+    expect(text).toMatch(/the key of a last claim is burned/i);
+    expect(text).not.toMatch(/your claim key stays/i);
     expect(text).not.toMatch(/perhaps with the claim key/);
   });
 
@@ -384,7 +389,9 @@ describe('the words before signing, on both versions', () => {
       'utf8'
     ).replace(/\s+/g, ' ');
     expect(html).not.toMatch(/send your tokens and key back/);
-    expect(html).toMatch(/claim key stays in your wallet/);
+    expect(html).toMatch(/a key with more to pay stays in your wallet/i);
+    expect(html).toMatch(/the key of a last claim is burned/i);
+    expect(html).not.toMatch(/your claim key stays/i);
     expect(html).not.toMatch(/perhaps with the claim key/);
   });
 });

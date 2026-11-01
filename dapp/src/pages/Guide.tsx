@@ -480,8 +480,9 @@ export const Guide = () => (
         each issuer can do. A claim or a refund of a token paused or frozen for
         your wallet is refused at your wallet and what it paid can come back to
         the contract: the money is safe there, but only the owner multisig can
-        send it on, by a vote. Your claim key stays in your wallet. The page
-        reads this before you sign and warns you.
+        send it on, by a vote. A key with more to pay stays in your wallet; the
+        key of a last claim is burned. The page reads this before you sign and
+        warns you.
         <Shot
           src='22-issuer'
           caption="The issuer's powers as the page says them, here for FOXSY. The page reads each token's own settings."
