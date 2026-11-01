@@ -1,0 +1,343 @@
+{
+  "name": "audit5 PROTO: a smart contract as the caller of claim, on the Go VM. The caller is the Go VM's own paymaster test contract (audit5/paymaster.wasm, from mx-chain-vm-go v1.6.0 test/paymaster): forwardExecution(relayer, dest, endpoint) pays the first payment to the relayer and sends the rest to dest.endpoint in an async call; on success it forwards what came back to the original caller. One paymaster is payable by smart contracts, the other is not: both claims succeed, because a payout with no function to the contract that is calling is a back transfer, which the VM delivers without a payable check (mx-chain-vm-go vmhost/contexts/output.go, isBackTransferWithoutExecution). No code of the caller runs inside claim; the caller gets the payout and the key.",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:relayer": {
+          "nonce": "1",
+          "balance": "0"
+        },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "2,000"
+          }
+        },
+        "address:alice": {
+          "nonce": "0",
+          "balance": "0",
+          "esdt": {
+            "str:FEE-123456": "100,000"
+          }
+        },
+        "sc:paymaster": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:audit5/paymaster.wasm",
+          "codeMetadata": "0x0506",
+          "owner": "address:owner"
+        },
+        "sc:paymaster-not-payable": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "file:audit5/paymaster.wasm",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner"
+        },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": {
+        "blockTimestamp": "1767225600"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-1",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:one"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "1"
+        ]
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "create-2",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "false",
+          "str:two"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FOX-a1b2c3",
+            "value": "1000"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*",
+        "out": [
+          "2"
+        ]
+      }
+    },
+    {
+      "step": "setState",
+      "comment": "half way: 500 FOX claimable on each key",
+      "currentBlockInfo": {
+        "blockTimestamp": "1767226100"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-through-a-payable-contract",
+      "comment": "the paymaster is the caller mvxvest sees; the 500 FOX and the key come back to it and it hands them to alice",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:paymaster",
+        "function": "forwardExecution",
+        "arguments": [
+          "address:relayer",
+          "sc:mvxvest",
+          "str:claim"
+        ],
+        "gasLimit": "200,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FEE-123456",
+            "value": "20,000"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "1",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "vesting-1-paid-500",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "1"
+        ]
+      },
+      "expect": {
+        "out": [
+          ""
+        ],
+        "status": "0"
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "claim-through-a-contract-not-payable-by-contracts",
+      "comment": "the payout and the key go back to the calling contract even though it is not payable by contracts: a back transfer",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:paymaster-not-payable",
+        "function": "forwardExecution",
+        "arguments": [
+          "address:relayer",
+          "sc:mvxvest",
+          "str:claim"
+        ],
+        "gasLimit": "200,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          {
+            "tokenIdentifier": "str:FEE-123456",
+            "value": "20,000"
+          },
+          {
+            "tokenIdentifier": "str:VESTKEY-123456",
+            "nonce": "2",
+            "value": "1"
+          }
+        ]
+      },
+      "expect": {
+        "status": "0",
+        "logs": "*",
+        "gas": "*",
+        "refund": "*"
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "vesting-2-paid-500-too",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getClaimable",
+        "arguments": [
+          "2"
+        ]
+      },
+      "expect": {
+        "out": [
+          ""
+        ],
+        "status": "0"
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "no-surplus-no-deficit",
+      "tx": {
+        "to": "sc:mvxvest",
+        "function": "getDeficit",
+        "arguments": [
+          "str:FOX-a1b2c3"
+        ]
+      },
+      "expect": {
+        "out": [
+          ""
+        ],
+        "status": "0"
+      }
+    },
+    {
+      "step": "checkState",
+      "comment": "alice: 1000 FOX and both keys back through the paymasters; the paymasters hold nothing; the contract holds 1000 FOX and no key",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FEE-123456": "60,000",
+            "str:FOX-a1b2c3": "1000",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1"
+                }
+              ]
+            }
+          },
+          "storage": "*"
+        },
+        "address:relayer": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FEE-123456": "40,000"
+          },
+          "storage": "*"
+        },
+        "sc:paymaster": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {},
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:paymaster-not-payable": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {},
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "0",
+          "esdt": {
+            "str:FOX-a1b2c3": "1000",
+            "str:VESTKEY-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn",
+                "ESDTRoleNFTUpdate"
+              ],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": [
+                "ESDTRoleNFTCreate",
+                "ESDTRoleNFTBurn"
+              ],
+              "lastNonce": "0"
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    }
+  ]
+}

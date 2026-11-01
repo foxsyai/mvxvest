@@ -1,0 +1,345 @@
+{
+  "name": "audit5 MONEY, safe: a token whose issuer freezes and wipes the contract's balance harms only that token",
+  "comment": "Mallory issued EVIL (canFreeze, canWipe). The creator vests 1000 FOX and 1000 EVIL for alice, both cancelable. Mallory freezes the contract for EVIL and wipes its balance (the protocol's ESDTFreeze then ESDTWipe, here written as the state they leave). From then on: getDeficit(EVIL) shows the hole and getSurplus(EVIL) 0; FOX's books read 0 both ways; alice's FOX key claims as before while the EVIL key fails, alone or together with the FOX key, with nothing paid and both keys back; the EVIL cancel fails too while the FOX cancel pays its refund; the FOX balance can never be taken for EVIL (recoverSurplus of FOX: no surplus).",
+  "steps": [
+    {
+      "step": "setState",
+      "accounts": {
+        "address:owner": { "nonce": "1", "balance": "0" },
+        "address:creator": {
+          "nonce": "1",
+          "balance": "10,000",
+          "esdt": { "str:FOX-a1b2c3": "1,000", "str:EVIL-123456": "1,000" }
+        },
+        "address:alice": { "nonce": "0", "balance": "0" },
+        "sc:mvxvest": {
+          "nonce": "0",
+          "balance": "0",
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "codeMetadata": "0x0500",
+          "owner": "address:owner",
+          "storage": {
+            "str:claimKey": "str:VESTKEY-123456",
+            "str:cancelKey": "str:VESTCANCEL-123456"
+          },
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn", "ESDTRoleNFTUpdate"],
+              "lastNonce": "0"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn"],
+              "lastNonce": "0"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": { "blockTimestamp": "1767225600" }
+    },
+    {
+      "step": "scCall",
+      "id": "1000 FOX for alice, linear over 1000 s, cancelable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:team"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:FOX-a1b2c3", "value": "1000" }]
+      },
+      "expect": { "status": "0", "logs": "*", "gas": "*", "refund": "*", "out": ["1"] }
+    },
+    {
+      "step": "scCall",
+      "id": "1000 EVIL for alice, the same schedule, cancelable",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "create",
+        "arguments": [
+          "address:alice",
+          "1000",
+          "u64:1767225600|u64:1767225600|biguint:0|u64:1767226600|u8:0",
+          "true",
+          "str:airdrop"
+        ],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:EVIL-123456", "value": "1000" }]
+      },
+      "expect": { "status": "0", "logs": "*", "gas": "*", "refund": "*", "out": ["2"] }
+    },
+    {
+      "step": "scQuery",
+      "id": "before the wipe, the EVIL books balance",
+      "tx": { "to": "sc:mvxvest", "function": "getDeficit", "arguments": ["str:EVIL-123456"] },
+      "expect": { "out": ["0"], "status": "0" }
+    },
+    {
+      "step": "setState",
+      "comment": "EVIL's issuer freezes the contract for EVIL and wipes its balance: the contract's EVIL entry is now 0 and frozen; everything else stays",
+      "accounts": {
+        "sc:mvxvest": {
+          "update": true,
+          "code": "mxsc:../output/mvxvest.mxsc.json",
+          "esdt": {
+            "str:EVIL-123456": {
+              "instances": [{ "nonce": "0", "balance": "0" }],
+              "frozen": "true"
+            }
+          }
+        }
+      },
+      "currentBlockInfo": { "blockTimestamp": "1767226100" }
+    },
+    {
+      "step": "scQuery",
+      "id": "getDeficit(EVIL) shows the whole 1000 missing",
+      "tx": { "to": "sc:mvxvest", "function": "getDeficit", "arguments": ["str:EVIL-123456"] },
+      "expect": { "out": ["1000"], "status": "0" }
+    },
+    {
+      "step": "scQuery",
+      "id": "getSurplus(EVIL) is 0, not negative, not wrapped",
+      "tx": { "to": "sc:mvxvest", "function": "getSurplus", "arguments": ["str:EVIL-123456"] },
+      "expect": { "out": ["0"], "status": "0" }
+    },
+    {
+      "step": "scQuery",
+      "id": "FOX's books are untouched: no deficit",
+      "tx": { "to": "sc:mvxvest", "function": "getDeficit", "arguments": ["str:FOX-a1b2c3"] },
+      "expect": { "out": ["0"], "status": "0" }
+    },
+    {
+      "step": "scQuery",
+      "id": "and no surplus of FOX either",
+      "tx": { "to": "sc:mvxvest", "function": "getSurplus", "arguments": ["str:FOX-a1b2c3"] },
+      "expect": { "out": ["0"], "status": "0" }
+    },
+    {
+      "step": "scCall",
+      "id": "the EVIL key alone: the payout cannot leave the frozen, empty account; nothing changes",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:VESTKEY-123456", "nonce": "2", "value": "1" }]
+      },
+      "expect": { "status": "10", "message": "*", "logs": "*", "gas": "*", "refund": "*" }
+    },
+    {
+      "step": "scCall",
+      "id": "both keys together fail as a whole: nothing paid for FOX either",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [
+          { "tokenIdentifier": "str:VESTKEY-123456", "nonce": "1", "value": "1" },
+          { "tokenIdentifier": "str:VESTKEY-123456", "nonce": "2", "value": "1" }
+        ]
+      },
+      "expect": { "status": "10", "message": "*", "logs": "*", "gas": "*", "refund": "*" }
+    },
+    {
+      "step": "checkState",
+      "comment": "alice still holds both keys, unstamped, and got nothing; the contract still holds the 1000 FOX",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [""],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [""],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456;cancelable:1"
+                }
+              ]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "1000",
+            "str:EVIL-123456": {
+              "instances": [{ "nonce": "0", "balance": "0" }],
+              "frozen": "true"
+            },
+            "str:VESTKEY-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn", "ESDTRoleNFTUpdate"],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn"],
+              "lastNonce": "2"
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scCall",
+      "id": "the FOX key alone claims its 500 as if EVIL never existed",
+      "tx": {
+        "from": "address:alice",
+        "to": "sc:mvxvest",
+        "function": "claim",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:VESTKEY-123456", "nonce": "1", "value": "1" }]
+      },
+      "expect": { "status": "0", "logs": "*", "gas": "*", "refund": "*", "out": [] }
+    },
+    {
+      "step": "scCall",
+      "id": "the EVIL cancel cannot pay its refund: refused whole, the cancel key stays",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:VESTCANCEL-123456", "nonce": "2", "value": "1" }]
+      },
+      "expect": { "status": "10", "message": "*", "logs": "*", "gas": "*", "refund": "*" }
+    },
+    {
+      "step": "scCall",
+      "id": "the FOX cancel pays the creator the 500 not vested",
+      "tx": {
+        "from": "address:creator",
+        "to": "sc:mvxvest",
+        "function": "cancel",
+        "arguments": [],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0",
+        "esdtValue": [{ "tokenIdentifier": "str:VESTCANCEL-123456", "nonce": "1", "value": "1" }]
+      },
+      "expect": { "status": "0", "logs": "*", "gas": "*", "refund": "*", "out": [] }
+    },
+    {
+      "step": "scCall",
+      "id": "the owner cannot take FOX to cover EVIL: FOX has no surplus",
+      "tx": {
+        "from": "address:owner",
+        "to": "sc:mvxvest",
+        "function": "recoverSurplus",
+        "arguments": ["str:FOX-a1b2c3", "address:owner"],
+        "gasLimit": "100,000,000",
+        "gasPrice": "0"
+      },
+      "expect": { "status": "4", "message": "str:no surplus", "logs": "*", "gas": "*", "refund": "*" }
+    },
+    {
+      "step": "checkState",
+      "comment": "FOX: alice 500, creator 500 back, the contract 0; EVIL: still 0 and frozen in the contract; EVIL's claim and cancel keys still exist, its vesting uncancelled",
+      "accounts": {
+        "address:alice": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTKEY-123456": {
+              "instances": [
+                {
+                  "nonce": "1",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [""],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:1;token:FOX-a1b2c3;cancelable:1;claimed:500"
+                },
+                {
+                  "nonce": "2",
+                  "balance": "1",
+                  "creator": "sc:mvxvest",
+                  "uri": [""],
+                  "attributes": "str:tags:mvxvest,vesting;vesting:2;token:EVIL-123456;cancelable:1"
+                }
+              ]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "address:creator": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:FOX-a1b2c3": "500",
+            "str:VESTCANCEL-123456": {
+              "instances": [{ "nonce": "2", "balance": "1", "creator": "sc:mvxvest", "uri": [""], "attributes": "*" }]
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "sc:mvxvest": {
+          "nonce": "*",
+          "balance": "*",
+          "esdt": {
+            "str:EVIL-123456": {
+              "instances": [{ "nonce": "0", "balance": "0" }],
+              "frozen": "true"
+            },
+            "str:VESTKEY-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn", "ESDTRoleNFTUpdate"],
+              "lastNonce": "2"
+            },
+            "str:VESTCANCEL-123456": {
+              "roles": ["ESDTRoleNFTCreate", "ESDTRoleNFTBurn"],
+              "lastNonce": "2"
+            }
+          },
+          "storage": "*",
+          "code": "*"
+        },
+        "+": ""
+      }
+    },
+    {
+      "step": "scQuery",
+      "id": "the FOX books are closed: nothing owed, no deficit",
+      "tx": { "to": "sc:mvxvest", "function": "getDeficit", "arguments": ["str:FOX-a1b2c3"] },
+      "expect": { "out": ["0"], "status": "0" }
+    },
+    {
+      "step": "scQuery",
+      "id": "the EVIL hole is still exactly the 1000 owed",
+      "tx": { "to": "sc:mvxvest", "function": "getDeficit", "arguments": ["str:EVIL-123456"] },
+      "expect": { "out": ["1000"], "status": "0" }
+    }
+  ]
+}
