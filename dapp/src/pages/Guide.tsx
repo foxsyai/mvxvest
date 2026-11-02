@@ -210,15 +210,16 @@ const Verify = () =>
         or picture. Every page compares the contract&apos;s code and owner with
         these and warns at the top if they differ. The real site is only at
         mvxvest.io: a copy elsewhere can show the same pages, this box included.
-        What a copy cannot fake is where a transaction goes, which you check in
-        your wallet before you approve. An EGLD vesting names the contract above
-        as its receiver. A claim, a cancel and a vesting of a token that also
-        pays the EGLD fee name your own address as the receiver: the key or the
-        token goes to the contract and the transaction&apos;s data names it in
-        the hexadecimal form above. A wallet that decodes the transfer shows the
-        contract as the destination; a wallet or device that shows the raw
-        fields shows your own address and that data. Another address in that
-        place means it is not the real site.
+        Open it from a bookmark or type the address. Look at the address bar
+        before you connect. An EGLD vesting names the contract above as its
+        receiver. A claim, a cancel and a vesting of a token that also pays the
+        EGLD fee name your own address as the receiver: the key or the token
+        goes to the contract through your own account and the transaction&apos;s
+        data names it in the hexadecimal form above. xPortal (November 2026)
+        shows your own address and the token but not the data: for these it
+        cannot show where they go, so the site&apos;s address is the check that
+        counts. A wallet or device that shows the data shows the contract there;
+        another address in that place means it is not the real site.
       </p>
     </Card>
   ) : null;
@@ -366,8 +367,8 @@ export const Guide = () => (
         approve, check where it goes: an EGLD vesting names the contract as its
         receiver; a vesting of a token that also pays the EGLD fee, a claim and
         a cancel name your own address as the receiver, with the contract in the
-        data (both forms and what to compare are under Check that it is the real
-        mvxvest, below).
+        data, which xPortal does not show (what each wallet shows and what to
+        compare are under Check that it is the real mvxvest, below).
       </p>
       <Shot
         src='12-review'

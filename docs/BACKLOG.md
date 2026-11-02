@@ -22,7 +22,7 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 ## From the fifth audit
 
 - ~~**The upgrade to version 4**~~ (RT-1, PROTO-1, KEYS-1): live on mainnet since 1 Nov 2026, voted by the owners (MAINNET.md).
-- **Look at xPortal and a Ledger once:** the guide's words on what a wallet shows for a token transfer rest on the transaction's fields, not on a device's screen.
+- **Look at ~~xPortal~~ and a Ledger once:** the guide's words on what a wallet shows for a token transfer rest on the transaction's fields, not on a device's screen. xPortal was looked at on 2 Nov 2026 (a claim on devnet): it shows your own address, the key and the fee, no data. Both guides now say so and make the site's address the check for xPortal. A Ledger is still to look at.
 - ~~**Guide pictures**~~ Pictures 1 to 4 and 22 retaken on 1 Nov 2026 with the new wording. Pictures 5 to 21 are still true and were left.
 - ~~**Tag each release**~~ Done on 1 Nov 2026: `contract-v3` and `contract-v4`.
 - ~~**Dependabot security updates**~~ On since 1 Nov 2026.

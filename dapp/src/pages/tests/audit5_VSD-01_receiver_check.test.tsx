@@ -9,9 +9,10 @@
 // EGLD fee (MultiESDTNFTTransfer): the protocol routes every such transfer
 // through the sender's own account, so the transaction's receiver field is
 // the signer's own address and the contract appears only inside the data, as
-// 64 hexadecimal characters. A wallet that decodes the transfer (xPortal, the
-// web wallet) shows the destination; a device that shows the transaction's
-// fields (a Ledger, which the guide offers) shows the signer's own address.
+// 64 hexadecimal characters. A device that shows the transaction's fields
+// shows the signer's own address. (xPortal was thought to decode the transfer;
+// on 2 Nov 2026 it showed the signer's own address and no data at all: see
+// xportal_check_guide_wallet_view.test.tsx.)
 // A reader following the guide on a claim either learns to ignore the check
 // or has nothing to compare; a clone's transaction would show the same
 // receiver as the real site's.
