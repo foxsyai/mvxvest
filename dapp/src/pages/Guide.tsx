@@ -158,6 +158,13 @@ const Fact = ({
 );
 
 /**
+ * How every contract's address starts in hexadecimal: 8 zero bytes and the VM
+ * type. A Ledger cuts a claim's data a little after it (Flex) or inside it
+ * (Nano), so the guide gives the 16 characters that follow.
+ */
+const CONTRACT_HEX_COMMON = '00000000000000000500';
+
+/**
  * The identifiers to compare against: a clone of the site, or a key from a
  * look-alike collection, differs in at least one of them (red team RT8).
  */
@@ -219,7 +226,16 @@ const Verify = () =>
         shows your own address and the token but not the data: for these it
         cannot show where they go, so the site&apos;s address is the check that
         counts. A wallet or device that shows the data shows the contract there;
-        another address in that place means it is not the real site.
+        another address in that place means it is not the real site. A Ledger
+        shows only the start of the data. Every contract&apos;s hexadecimal form
+        starts with {CONTRACT_HEX_COMMON}; this one goes on{' '}
+        <span className='font-mono text-ink'>
+          {Address.newFromBech32(contractAddress)
+            .toHex()
+            .slice(CONTRACT_HEX_COMMON.length, CONTRACT_HEX_COMMON.length + 16)}
+        </span>
+        . If the Ledger&apos;s screen ends before these, the site&apos;s address
+        is the check that counts.
       </p>
     </Card>
   ) : null;
