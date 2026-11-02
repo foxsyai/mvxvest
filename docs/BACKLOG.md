@@ -32,7 +32,7 @@ Agreed work not done yet, roughly in order. The launch plan comes first; see [DE
 
 - ~~**Contract version 3**~~ (SCK-1, SCK-2, SCM-1): live on mainnet since 22 Oct 2026, audited by three reviewers and rehearsed on devnet; see [MAINNET.md](MAINNET.md#version-3-22-october-2026).
 - ~~**The first stamp on mainnet**~~ (version 3 runbook, step 7): done on 22 Oct 2026, vesting #3 (MAINNET.md).
-- **Owner decisions** (the report's last section), taken by Sebastian on 21 Oct 2026: the merge rules stay as they are, merging with the admin bypass; no HSTS preload. Still to do, later: DNS for mvxvest.io (SPF `-all`, DMARC `p=reject`, a null MX).
+- **Owner decisions** (the report's last section), taken by Sebastian on 21 Oct 2026: the merge rules stay as they are, merging with the admin bypass; no HSTS preload. ~~DNS for mvxvest.io~~: SPF `-all` and DMARC `p=reject` are set for mvxvest.io and mvxsafe.io (checked 2 Nov 2026). DigitalOcean's panel refuses the null MX and the server takes no mail on port 25, so that record is left out.
 - ~~**Require actions pinned to a full-length commit SHA**~~: turned on for the repository on 21 Oct 2026, once the CI change was on main.
 - **Renew `dapp/public/.well-known/security.txt`** before its `Expires` (1 July 2027).
 - ~~**Guide pictures** that show a vesting card or page predate the "cancelable" mark, the quoted labels and the claim keys' new names.~~ All 22 retaken with version 3 on 23 Oct 2026.
