@@ -27,10 +27,14 @@ export const Mine = () => {
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
   const [claiming, setClaiming] = useState<Vesting[] | null>(null);
+  // Each claim gets a panel of its own, also one started while the last
+  // one's result is still on screen.
+  const [round, setRound] = useState(0);
   const signing = useSigningRecord();
   const [tokenFilter, setTokenFilter] = useState<string | null>(null);
   const startClaim = (vestings: Vesting[]) => {
     signing.clear();
+    setRound((value) => value + 1);
     setClaiming(vestings);
   };
   // A spent key pays nothing: only the keys that pay are read and left out.
@@ -122,6 +126,9 @@ export const Mine = () => {
   }
 
   const now = Math.floor(Date.now() / 1000);
+  // No other claim while one is under way. Once its result is final and the
+  // list is read again, the cards offer theirs with the result still shown.
+  const busy = claiming !== null && !signing.settled(address);
   const all = data.data.list;
   const list = tokenFilter ? all.filter((v) => v.token === tokenFilter) : all;
   const ready = list.filter(worthClaiming);
@@ -163,7 +170,10 @@ export const Mine = () => {
         />
       )}
       onClose={closeClaim}
-      onFinished={() => data.reload()}
+      onFinished={(hashes, outcomes) =>
+        // Settled once the list read after the result is on screen.
+        data.reload().then(() => signing.settle(hashes, outcomes))
+      }
     />
   );
 
@@ -196,7 +206,7 @@ export const Mine = () => {
             value={tokenFilter}
             onChange={setTokenFilter}
           />
-          {ready.length > 1 && !claiming && (
+          {ready.length > 1 && !busy && (
             <Button onClick={() => startClaim(ready)}>
               Claim all ({ready.length})
             </Button>
@@ -206,7 +216,7 @@ export const Mine = () => {
               !payout.check ? (
                 <CheckingPayout />
               ) : (
-                <div className='space-y-3'>
+                <div key={round} className='space-y-3'>
                   <LeftOut keys={leftOut} check={payout.check} />
                   <PayoutUnread
                     tokens={unread}
@@ -222,6 +232,7 @@ export const Mine = () => {
               )
             ) : (
               <PayoutGate
+                key={round}
                 check={payout.check}
                 token={paying?.[0]?.token}
                 action='claim'
@@ -237,7 +248,7 @@ export const Mine = () => {
             list={list}
             now={now}
             actions={(v) =>
-              (v.claimable > 0n || spent(v)) && !claiming ? (
+              (v.claimable > 0n || spent(v)) && !busy ? (
                 // Any amount can be claimed from its own card; a small one is
                 // offered quietly.
                 <Button
