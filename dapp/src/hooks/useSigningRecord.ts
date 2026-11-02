@@ -50,10 +50,16 @@ export const useSigningRecord = () => {
      */
     settled: (sender: string) =>
       record?.sender === sender && Boolean(record.settled),
-    /** Pass the TxPanel's `onFinished` outcomes. */
-    settle: (outcomes: TxOutcome[]) =>
+    /**
+     * Pass the TxPanel's `onFinished` hashes and outcomes once the page has
+     * read its list again after them. Only for the signing they belong to: a
+     * page may have started another since.
+     */
+    settle: (hashes: string[], outcomes: TxOutcome[]) =>
       setRecord((current) =>
-        current?.sent ? { ...current, settled: outcomes.every(final) } : current
+        current?.sent && current.sent.hashes.join() === hashes.join()
+          ? { ...current, settled: outcomes.every(final) }
+          : current
       ),
     clear: () => setRecord(null)
   };

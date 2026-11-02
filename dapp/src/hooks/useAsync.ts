@@ -10,8 +10,11 @@ export interface AsyncState<T> {
   data?: T;
   error?: unknown;
   loading: boolean;
-  /** Runs it again (after a transaction, or when the reader asks). */
-  reload: () => void;
+  /**
+   * Runs it again (after a transaction or when the reader asks). Resolves
+   * once a read that started after this call has answered or failed.
+   */
+  reload: () => Promise<void>;
 }
 
 /**
@@ -34,7 +37,16 @@ export const useAsync = <T>(
   }>({ loading: true });
   const run = useRef(0);
   const [tick, setTick] = useState(0);
-  const reload = useCallback(() => setTick((value) => value + 1), []);
+  // Each waits for a read newer than the one running when it asked.
+  const waiting = useRef<{ after: number; done: () => void }[]>([]);
+  const reload = useCallback(
+    () =>
+      new Promise<void>((done) => {
+        waiting.current.push({ after: run.current, done });
+        setTick((value) => value + 1);
+      }),
+    []
+  );
 
   useEffect(() => {
     const onSettled = () => setTick((value) => value + 1);
@@ -50,11 +62,19 @@ export const useAsync = <T>(
         ? { ...previous, loading: true }
         : { loading: true, for: asked }
     );
+    const answered = () => {
+      const done = waiting.current.filter(({ after }) => after < id);
+      waiting.current = waiting.current.filter(({ after }) => after >= id);
+      done.forEach((waiter) => waiter.done());
+    };
     work().then(
-      (data) =>
-        id === run.current && setState({ data, loading: false, for: asked }),
-      (error) =>
-        id === run.current &&
+      (data) => {
+        if (id !== run.current) return;
+        setState({ data, loading: false, for: asked });
+        answered();
+      },
+      (error) => {
+        if (id !== run.current) return;
         setState((previous) => ({
           data:
             previous.for && same(previous.for, asked)
@@ -63,7 +83,9 @@ export const useAsync = <T>(
           error,
           loading: false,
           for: asked
-        }))
+        }));
+        answered();
+      }
     );
   }, [...deps, tick]);
 

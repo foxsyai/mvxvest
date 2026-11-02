@@ -128,7 +128,7 @@ export const Mine = () => {
   const now = Math.floor(Date.now() / 1000);
   // No other claim while one is under way. Once its result is final and the
   // list is read again, the cards offer theirs with the result still shown.
-  const busy = claiming !== null && (!signing.settled(address) || data.loading);
+  const busy = claiming !== null && !signing.settled(address);
   const all = data.data.list;
   const list = tokenFilter ? all.filter((v) => v.token === tokenFilter) : all;
   const ready = list.filter(worthClaiming);
@@ -170,10 +170,10 @@ export const Mine = () => {
         />
       )}
       onClose={closeClaim}
-      onFinished={(_, outcomes) => {
-        signing.settle(outcomes);
-        data.reload();
-      }}
+      onFinished={(hashes, outcomes) =>
+        // Settled once the list read after the result is on screen.
+        data.reload().then(() => signing.settle(hashes, outcomes))
+      }
     />
   );
 

@@ -138,8 +138,7 @@ export const Created = () => {
   const { list, count, held, cancelKeys } = data.data;
   // No other cancel while one is under way. Once its result is final and the
   // list is read again, the cards offer theirs with the result still shown.
-  const busy =
-    cancelling !== null && (!signing.settled(address) || data.loading);
+  const busy = cancelling !== null && !signing.settled(address);
   const cancelAction = (v: Vesting) =>
     v.cancelable &&
     v.cancelledAt === 0 &&
@@ -196,10 +195,10 @@ export const Created = () => {
               signing.clear();
               setCancelling(null);
             }}
-            onFinished={(_, outcomes) => {
-              signing.settle(outcomes);
-              data.reload();
-            }}
+            onFinished={(hashes, outcomes) =>
+              // Settled once the list read after the result is on screen.
+              data.reload().then(() => signing.settle(hashes, outcomes))
+            }
           />
         </PayoutGate>
       )}
