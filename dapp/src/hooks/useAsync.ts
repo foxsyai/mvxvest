@@ -12,7 +12,8 @@ export interface AsyncState<T> {
   loading: boolean;
   /**
    * Runs it again (after a transaction or when the reader asks). Resolves
-   * once a read that started after this call has answered or failed.
+   * once a read that started after this call has answered; a read that fails
+   * leaves it waiting for the next one.
    */
   reload: () => Promise<void>;
 }
@@ -84,7 +85,7 @@ export const useAsync = <T>(
           loading: false,
           for: asked
         }));
-        answered();
+        // What it waits for is still unread: the next read that answers.
       }
     );
   }, [...deps, tick]);

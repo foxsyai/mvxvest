@@ -18,7 +18,9 @@
 // marked "review": the actions came back one render early, on the list read
 // before the claim. They also went away during every later reload of the list.
 // The "fresh panel" tests pin the key that keeps an old panel (a "Go on anyway"
-// already pressed, a result already shown) from carrying over.
+// already pressed, a result already shown) from carrying over. Its second
+// look (7e52122) found that a read after the result that fails settled the
+// page all the same, on the list from before the claim.
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -39,6 +41,8 @@ let mockCreated: Vesting[] = [];
 // A read of the list waits for this, when a test holds it.
 let mockHold: Promise<void> | null = null;
 let mockFrozen = false;
+// The next reads of the list fail (an API that answers 502), while set.
+let mockReadFails = false;
 // Every card drawn: which vesting, its state and whether it had an action.
 let mockCards: {
   id: number;
@@ -132,6 +136,7 @@ const vesting = (id: number, more: Partial<Vesting> = {}): Vesting => ({
 jest.mock('chain/mine', () => ({
   claimableVestings: async () => {
     if (mockHold) await mockHold;
+    if (mockReadFails) throw new Error('502 Bad Gateway');
     return mockMine;
   },
   createdVestings: async () => {
@@ -173,6 +178,7 @@ beforeEach(() => {
   mockCreated = [vesting(21), vesting(22), vesting(23)];
   mockHold = null;
   mockFrozen = false;
+  mockReadFails = false;
   mockCards = [];
   mockAfterSend = () => undefined;
   sentAt = 0;
@@ -247,6 +253,40 @@ describe('My vestings, after a claim', () => {
     expect(
       after.filter((card) => card.offered && card.id === 21).map((c) => c.id)
     ).toEqual([]);
+  });
+
+  it('review: a read after the result that fails offers nothing yet', async () => {
+    mockStatus = 'success';
+    mockAfterSend = () => {
+      mockMine = [vesting(22), vesting(23)];
+      mockReadFails = true;
+    };
+    await signFirst(<Mine />, 'Claim');
+    expect(screen.getByText('done')).toBeTruthy();
+    // On 7e52122 the failed read settled the page: #21, its key burned,
+    // showed its old amount with Claim and "Claim all (3)" counted it.
+    expect(screen.queryAllByText('Claim')).toHaveLength(0);
+    expect(screen.queryByText(/^Claim all/)).toBeNull();
+    // The next read that answers (send()'s later timers) brings them back.
+    mockReadFails = false;
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent('mvxvest:settled'));
+    });
+    await flush();
+    expect(screen.queryAllByText('Claim')).toHaveLength(2);
+    expect(screen.queryByText('Claim all (2)')).not.toBeNull();
+  });
+
+  it('review: Close still offers the actions after a failed read', async () => {
+    mockStatus = 'success';
+    mockAfterSend = () => {
+      mockReadFails = true;
+    };
+    await signFirst(<Mine />, 'Claim');
+    expect(screen.queryAllByText('Claim')).toHaveLength(0);
+    fireEvent.click(screen.getByText('Close'));
+    await flush();
+    expect(screen.queryAllByText('Claim')).toHaveLength(3);
   });
 
   it('review: keeps the actions while the list is read again later', async () => {
