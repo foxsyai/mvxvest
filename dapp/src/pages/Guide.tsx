@@ -159,8 +159,8 @@ const Fact = ({
 
 /**
  * How every contract's address starts in hexadecimal: 8 zero bytes and the VM
- * type. A Ledger cuts a claim's data a little after it (Flex) or inside it
- * (Nano), so the guide gives the 16 characters that follow.
+ * type. A Ledger Flex shows 14 characters past it on a claim or a cancel of
+ * one key; a Nano ends inside it (ledger_check_guide_device_view.test.tsx).
  */
 const CONTRACT_HEX_COMMON = '00000000000000000500';
 
@@ -227,15 +227,16 @@ const Verify = () =>
         cannot show where they go, so the site&apos;s address is the check that
         counts. A wallet or device that shows the data shows the contract there;
         another address in that place means it is not the real site. A Ledger
-        shows only the start of the data. Every contract&apos;s hexadecimal form
-        starts with {CONTRACT_HEX_COMMON}; this one goes on{' '}
-        <span className='font-mono text-ink'>
+        shows only the start of the data. On a Ledger Flex it always shows{' '}
+        <span className='font-mono break-all text-ink'>
           {Address.newFromBech32(contractAddress)
             .toHex()
-            .slice(CONTRACT_HEX_COMMON.length, CONTRACT_HEX_COMMON.length + 16)}
+            .slice(0, CONTRACT_HEX_COMMON.length + 14)}
         </span>
-        . If the Ledger&apos;s screen ends before these, the site&apos;s address
-        is the check that counts.
+        : right after @01@ for one key, right after MultiESDTNFTTransfer@ for
+        several keys or a token vesting. If it does not, do not sign. On a Nano
+        the screen ends before it for one key; there the site&apos;s address is
+        the check that counts.
       </p>
     </Card>
   ) : null;

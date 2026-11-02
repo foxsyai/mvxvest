@@ -147,10 +147,11 @@
           from a bookmark or by typing it. A wallet or device that shows the transaction's data shows the contract
           there in hexadecimal:
           <span class="addr">00000000000000000500f882d8136db7846cdb650b16134bb5424da58ddfe614</span>. Another
-          address in that place means it is not the real site. A Ledger shows only the start of the data: every
-          contract's form starts with 00000000000000000500 and mvxvest's goes on
-          <span class="addr" style="white-space: nowrap">f882d8136db7846c</span>. If the Ledger's screen ends before these, the site's address
-          is the check that counts.</li>
+          address in that place means it is not the real site. A Ledger shows only the start of the data. On a
+          Ledger Flex a claim always shows
+          <span class="addr" style="white-space: nowrap">00000000000000000500f882d8136db784</span> right after @01@
+          (right after MultiESDTNFTTransfer@ when one transaction claims several keys). If it does not, do not sign.
+          On a Nano the screen ends before it for one key; there the site's address is the check that counts.</li>
         <li>Claiming costs only that small network fee, paid in EGLD. Keep a little EGLD in your wallet:
           around 0.05 is plenty.</li>
       </ul>

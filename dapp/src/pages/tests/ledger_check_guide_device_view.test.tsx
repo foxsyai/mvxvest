@@ -14,12 +14,22 @@
 // A Ledger reader cannot compare them: the end is not on the screen. Every
 // contract's form starts with the same 20 characters (8 zero bytes and the
 // VM type, 0500). Its last 4 come from the address that deployed it. So
-// neither end tells contracts apart. What does is the run right after 0500,
-// which a Flex shows on a claim.
+// neither end tells contracts apart. What does is the run right after 0500.
 //
-// The premise passes today. The guides' tests fail on a1a41f9 and pass once
-// both guides give that run, say a Ledger shows only the start of the data and
-// make the site's address the check when the screen ends before the run.
+// The first fix (e789974) gave 16 characters of that run and said: if the
+// Ledger's screen ends before them, the site's address is the check. Its
+// review found two holes. A copy of the site can pad a key's nonce or
+// quantity with zeros (the protocol reads both as numbers) so that a Flex
+// ends early on purpose. The guide then told the reader to accept that.
+// And a cancel on a Flex shows only 14 of the 16 once the cancel key's nonce
+// needs two bytes. On a Flex one key always shows 14 right after @01@, and
+// several keys show the whole contract right after MultiESDTNFTTransfer@. So
+// a Flex reader who does not see them must not sign; only a Nano, which never
+// shows them for one key, leaves the site's address as the check.
+//
+// The premise passes on e789974. The guides' tests fail there and pass once
+// both guides give 14 characters, say where they stand, tell a Flex reader
+// not to sign without them and leave the site's address to the Nano.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,8 +57,11 @@ const NANO = 64; // the app's source
 
 /** Every contract's hexadecimal form starts with this. */
 const COMMON = '00000000000000000500';
-/** The fewest characters after COMMON worth comparing (64 bits). */
-const RUN = 16;
+/**
+ * The characters after COMMON worth comparing: 56 bits, some 2^56 tries for
+ * a look-alike contract. A Flex shows them on a claim and on a cancel.
+ */
+const RUN = 14;
 
 const SENDER = 'erd1u05m7s9u4dthgzzgxd0795kaxpadhj93yv24nydjczw832a66qlsgw5esx';
 const DEVNET_CONTRACT =
@@ -56,18 +69,21 @@ const DEVNET_CONTRACT =
 const MAINNET_CONTRACT =
   'erd1qqqqqqqqqqqqqpgqlzpdsymdk7zxekm9pvtpxja4gfx6trwluc2qgmllsu';
 const MAINNET_CLAIM_KEY = 'VESTKEY-f56bea';
+/** Any other contract (the owner's multisig): where a copy sends the key. */
+const OTHER_CONTRACT =
+  'erd1qqqqqqqqqqqqqpgqe7jmywfkh74cam8uqnt762c54zuqgp6r6qlsul78u3';
 
 const hexOf = (bech32: string) => Address.newFromBech32(bech32).toHex();
+const hexText = (text: string) => Buffer.from(text).toString('hex');
 
-const claimData = async (contract: string, key: string, nonce: number) => {
+const keysData = async (
+  contract: string,
+  fn: 'claim' | 'cancel',
+  key: string,
+  nonces: number[]
+) => {
   const client = new VestingClient(contract, {} as any, '1');
-  const tx = await client.claim(SENDER, key, [nonce]);
-  return Buffer.from(tx.data).toString();
-};
-
-const cancelData = async (contract: string, key: string, nonce: number) => {
-  const client = new VestingClient(contract, {} as any, '1');
-  const tx = await client.cancel(SENDER, key, [nonce]);
+  const tx = await client[fn](SENDER, key, nonces);
   return Buffer.from(tx.data).toString();
 };
 
@@ -98,35 +114,48 @@ const beneficiaryText = () =>
 
 /**
  * The run of the contract's hexadecimal form after COMMON that a text gives
- * on its own, apart from the whole 64 characters.
+ * on its own (COMMON before it or not), apart from the whole 64 characters,
+ * and where it stands.
  */
-const runGiven = (text: string, hex: string) =>
-  (text.match(/(?<![0-9a-f])[0-9a-f]+(?![0-9a-f])/g) ?? []).find(
-    (run) => run !== hex && run.length >= RUN && hex.startsWith(COMMON + run)
-  );
+const runGiven = (text: string, hex: string) => {
+  for (const found of text.matchAll(/(?<![0-9a-f])[0-9a-f]+(?![0-9a-f])/g)) {
+    const token = found[0];
+    const run = token.startsWith(COMMON) ? token.slice(COMMON.length) : token;
+    if (token !== hex && run.length >= RUN && hex.startsWith(COMMON + run))
+      return { run, at: found.index ?? -1 };
+  }
+  return { run: undefined, at: -1 };
+};
 
-/** Where the run stands on its own, not inside the whole 64 characters. */
-const runAt = (text: string, run: string) =>
-  text.search(new RegExp(`(?<![0-9a-f])${run}(?![0-9a-f])`));
+/** The sentences after the run, where a reader looks for what to do. */
+const sentencesAfter = (text: string, at: number) =>
+  text.slice(at, at + 500).split(/(?<=\.) /);
 
 const nonces = [1, 0x2df, 0xffff];
 
 describe('Ledger, the premise (passes today): the data is cut short', () => {
   it('the Flex cut the devnet claim it was shown after 40 characters of the contract', async () => {
     const hex = hexOf(DEVNET_CONTRACT);
-    const data = await claimData(DEVNET_CONTRACT, 'VESTKEY-8f217c', 0x2df);
+    const data = await keysData(
+      DEVNET_CONTRACT,
+      'claim',
+      'VESTKEY-8f217c',
+      [0x2df]
+    );
     expect(data).toHaveLength(128);
     expect(contractShown(data, hex, FLEX)).toBe(
       '00000000000000000500eda3c303c22c4cf1a240'
     );
   });
 
-  it('a claim or a cancel never shows the whole contract on a Ledger', async () => {
+  it('a claim or a cancel of one key never shows the whole contract on a Ledger', async () => {
     const hex = hexOf(contractAddress);
     for (const nonce of nonces) {
       for (const data of [
-        await claimData(contractAddress, keyCollections.claim, nonce),
-        await cancelData(contractAddress, keyCollections.cancel, nonce)
+        await keysData(contractAddress, 'claim', keyCollections.claim, [nonce]),
+        await keysData(contractAddress, 'cancel', keyCollections.cancel, [
+          nonce
+        ])
       ]) {
         expect(contractShown(data, hex, FLEX)).not.toBe(hex);
         expect(data.slice(0, FLEX)).not.toContain(hex.slice(-4));
@@ -137,69 +166,133 @@ describe('Ledger, the premise (passes today): the data is cut short', () => {
   it('on a Nano a claim ends before any character that tells contracts apart', async () => {
     const hex = hexOf(contractAddress);
     for (const nonce of nonces) {
-      const data = await claimData(
+      const data = await keysData(
         contractAddress,
+        'claim',
         keyCollections.claim,
-        nonce
+        [nonce]
       );
       expect(COMMON.startsWith(contractShown(data, hex, NANO))).toBe(true);
     }
   });
 
-  it('on a Flex a claim shows at least 16 characters after 0500', async () => {
+  it('on a Flex one key always shows 14 characters after 0500, right after @01@', async () => {
     const hex = hexOf(contractAddress);
+    const expected = `@01@${COMMON}${hex.slice(COMMON.length, COMMON.length + RUN)}`;
     for (const nonce of nonces) {
-      const data = await claimData(
-        contractAddress,
-        keyCollections.claim,
-        nonce
-      );
-      expect(contractShown(data, hex, FLEX)).toContain(
-        COMMON + hex.slice(COMMON.length, COMMON.length + RUN)
+      for (const data of [
+        await keysData(contractAddress, 'claim', keyCollections.claim, [nonce]),
+        await keysData(contractAddress, 'cancel', keyCollections.cancel, [
+          nonce
+        ])
+      ])
+        expect(data.slice(0, FLEX)).toContain(expected);
+    }
+  });
+
+  it('a cancel on a Flex shows fewer than 16 once its key nonce needs two bytes', async () => {
+    const hex = hexOf(contractAddress);
+    const data = await keysData(
+      contractAddress,
+      'cancel',
+      keyCollections.cancel,
+      [0x2df]
+    );
+    expect(contractShown(data, hex, FLEX).length - COMMON.length).toBe(14);
+  });
+
+  it('several keys name the contract first: a Flex shows it whole', async () => {
+    const hex = hexOf(contractAddress);
+    const data = await keysData(
+      contractAddress,
+      'claim',
+      keyCollections.claim,
+      [0x2df, 0xffff]
+    );
+    expect(data.slice(0, FLEX)).toContain(`MultiESDTNFTTransfer@${hex}`);
+  });
+
+  it('a copy can pad the nonce or the quantity so that a Flex ends before the contract', () => {
+    // The protocol reads a key's nonce and quantity as unsigned numbers, so
+    // leading zeros move the same key; only the destination differs.
+    const hex = hexOf(contractAddress);
+    const other = hexOf(OTHER_CONTRACT);
+    const collection = hexText(keyCollections.claim);
+    const zeros = '00'.repeat(20);
+    for (const data of [
+      `ESDTNFTTransfer@${collection}@02df@${zeros}01@${other}@636c61696d`,
+      `ESDTNFTTransfer@${collection}@${zeros}02df@01@${other}@636c61696d`
+    ]) {
+      const shown = data.slice(0, FLEX);
+      expect(shown).not.toContain(hex.slice(COMMON.length, COMMON.length + 4));
+      expect(shown).not.toContain(
+        other.slice(COMMON.length, COMMON.length + 4)
       );
     }
   });
 });
 
 describe('what the guides tell a Ledger reader to compare', () => {
-  it('How it works gives the run after 0500 that a Flex shows on a claim', async () => {
+  it('How it works gives the run a Flex shows right after @01@ on a claim and a cancel', async () => {
     const hex = hexOf(contractAddress);
-    const run = runGiven(await guideText(), hex);
+    const { run } = runGiven(await guideText(), hex);
     expect(run).toBeDefined();
     for (const nonce of nonces) {
-      const data = await claimData(
-        contractAddress,
-        keyCollections.claim,
-        nonce
-      );
-      expect(data.slice(0, FLEX)).toContain(COMMON + run);
+      for (const data of [
+        await keysData(contractAddress, 'claim', keyCollections.claim, [nonce]),
+        await keysData(contractAddress, 'cancel', keyCollections.cancel, [
+          nonce
+        ])
+      ])
+        expect(data.slice(0, FLEX)).toContain(`@01@${COMMON}${run}`);
     }
   });
 
-  it('How it works says a Ledger shows only the start and what counts past it', async () => {
+  it('How it works says where the run stands for one key and for several', async () => {
     const text = await guideText();
-    const run = runGiven(text, hexOf(contractAddress)) ?? '(none)';
-    const at = runAt(text, run);
+    const { at } = runGiven(text, hexOf(contractAddress));
     expect(at).toBeGreaterThan(-1);
-    expect(text.slice(Math.max(0, at - 300), at)).toMatch(
-      /Ledger[^.]*\b(start|beginning|first)\b/
-    );
-    expect(text.slice(at, at + 300)).toMatch(/site's address/);
+    const passage = text.slice(Math.max(0, at - 300), at + 300);
+    expect(passage).toMatch(/Ledger[^.]*\b(start|beginning|first)\b/);
+    expect(passage).toContain('@01@');
+    expect(passage).toContain('MultiESDTNFTTransfer@');
   });
 
-  it('the guide for beneficiaries gives the same for the mainnet contract', async () => {
+  it('How it works tells a Flex reader not to sign without it and leaves the site to the Nano', async () => {
+    const text = await guideText();
+    const { at } = runGiven(text, hexOf(contractAddress));
+    expect(at).toBeGreaterThan(-1);
+    const after = sentencesAfter(text, at);
+    expect(text.slice(Math.max(0, at - 300), at)).toMatch(/Flex/);
+    expect(after.join(' ')).toMatch(/do not sign/);
+    const site = after.filter((sentence) => /site's address/.test(sentence));
+    expect(site.length).toBeGreaterThan(0);
+    for (const sentence of site) expect(sentence).toMatch(/Nano/);
+  });
+
+  it('the guide for beneficiaries says the same for the mainnet contract', async () => {
     const text = beneficiaryText();
     const hex = hexOf(MAINNET_CONTRACT);
-    const run = runGiven(text, hex);
+    const { run, at } = runGiven(text, hex);
     expect(run).toBeDefined();
     for (const nonce of nonces) {
-      const data = await claimData(MAINNET_CONTRACT, MAINNET_CLAIM_KEY, nonce);
-      expect(data.slice(0, FLEX)).toContain(COMMON + run);
+      const data = await keysData(
+        MAINNET_CONTRACT,
+        'claim',
+        MAINNET_CLAIM_KEY,
+        [nonce]
+      );
+      expect(data.slice(0, FLEX)).toContain(`@01@${COMMON}${run}`);
     }
-    const at = runAt(text, run ?? '(none)');
-    expect(text.slice(Math.max(0, at - 300), at)).toMatch(
-      /Ledger[^.]*\b(start|beginning|first)\b/
-    );
-    expect(text.slice(at, at + 300)).toMatch(/site's address/);
+    const passage = text.slice(Math.max(0, at - 300), at + 300);
+    expect(passage).toMatch(/Ledger[^.]*\b(start|beginning|first)\b/);
+    expect(passage).toContain('@01@');
+    expect(passage).toContain('MultiESDTNFTTransfer@');
+    const after = sentencesAfter(text, at);
+    expect(text.slice(Math.max(0, at - 300), at)).toMatch(/Flex/);
+    expect(after.join(' ')).toMatch(/do not sign/);
+    const site = after.filter((sentence) => /site's address/.test(sentence));
+    expect(site.length).toBeGreaterThan(0);
+    for (const sentence of site) expect(sentence).toMatch(/Nano/);
   });
 });
