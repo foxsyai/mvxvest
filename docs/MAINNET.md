@@ -158,3 +158,5 @@ The contract was upgraded to version 4 by a vote of the owner multisig through m
 - the vesting count is still 3; `getClaimKeyStatus(1)` answers what `getVesting(1)` does; the live claim keys are where they were, with their names;
 - the balances are unchanged: 76.222222222222222223 FOXSY and 0.136083333333333334 EGLD; surplus and deficit 0 for both;
 - the fee (0.1 EGLD), the token fee (10), the fees accrued (0.1 EGLD), the pause flag (off) and the stamp (on) are unchanged.
+
+**The first claim on version 4 (2 Nov 2026).** `erd1u05m…gw5esx` claimed the rest of vesting #3 (`b1ffffd4d5f4fd5f29f4b4a88d8d1148fa34b19c3d86f33031fdba0f96b28a67`, 6.05M gas of 8.50M). It paid 0.036083333333333334 EGLD and burned `VESTKEY-f56bea-03` as a last claim does. With the claim of 22 Oct that is exactly the 0.05 EGLD vested. After it the contract holds 76.222222222222222223 FOXSY and 0.1 EGLD, the fees accrued; surplus and deficit 0 for both.
