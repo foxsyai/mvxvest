@@ -26,6 +26,9 @@ export const Created = () => {
   const isLoggedIn = useGetIsLoggedIn();
   const { address } = useGetAccount();
   const [cancelling, setCancelling] = useState<Vesting | null>(null);
+  // Each cancel gets a panel of its own, also one started while the last
+  // one's result is still on screen.
+  const [round, setRound] = useState(0);
   const signing = useSigningRecord();
   // A cancel pays this wallet what has not vested; with nothing left to pay it
   // reads nothing.
@@ -133,15 +136,20 @@ export const Created = () => {
 
   const now = Math.floor(Date.now() / 1000);
   const { list, count, held, cancelKeys } = data.data;
+  // No other cancel while one is under way. Once its result is final and the
+  // list is read again, the cards offer theirs with the result still shown.
+  const busy =
+    cancelling !== null && (!signing.settled(address) || data.loading);
   const cancelAction = (v: Vesting) =>
     v.cancelable &&
     v.cancelledAt === 0 &&
     cancelKeys.has(v.cancelNonce) &&
-    !cancelling ? (
+    !busy ? (
       <Button
         variant='danger'
         onClick={() => {
           signing.clear();
+          setRound((value) => value + 1);
           setCancelling(v);
         }}
       >
@@ -158,7 +166,7 @@ export const Created = () => {
       <RefusedPayouts wallet={address} kind='cancelled' />
       {cancelling && (
         <PayoutGate
-          key={cancelling.id}
+          key={round}
           check={payout.check}
           token={refund}
           action='cancel'
@@ -188,7 +196,10 @@ export const Created = () => {
               signing.clear();
               setCancelling(null);
             }}
-            onFinished={() => data.reload()}
+            onFinished={(_, outcomes) => {
+              signing.settle(outcomes);
+              data.reload();
+            }}
           />
         </PayoutGate>
       )}
