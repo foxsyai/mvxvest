@@ -10,7 +10,13 @@
 // version.txt that claims a clean commit. deploy.sh's own guard line is run
 // verbatim in a throwaway repository.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -33,9 +39,17 @@ const env = {
   GIT_CONFIG_SYSTEM: '/dev/null'
 };
 
+/** Every throwaway repository this file made; each test's are removed after it. */
+const made: string[] = [];
+afterEach(() => {
+  for (const dir of made.splice(0))
+    rmSync(dir, { recursive: true, force: true });
+});
+
 /** A repository with one pushed commit: public/robots.txt. */
 const throwawayRepo = () => {
   const repo = mkdtempSync(join(tmpdir(), 'audit3-deploy-gate-'));
+  made.push(repo);
   const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: repo, env, stdio: 'pipe' });
   git('init', '-q');

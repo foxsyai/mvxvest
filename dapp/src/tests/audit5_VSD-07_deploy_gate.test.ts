@@ -24,7 +24,13 @@
 // origin. The control passes today; the other three fail on 26b0d4c.
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -54,9 +60,17 @@ const env = {
   GIT_CONFIG_SYSTEM: '/dev/null'
 };
 
+/** Every throwaway folder this file made; each test's are removed after it. */
+const made: string[] = [];
+afterEach(() => {
+  for (const dir of made.splice(0))
+    rmSync(dir, { recursive: true, force: true });
+});
+
 /** A clone at the tip of main, with a bare origin that holds the same. */
 const throwawayRepo = () => {
   const base = mkdtempSync(join(tmpdir(), 'audit5-deploy-gate-'));
+  made.push(base);
   const origin = join(base, 'origin.git');
   const repo = join(base, 'dapp');
   execFileSync('git', ['init', '-q', '--bare', origin], { env, stdio: 'pipe' });
